@@ -4,7 +4,7 @@ application:
   host: "127.0.0.1"
   port: 1337
   debug: false
-  version: "3.2.0"
+  version: "4.0.0"
 
 utils:
   allowed_extensions:
@@ -34,13 +34,22 @@ analysis:
         - exe
         - dll
         - bin
-
+  
+  holygrail:
+    enabled: true
+    tool_path: ".\\Scanners\\HolyGrail\\HolyGrail.exe"
+    policies_path: ".\\Scanners\\HolyGrail\\Policies\\"
+    command: "{tool_path} -d {file_path} -p {policies_path} -j -o {results_path}"
+    results_path: ".\\Scanners\\HolyGrail\\Analysis\\"
+    timeout: 120
+  
   static:
     yara:
       enabled: true
       tool_path: ".\\Scanners\\Yara\\yara64.exe"
       command: "{tool_path} -s -m {rules_path} {file_path}"
       rules_path: ".\\Scanners\\Yara\\rules\\LitterBox.yar"
+      driver_rules_path: ".\\Scanners\\Yara\\rules\\LitterBox.yar"
       timeout: 120
     
     checkplz:

@@ -348,7 +348,7 @@ class BlenderAnalyzer {
             const data = await response.json();
             
             if (data.status === 'success') {
-                this.displayPayloads(data.file_based.files);
+                this.displayPayloads(data.payload_based.payloads);
             }
         } catch (error) {
             console.error('Error:', error);

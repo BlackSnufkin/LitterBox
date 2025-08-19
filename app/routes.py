@@ -12,7 +12,7 @@ from .utils import Utils
 from .analyzers.manager import AnalysisManager
 from .analyzers.blender import BlenderAnalyzer
 from .analyzers.fuzzy import FuzzyHashAnalyzer
-
+from .analyzers.holygrail import HolyGrailAnalyzer
 
 class RouteHelpers:
     """Centralized helper class to eliminate code duplication across routes"""
@@ -396,11 +396,43 @@ def register_routes(app):
     def _render_file_results(data, analysis_type, route_helpers, app):
         if analysis_type == 'info':
             return _render_file_info(data, utils, app)
+        elif analysis_type == 'byovd':
+            return _render_byovd_results(data, route_helpers, app)
         elif analysis_type in ['static', 'dynamic']:
             return _render_analysis_info(data, analysis_type, route_helpers, app)
         else:
             app.logger.debug(f"Invalid analysis type received: {analysis_type}")
             return render_template('error.html', error='Invalid analysis type.'), 400
+
+    def _render_byovd_results(data, route_helpers, app):
+        """Render driver-specific BYOVD analysis results"""
+        app.logger.debug("Rendering BYOVD (driver) results")
+        
+        # Check if this is actually a driver file
+        file_info = data['file_info']
+        filename = file_info.get('original_name', '')
+        if not _is_kernel_driver_file(filename):
+            app.logger.warning(f"BYOVD analysis requested for non-driver file: {filename}")
+            return render_template('error.html', error='BYOVD analysis is only available for driver files (.sys)'), 400
+        
+        # Load HolyGrail results
+        result_path = data['result_path']
+        holygrail_path = os.path.join(result_path, 'byovd_results.json')
+        
+        holygrail_results = None
+        if os.path.exists(holygrail_path):
+            holygrail_results = route_helpers.utils.load_json_file(holygrail_path)
+            app.logger.debug(f"Loaded HolyGrail results from: {holygrail_path}")
+        else:
+            app.logger.debug(f"No HolyGrail results found at: {holygrail_path}")
+        
+        app.logger.debug("Rendering byovd_info.html template")
+        return render_template(
+            'byovd_info.html',
+            file_info=file_info,
+            holygrail_results=holygrail_results,
+            has_holygrail_analysis=holygrail_results is not None
+        )
 
     def _render_file_info(data, utils, app):
         file_info = data['file_info']
@@ -485,7 +517,7 @@ def register_routes(app):
 
     def _format_scan_duration(analysis_results, logger):
         try:
-            raw_duration = analysis_results.get('checkplz', {}).get('findings', {}).get('scan_results', {}).get('scan_duration')
+            raw_duration = analysis_results.get('analysis_metadata', {}).get('total_duration', {})
             logger.debug(f"Raw scan duration value: {raw_duration}")
             scan_duration = float(raw_duration or 0)
             
@@ -530,10 +562,36 @@ def register_routes(app):
             else:
                 _process_file_summary(item, item_path, file_based_summary, utils, app.logger)
 
-        app.logger.debug("File and PID-based summaries successfully generated.")
+        # Separate drivers from payloads
+        driver_based_summary = {}
+        payload_based_summary = {}
+        
+        for key, file_data in file_based_summary.items():
+            filename = file_data.get('filename', '')
+            if filename.lower().endswith('.sys'):
+                driver_based_summary[key] = file_data
+            else:
+                payload_based_summary[key] = file_data
+
+
+        # Debug each driver in detail
+        for driver_key, driver_data in driver_based_summary.items():
+
+            
+            # Focus on risk assessment data
+            risk_assessment = driver_data.get('risk_assessment', {})
+            # Show all keys in driver data
+            app.logger.debug(f"All driver data keys: {list(driver_data.keys())}")
+            
+            # Show full driver data structure (be careful - this might be large)
+            app.logger.debug(f"Full driver data: {driver_data}")
+        
+
+
         return jsonify({
             'status': 'success',
-            'file_based': {'count': len(file_based_summary), 'files': file_based_summary},
+            'driver_based': {'count': len(driver_based_summary), 'drivers': driver_based_summary},
+            'payload_based': {'count': len(payload_based_summary), 'payloads': payload_based_summary},
             'pid_based': {'count': len(pid_based_summary), 'processes': pid_based_summary}
         })
 
@@ -608,38 +666,65 @@ def register_routes(app):
                 return
             logger.debug(f"Loaded file info for item: {item}")
 
-            static_path = os.path.join(item_path, 'static_analysis_results.json')
-            dynamic_path = os.path.join(item_path, 'dynamic_analysis_results.json')
+            filename = file_info.get('original_name', 'unknown')
+            is_driver = filename.lower().endswith('.sys')
+            
+            # Check for appropriate analysis files based on file type
+            if is_driver:
+                # Driver analysis uses byovd_results.json
+                byovd_path = os.path.join(item_path, 'byovd_results.json')
+                has_static_analysis = os.path.exists(byovd_path)
+                has_dynamic_analysis = False  # Drivers don't have dynamic analysis
+                
+                # Load BYOVD results for risk calculation
+                byovd_results = None
+                if has_static_analysis:
+                    byovd_results = utils.load_json_file(byovd_path)
+                    logger.debug(f"Loaded BYOVD analysis results for driver: {item}")
+                    
+                risk_score, risk_factors = utils.calculate_risk(
+                    analysis_type='driver',  # You'll need to handle this in utils.calculate_risk
+                    file_info=file_info,
+                    byovd_results=byovd_results
+                )
+            else:
+                # Standard payload analysis
+                static_path = os.path.join(item_path, 'static_analysis_results.json')
+                dynamic_path = os.path.join(item_path, 'dynamic_analysis_results.json')
 
-            static_results = None
-            if os.path.exists(static_path):
-                static_results = utils.load_json_file(static_path)
-                logger.debug(f"Loaded static analysis results for item: {item}")
+                static_results = None
+                if os.path.exists(static_path):
+                    static_results = utils.load_json_file(static_path)
+                    logger.debug(f"Loaded static analysis results for item: {item}")
 
-            dynamic_results = None
-            if os.path.exists(dynamic_path):
-                dynamic_results = utils.load_json_file(dynamic_path)
-                logger.debug(f"Loaded dynamic analysis results for item: {item}")
+                dynamic_results = None
+                if os.path.exists(dynamic_path):
+                    dynamic_results = utils.load_json_file(dynamic_path)
+                    logger.debug(f"Loaded dynamic analysis results for item: {item}")
 
-            risk_score, risk_factors = utils.calculate_risk(
-                analysis_type='file',
-                file_info=file_info,
-                static_results=static_results,
-                dynamic_results=dynamic_results
-            )
+                has_static_analysis = os.path.exists(static_path)
+                has_dynamic_analysis = os.path.exists(dynamic_path)
+                
+                risk_score, risk_factors = utils.calculate_risk(
+                    analysis_type='file',
+                    file_info=file_info,
+                    static_results=static_results,
+                    dynamic_results=dynamic_results
+                )
+
             risk_level = utils.get_risk_level(risk_score)
             
             file_based_summary[item] = {
                 'md5': file_info.get('md5', 'unknown'),
                 'sha256': file_info.get('sha256', 'unknown'),
-                'filename': file_info.get('original_name', 'unknown'),
+                'filename': filename,
                 'file_size': file_info.get('size', 0),
                 'upload_time': file_info.get('upload_time', 'unknown'),
                 'result_dir_full_path': os.path.abspath(item_path),
                 'entropy_value': file_info.get('entropy_analysis', {}).get('value', 0),
                 'detection_risk': file_info.get('entropy_analysis', {}).get('detection_risk', 'Unknown'),
-                'has_static_analysis': os.path.exists(static_path),
-                'has_dynamic_analysis': os.path.exists(dynamic_path),
+                'has_static_analysis': has_static_analysis,
+                'has_dynamic_analysis': has_dynamic_analysis,
                 'risk_assessment': {
                     'score': risk_score,
                     'level': risk_level,
@@ -819,6 +904,141 @@ def register_routes(app):
         else:
             return jsonify({'error': 'Invalid operation for fuzzy analysis'}), 400
 
+
+    # Add this route in the register_routes function in routes.py
+
+    @app.route('/holygrail', methods=['GET', 'POST'])
+    @error_handler
+    def holygrail():
+        """
+        holygrail endpoint for kernel driver analysis
+        GET: Render upload page or handle analysis request
+        POST: Handle file upload for kernel drivers
+        """
+        app.logger.debug("Accessed holygrail endpoint")
+        
+        if request.method == 'GET':
+            # Check if this is an analysis request
+            target_hash = request.args.get('hash')
+            
+            if target_hash:
+                app.logger.debug(f"Starting BYOVD analysis for hash: {target_hash}")
+                
+                try:
+                    # Find the uploaded file
+                    file_path = utils.find_file_by_hash(target_hash, app.config['utils']['upload_folder'])
+                    if not file_path:
+                        app.logger.error(f"Driver file not found for hash: {target_hash}")
+                        return jsonify({
+                            'status': 'error',
+                            'error': 'Driver file not found'
+                        }), 404
+                    
+                    app.logger.debug(f"Found driver file: {file_path}")
+                    
+                    # Find result path for saving analysis results
+                    result_path = utils.find_file_by_hash(target_hash, app.config['utils']['result_folder'])
+                    if not result_path:
+                        app.logger.error(f"Result path not found for hash: {target_hash}")
+                        return jsonify({
+                            'status': 'error',
+                            'error': 'Result path not found'
+                        }), 404
+                    
+                    app.logger.debug(f"Results will be saved to: {result_path}")
+                    
+                    # Run analysis
+                    analyzer = HolyGrailAnalyzer(app.config, logger=app.logger)
+                    results = analyzer.analyze(file_path)
+                    
+                    app.logger.debug(f"Analysis completed with status: {results.get('status')}")
+                    
+                    if results['status'] == 'completed':
+                        # pull compile_time directly from the file, not from file_info
+                        compile_time = None
+                        try:
+                            pe = utils.get_pe_info(file_path)
+                            pe_info = (pe or {}).get('pe_info') or {}
+                            compile_time = pe_info.get('compile_time')
+                        except Exception as e:
+                            app.logger.debug(f"Compile time extraction failed: {e}")
+                        
+                        # Add compile_time to results before saving
+                        if compile_time:
+                            results['compile_time'] = compile_time
+                            # Also add it to detailed_analysis if it exists
+                            if 'findings' in results and 'detailed_analysis' in results['findings']:
+                                results['findings']['detailed_analysis']['compile_time'] = compile_time
+                        
+                        # Save results to results folder like other analysis types
+                        route_helpers.save_analysis_results(results, result_path, 'byovd_results.json')
+                        app.logger.debug(f"HolyGrail results saved to: {result_path}/byovd_results.json")
+                        
+                        full_payload = {
+                            'status': 'success',
+                            'message': 'BYOVD analysis completed',
+                            'results': results,
+                            'compile_time': compile_time,
+                        }
+                        return jsonify(full_payload)
+
+                    elif results['status'] == 'disabled':
+                        return jsonify({
+                            'status': 'error',
+                            'message': 'holygrail analyzer is disabled in configuration',
+                            'error': results.get('error')
+                        }), 503
+                    else:
+                        app.logger.error(f"Analysis failed: {results.get('error')}")
+                        return jsonify({
+                            'status': 'error',
+                            'message': results.get('error', 'Analysis failed')
+                        }), 500
+                        
+                except Exception as e:
+                    app.logger.error(f"Exception during BYOVD analysis: {str(e)}", exc_info=True)
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Unexpected error: {str(e)}'
+                    }), 500
+            
+            # Regular page load
+            app.logger.debug("Rendering holygrail upload page")
+            return render_template('holygrail.html')
+        
+        # Handle file upload
+        if 'file' not in request.files:
+            app.logger.debug("No file part in holygrail request")
+            return jsonify({'error': 'No file part'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            app.logger.debug("No file selected in holygrail upload")
+            return jsonify({'error': 'No selected file'}), 400
+        
+        # Validate file is a driver
+        if not _is_kernel_driver_file(file.filename):
+            app.logger.debug(f"File '{file.filename}' is not a valid kernel driver format")
+            return jsonify({'error': 'File must be a kernel driver (.sys)'}), 400
+        
+        app.logger.debug(f"Kernel driver file '{file.filename}' uploaded. Saving...")
+        file_info = utils.save_uploaded_file(file)
+        
+        app.logger.debug(f"Kernel driver '{file.filename}' saved successfully")
+        return jsonify({
+            'message': 'Kernel driver uploaded successfully',
+            'file_info': file_info,
+            'next_step': 'Ready for BYOVD analysis'
+        }), 200
+    
+    def _is_kernel_driver_file(filename):
+        """Check if file is a potential kernel driver"""
+        if not filename:
+            return False
+        
+        driver_extensions = ['.sys']
+        return any(filename.lower().endswith(ext) for ext in driver_extensions)
+
     @app.route('/cleanup', methods=['POST'])
     @error_handler
     def cleanup():
@@ -831,9 +1051,10 @@ def register_routes(app):
         
         results = route_helpers.process_file_cleanup(folders_to_clean)
         
+        # Clean doppelganger folders
         doppelganger_base = app.config['analysis']['doppelganger']['db']['path']
         doppelganger_folders = [app.config['analysis']['doppelganger']['db']['blender']]
-
+        
         for folder_name in doppelganger_folders:
             folder_path = os.path.join(doppelganger_base, folder_name)
             if os.path.exists(folder_path):
@@ -849,7 +1070,8 @@ def register_routes(app):
                 except Exception as e:
                     app.logger.error(f"Error accessing folder {folder_path}: {e}")
                     results['errors'].append(f"Error accessing {folder_name}: {str(e)}")
-
+        
+        # Clean PE-Sieve analysis folders
         analysis_path = os.path.join('.', 'Scanners', 'PE-Sieve', 'Analysis')
         if os.path.exists(analysis_path):
             try:
@@ -857,7 +1079,28 @@ def register_routes(app):
             except Exception as e:
                 app.logger.error(f"Error accessing analysis folder: {e}")
                 results['errors'].append(f"Error accessing analysis folder: {str(e)}")
-
+        
+        # Clean HolyGrail analysis results
+        holygrail_config = app.config.get('analysis', {}).get('holygrail', {})
+        if holygrail_config.get('enabled', False):
+            holygrail_results_path = holygrail_config.get('results_path')
+            if holygrail_results_path and os.path.exists(holygrail_results_path):
+                app.logger.debug(f"Cleaning HolyGrail results folder: {holygrail_results_path}")
+                try:
+                    files = os.listdir(holygrail_results_path)
+                    for f in files:
+                        file_path = os.path.join(holygrail_results_path, f)
+                        if os.path.isfile(file_path):
+                            os.unlink(file_path)
+                            results['analysis_cleaned'] += 1
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                            results['analysis_cleaned'] += 1
+                            app.logger.debug(f"Deleted HolyGrail result folder: {file_path}")
+                except Exception as e:
+                    app.logger.error(f"Error cleaning HolyGrail results folder {holygrail_results_path}: {e}")
+                    results['errors'].append(f"Error cleaning HolyGrail results: {str(e)}")
+        
         status = 'warning' if results['errors'] else 'success'
         message = 'Cleanup completed with some errors' if results['errors'] else 'Cleanup completed successfully'
         app.logger.debug(f"Cleanup completed. Status: {status}, Message: {message}")
@@ -887,15 +1130,22 @@ def register_routes(app):
 
         static_section = analysis_config.get('static', {})
         dynamic_section = analysis_config.get('dynamic', {})
+        holygrail_section = analysis_config.get('holygrail', {})
 
+        # Check static analysis tools
         for tool_name in static_section.keys():
             _check_analysis_tool(static_section, tool_name, issues, app.logger)
 
+        # Check dynamic analysis tools
         for tool_name in dynamic_section.keys():
             _check_analysis_tool(dynamic_section, tool_name, issues, app.logger)
+        
+        # Check HolyGrail tool
+        _check_holygrail_tool(holygrail_section, issues, app.logger)
 
         static_tools = {tool: static_section.get(tool, {}).get('enabled', False) for tool in static_section.keys()}
         dynamic_tools = {tool: dynamic_section.get(tool, {}).get('enabled', False) for tool in dynamic_section.keys()}
+        holygrail_status = holygrail_section.get('enabled', False)
 
         status = 'ok' if not issues else 'degraded'
         app.logger.debug(f"Health check completed. Status: {status}")
@@ -907,9 +1157,47 @@ def register_routes(app):
             'issues': issues,
             'configuration': {
                 'static_analysis': static_tools,
-                'dynamic_analysis': dynamic_tools
+                'dynamic_analysis': dynamic_tools,
+                'holygrail_analysis': holygrail_status
             }
         }), 200 if status == 'ok' else 503
+
+    def _check_holygrail_tool(holygrail_config, issues, logger):
+        """Check HolyGrail tool configuration and availability"""
+        if holygrail_config.get('enabled', False):
+            logger.debug("Checking HolyGrail tool configuration")
+            
+            # Check tool path
+            tool_path = holygrail_config.get('tool_path')
+            if not tool_path:
+                issues.append("HolyGrail: tool path not configured")
+            elif not os.path.isfile(tool_path):
+                issues.append(f"HolyGrail: tool not found at {tool_path}")
+            
+            # Check policies path
+            policies_path = holygrail_config.get('policies_path')
+            if not policies_path:
+                issues.append("HolyGrail: policies path not configured")
+            elif not os.path.isdir(policies_path):
+                issues.append(f"HolyGrail: policies directory not found at {policies_path}")
+            
+            # Check results path (create if doesn't exist)
+            results_path = holygrail_config.get('results_path')
+            if not results_path:
+                issues.append("HolyGrail: results path not configured")
+            elif not os.path.exists(results_path):
+                try:
+                    os.makedirs(results_path, exist_ok=True)
+                    logger.debug(f"Created HolyGrail results directory: {results_path}")
+                except Exception as e:
+                    issues.append(f"HolyGrail: unable to create results directory {results_path}: {str(e)}")
+            
+            # Check timeout configuration
+            timeout = holygrail_config.get('timeout')
+            if timeout is None:
+                issues.append("HolyGrail: timeout not configured")
+            elif not isinstance(timeout, (int, float)) or timeout <= 0:
+                issues.append("HolyGrail: invalid timeout value")
 
     def _check_analysis_tool(section, tool_name, issues, logger):
         tool_config = section.get(tool_name, {})
@@ -1025,6 +1313,25 @@ def register_routes(app):
         with open(file_info_path, 'r') as f:
             app.logger.debug(f"Returning file info for target: {target}")
             return jsonify(json.load(f))
+
+    @app.route('/api/results/<target>/holygrail', methods=['GET'])
+    @error_handler
+    def api_byovd_info(target):
+        app.logger.debug(f"Fetching file info for target: {target}")
+        result_path = utils.find_file_by_hash(target, app.config['utils']['result_folder'])
+        if not result_path:
+            app.logger.warning(f"File info not found for target: {target}")
+            return jsonify({'error': 'File info not found'}), 404
+
+        file_info_path = os.path.join(result_path, 'byovd_results.json')
+        if not os.path.exists(file_info_path):
+            app.logger.warning(f"File info not found for target: {target}")
+            return jsonify({'error': 'File info not found'}), 404
+
+        with open(file_info_path, 'r') as f:
+            app.logger.debug(f"Returning file info for target: {target}")
+            return jsonify(json.load(f))
+        
         
     @app.route('/api/report/<target>', methods=['GET'])
     @error_handler

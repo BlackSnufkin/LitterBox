@@ -58,6 +58,7 @@ For Windows PE files (.exe, .dll, .sys):
 - Entry point analysis
 - Section enumeration and characterization
 - Import/export table mapping
+- Runtime detection for Go and Rust binaries with specialized import analysis
 
 ### Document Analysis
 
@@ -67,6 +68,17 @@ For Microsoft Office files:
 - VBA code security analysis
 - Hidden content identification
 - Obfuscation technique detection
+
+### LNK Analysis
+
+For Windows shortcut Files (.lnk)
+
+- Target execution paths and arguments
+- Machine tracking identifiers
+- Timestamps and file attributes
+- Network share information
+- Volume and drive details
+- Environment variables and metadata
 
 ## Analysis Engines
 
@@ -92,6 +104,15 @@ Capabilities include:
 - Sleep pattern analysis
 - Windows telemetry collection via ETW
 
+### HolyGrail BYOVD Analysis
+
+Find undetected legitimate drivers for BYOVD attacks:
+
+- **LOLDrivers Database**: Cross-reference against known vulnerable drivers
+- **Windows Block Policy**: Validation against Microsoft's recommended driver block rules for Windows 10/11
+- **Dangerous Import Analysis**: Detection of privileged functions commonly exploited in BYOVD attacks
+- **BYOVD Score Calculation**: Risk assessment based on exploitation potential and defensive controls
+
 ### Doppelganger Analysis
 
 #### Blender Module
@@ -112,6 +133,7 @@ Delivers code similarity analysis through:
 - [YARA](https://github.com/elastic/protections-artifacts/tree/main/yara) - Signature detection engine
 - [CheckPlz](https://github.com/BlackSnufkin/CheckPlz) - AV detection testing framework
 - [Stringnalyzer](https://github.com/BlackSnufkin/Rusty-Playground/Stringnalyzer) - Advanced string analysis utility
+- [HolyGrail](https://github.com/BlackSnufkin/HolyGrail) - BYOVD Hunter
 
 ### Dynamic Analysis Suite
 - [YARA Memory](https://github.com/elastic/protections-artifacts/tree/main/yara) - Runtime pattern detection
@@ -121,6 +143,7 @@ Delivers code similarity analysis through:
 - [RedEdr](https://github.com/dobin/RedEdr) - ETW telemetry collection
 - [Hunt-Sleeping-Beacons](https://github.com/thefLink/Hunt-Sleeping-Beacons) - C2 beacon analyzer
 - [Hollows-Hunter](https://github.com/hasherezade/hollows_hunter) - Process hollowing detection
+
 
 ## API Reference
 
@@ -135,6 +158,12 @@ GET    /files                     # Retrieve processed file list
 GET    /analyze/static/<hash>     # Execute static analysis
 POST   /analyze/dynamic/<hash>    # Perform dynamic file analysis  
 POST   /analyze/dynamic/<pid>     # Conduct process analysis
+```
+
+### HolyGrail BYOVD Analysis
+```http
+POST   /holygrail                 # Upload driver for BYOVD analysis
+GET    /holygrail?hash=<hash>     # Execute BYOVD analysis on uploaded driver
 ```
 
 ### Doppelganger API
@@ -156,6 +185,7 @@ GET    /api/results/<hash>/info      # Retrieve file metadata
 GET    /api/results/<hash>/static    # Access static analysis results
 GET    /api/results/<hash>/dynamic   # Obtain dynamic analysis data
 GET    /api/results/<pid>/dynamic    # Retrieve process analysis data
+GET    /api/results/<hash>/holygrail # Access BYOVD analysis results
 ```
 
 ### HTML Report Generation
@@ -171,6 +201,7 @@ GET    /results/<hash>/info      # View file information
 GET    /results/<hash>/static    # Access static analysis reports
 GET    /results/<hash>/dynamic   # View dynamic analysis reports
 GET    /results/<pid>/dynamic    # Access process analysis reports
+GET    /results/<hash>/byovd     # View BYOVD analysis results
 ```
 
 ### System Management
@@ -283,6 +314,8 @@ This project incorporates technologies from the following contributors:
 ![Dynamic Analysis](Screenshots/dynamic.png)
 
 ![Static Analysis](Screenshots/static.png)
+
+![BYOVD Analysis](Screenshots/byovd.png)
 
 ![Doppelganger Analysis](Screenshots/doppelganger.png)
 

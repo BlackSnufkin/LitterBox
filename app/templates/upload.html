@@ -1,4 +1,4 @@
-<!-- app/templates/upload.html -->
+<!-- app/templates/upload_updated.html -->
 
 {% extends "base.html" %}
 
@@ -6,9 +6,8 @@
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 py-6">
-    <!-- Progress Steps - Enhanced with better spacing and visual hierarchy -->
+    <!-- Progress Steps -->
     <div class="flex items-center space-x-6 mb-10">
-        <!-- Upload Step - Improved visibility and interaction states -->
         <div class="flex items-center space-x-4">
             <div id="step1Circle" class="w-12 h-12 rounded-full bg-red-500/10 border-2 border-red-500 flex items-center justify-center transition-all duration-300 shadow-lg">
                 <span id="step1Text" class="text-red-500 font-medium text-xl">1</span>
@@ -18,9 +17,7 @@
                 <span class="text-base text-gray-400">Select payload</span>
             </div>
         </div>
-        <!-- Progress Line - Enhanced visibility -->
         <div id="progressLine" class="flex-1 h-1 bg-gradient-to-r from-red-500/30 via-red-500/10 to-gray-800 transition-all duration-300"></div>
-        <!-- Analysis Step - Improved consistency -->
         <div class="flex items-center space-x-4">
             <div id="step2Circle" class="w-12 h-12 rounded-full bg-black/50 border-2 border-gray-700 flex items-center justify-center transition-all duration-300 shadow-lg">
                 <span id="step2Text" class="text-gray-500 font-medium text-xl">2</span>
@@ -32,26 +29,21 @@
         </div>
     </div>
 
-    <!-- Upload Area - Enhanced visual feedback and interactions -->
+    <!-- Upload Area -->
     <div id="uploadArea" class="transition-all duration-300">
         <div class="bg-black/60 backdrop-blur-lg rounded-xl border border-gray-800 shadow-xl">
-            <!-- Drop Zone - Improved drag and drop feedback -->
             <div id="dropZone" class="relative group">
                 <input type="file" id="fileInput" class="hidden" accept=".exe,.dll,.bin,.docx,.xlsx,.lnk,.sys">
                 <label for="fileInput" class="cursor-pointer block p-14 border-2 border-dashed border-gray-700 hover:border-red-500/50 m-8 rounded-xl transition-all duration-300">
-                    <!-- Enhanced hover gradient -->
                     <div class="absolute inset-0 bg-gradient-to-b from-red-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
                     
-                    <!-- Upload Content - Improved layout and spacing -->
                     <div class="relative space-y-8 text-center">
-                        <!-- Upload Icon - Enhanced visual feedback -->
                         <div class="upload-icon w-28 h-28 mx-auto bg-gradient-to-b from-red-500/15 to-red-500/5 rounded-full flex items-center justify-center transform transition-all duration-300 group-hover:scale-110">
                             <svg class="w-14 h-14 text-red-500 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                             </svg>
                         </div>
                         
-                        <!-- Text Content - Enhanced typography and spacing -->
                         <div class="space-y-4">
                             <h3 class="text-xl font-medium text-gray-200 group-hover:text-white transition-colors">
                                 Drop payload here or click to browse
@@ -71,20 +63,20 @@
                     </div>
                 </label>
             </div>
-            <!-- Upload Status - Enhanced visibility -->
             <div id="uploadStatus" class="hidden px-8 pb-8"></div>
         </div>
     </div>
 
-    <!-- File Info & Analysis View - Improved layout and spacing -->
+    <!-- File Analysis Area -->
     <div id="fileAnalysisArea" class="hidden opacity-0 transform scale-95 transition-all duration-300 space-y-8 z-[40]">
         <!-- Analysis Options -->
         <div class="bg-black/60 backdrop-blur-lg rounded-xl border border-gray-800 shadow-xl">
             <div class="p-8">
                 <h4 class="text-xl font-medium text-gray-200 mb-8">Choose Analysis Type</h4>
-                <div class="grid grid-cols-2 gap-8">
-
-                    <!-- Static Analysis - Enhanced card design -->
+                
+                <!-- Regular Payload Analysis Options -->
+                <div id="regularAnalysisOptions" class="grid grid-cols-2 gap-8">
+                    <!-- Static Analysis -->
                     <button onclick="selectAnalysisType('static')" class="group text-left">
                         <div class="p-6 rounded-xl border border-gray-800 hover:border-red-500/50 bg-gradient-to-br from-gray-900/50 to-black/30 transition-all duration-300 hover:shadow-lg">
                             <div class="flex items-center space-x-4 mb-4">
@@ -126,10 +118,9 @@
                         </div>
                     </button>
 
-                    <!-- Dynamic Analysis - Enhanced warning states -->
+                    <!-- Dynamic Analysis -->
                     <button onclick="selectAnalysisType('dynamic')" class="group text-left w-full">
                         <div class="p-6 rounded-xl border border-gray-800 hover:border-red-500/50 bg-gradient-to-br from-gray-900/50 to-black/30 transition-all duration-300 hover:shadow-lg">
-                            <!-- Header Section -->
                             <div class="flex items-center space-x-4 mb-4">
                                 <div class="p-3 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
                                     <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +135,6 @@
                                         <p class="text-base text-gray-400">Runtime behavior analysis</p>
                                     </div>
                                     
-                                    <!-- Warning Icon with Tooltip -->
                                     <div class="relative inline-block"
                                          onmouseover="document.getElementById('dynamicTooltip').classList.remove('hidden')"
                                          onmouseout="document.getElementById('dynamicTooltip').classList.add('hidden')">
@@ -164,9 +154,7 @@
                                 Execute and monitor payload behavior in real-time with memory analysis.
                             </p>
 
-                            <!-- Tools Section - Two Columns -->
                             <div class="grid grid-cols-2 gap-x-6">
-                                <!-- Left Column -->
                                 <div class="space-y-3">
                                     <div class="flex items-center space-x-3 text-base text-gray-400">
                                         <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +176,6 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Right Column -->
                                 <div class="space-y-3">
                                     <div class="flex items-center space-x-3 text-base text-gray-400">
                                         <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,7 +200,127 @@
                         </div>
                     </button>
                 </div>
-                <!-- Add the command-line arguments input field -->
+
+                <!-- Driver Analysis Options (shown only for .sys files) -->
+                <div id="driverAnalysisOptions" class="hidden grid grid-cols-2 gap-8">
+                    <!-- Static Analysis (same for drivers) -->
+                    <button onclick="selectAnalysisType('static')" class="group text-left">
+                        <div class="p-6 rounded-xl border border-gray-800 hover:border-red-500/50 bg-gradient-to-br from-gray-900/50 to-black/30 transition-all duration-300 hover:shadow-lg">
+                            <div class="flex items-center space-x-4 mb-4">
+                                <div class="p-3 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
+                                    <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h5 class="text-lg font-medium text-gray-200 group-hover:text-white">Static Analysis</h5>
+                                    <p class="text-base text-gray-400">Driver structure analysis</p>
+                                </div>
+                            </div>
+                            
+                            <p class="text-base text-gray-400 group-hover:text-gray-300 mb-4">
+                                Analyze driver content and structure without loading. Identify signature-based patterns and static IOCs.
+                            </p>
+                            
+                            <div class="space-y-3">
+                                <div class="flex items-center space-x-3 text-base text-gray-400">
+                                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span>YARA Pattern Matching</span>
+                                </div>
+                                <div class="flex items-center space-x-3 text-base text-gray-400">
+                                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span>Driver Structure Analysis</span>
+                                </div>
+                                <div class="flex items-center space-x-3 text-base text-gray-400">
+                                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span>Import Analysis</span>
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- HolyGrail BYOVD Analysis -->
+                    <button onclick="selectAnalysisType('holygrail')" class="group text-left w-full">
+                        <div class="p-6 rounded-xl border border-gray-800 hover:border-yellow-500/50 bg-gradient-to-br from-gray-900/50 to-black/30 transition-all duration-300 hover:shadow-lg">
+                            <div class="flex items-center space-x-4 mb-4">
+                                <div class="p-3 bg-yellow-500/10 rounded-lg group-hover:bg-yellow-500/20 transition-colors">
+                                    <svg class="w-7 h-7 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <!-- HolyGrail Cup Icon -->
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h-1a1 1 0 000 2h1M18 9h1a1 1 0 010 2h-1"/>
+                                    </svg>
+                                </div>
+                                
+                                <div class="flex items-center space-x-2">
+                                    <div>
+                                        <h5 class="text-lg font-medium text-gray-200 group-hover:text-white">HolyGrail BYOVD</h5>
+                                        <p class="text-base text-gray-400">Driver vulnerability analysis</p>
+                                    </div>
+                                    
+                                    <div class="relative inline-block"
+                                         onmouseover="document.getElementById('holygrailTooltip').classList.remove('hidden')"
+                                         onmouseout="document.getElementById('holygrailTooltip').classList.add('hidden')">
+                                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <div id="holygrailTooltip" class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden">
+                                            <div class="bg-blue-500/10 border border-blue-900/20 text-blue-400 text-sm rounded-lg p-3 whitespace-nowrap shadow-xl">
+                                                Bring Your Own Vulnerable Driver analysis
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <p class="text-base text-gray-400 group-hover:text-gray-300 mb-4">
+                                Specialized analysis for kernel drivers to identify BYOVD vulnerabilities and potential abuse vectors.
+                            </p>
+
+                            <div class="grid grid-cols-2 gap-x-6">
+                                <div class="space-y-3">
+                                    <div class="flex items-center space-x-3 text-base text-gray-400">
+                                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <span>Microsoft Policy Validation</span>
+                                    </div>
+                                    <div class="flex items-center space-x-3 text-base text-gray-400">
+                                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <span>Identify LoLDrivers</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    <div class="flex items-center space-x-3 text-base text-gray-400">
+                                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <span>Known abused Kernel Imports</span>
+                                    </div>
+                                    <div class="flex items-center space-x-3 text-base text-gray-400">
+                                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <span>Digital Signature Check</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Command-line arguments input (only for dynamic analysis) -->
                 <div id="argsInputContainer" class="mt-6">
                     <label for="analysisArgs" class="block mb-2 text-gray-200 font-medium">
                         Command-line Arguments:
@@ -227,14 +334,13 @@
                                transition-colors duration-200"
                     />
                     <p class="mt-2 text-sm text-gray-400">
-                        Provide arguments for the payload (Dynamic Analysis).
+                        Provide arguments for the payload (Dynamic Analysis only).
                     </p>
                 </div>
             </div>
         </div>
 
-
-        <!-- File Information Card -->
+        <!-- File Information Card (unchanged) -->
         <div class="bg-black/60 backdrop-blur-sm rounded-xl border border-gray-800 shadow-lg">
             <div class="p-6">
                 <!-- Basic File Info -->
@@ -258,13 +364,13 @@
                         Upload Another File
                     </button>
                 </div>
+
                 <!-- File Analysis Data -->
                 <div class="space-y-6">
                     <!-- Hash Information -->
                     <div class="grid grid-cols-2 gap-4">
                         <div class="bg-gray-900/30 rounded-lg p-4">
                             <div class="flex items-center justify-between mb-2">
-                                <!-- 2413796590c3be5bc376ed9805cb595c -->
                                 <span class="text-base text-gray-300">MD5</span>
                                 <button onclick="copyHash('md5Hash')" class="px-2 py-1 text-sm text-gray-400 hover:text-red-500 flex items-center space-x-1 hover:bg-red-500/10 rounded transition-colors">
                                     <span>Copy</span>
@@ -313,9 +419,7 @@
                             <div class="relative h-2 bg-gray-800 rounded-full overflow-hidden">
                                 <div id="entropyBar" class="absolute h-full transition-all duration-300"></div>
                             </div>
-                            <div id="entropyNotes" class="text-sm text-gray-400 space-y-1">
-                                <!-- Populated by JS -->
-                            </div>
+                            <div id="entropyNotes" class="text-sm text-gray-400 space-y-1"></div>
                         </div>
                     </div>
 
@@ -335,7 +439,7 @@
                         </div>
                     </div>
 
-                    <!-- PE Checksum Info -->
+                    <!-- Additional analysis sections (unchanged from original) -->
                     <div id="checksumInfo" class="bg-gray-900/30 rounded-lg p-4 mb-4">
                         <div class="flex items-center justify-between mb-4">
                             <span class="text-base text-gray-300">PE Checksum Analysis</span>
@@ -351,22 +455,15 @@
                                 <div id="calculatedChecksum" class="text-base font-mono text-gray-300"></div>
                             </div>
                         </div>
-                        <div id="checksumNotes" class="mt-4 text-sm text-gray-400 space-y-1">
-                            <!-- Populated by JS -->
-                        </div>
+                        <div id="checksumNotes" class="mt-4 text-sm text-gray-400 space-y-1"></div>
                     </div>
 
-                    <!-- Suspicious Imports Analysis -->
                     <div id="suspiciousImports" class="bg-gray-900/30 rounded-lg p-4 mb-4 hidden">
                         <div class="flex items-center justify-between mb-4">
                             <span id="suspiciousImportsTitle" class="text-base text-gray-300">Suspicious Imports Analysis</span>
-                            <span id="suspiciousImportsCount" class="px-3 py-1 text-sm bg-red-500/10 text-red-500 rounded-full">
-                                <!-- Count populated by JS -->
-                            </span>
+                            <span id="suspiciousImportsCount" class="px-3 py-1 text-sm bg-red-500/10 text-red-500 rounded-full"></span>
                         </div>
-                        <div id="suspiciousImportsList" class="space-y-4">
-                            <!-- List populated by JS -->
-                        </div>
+                        <div id="suspiciousImportsList" class="space-y-4"></div>
                         <div class="border-t border-gray-800 pt-4 mt-4">
                             <div class="text-sm text-gray-400">
                                 <div class="flex items-center space-x-2">
@@ -380,42 +477,29 @@
                         </div>
                     </div>
 
-                    <!-- PE File Specific Info -->
                     <div id="peInfo" class="bg-gray-900/30 rounded-lg p-4 hidden">
                         <div class="space-y-6">
                             <div class="text-base text-gray-300 mb-2">Section Analysis</div>
-                            <div id="sectionsList" class="space-y-4">
-                                <!-- Populated by JS -->
-                            </div>
+                            <div id="sectionsList" class="space-y-4"></div>
                             <div class="border-t border-gray-800 pt-4">
                                 <div class="text-base text-gray-300 mb-2">Detection Notes</div>
-                                <div id="detectionNotes" class="space-y-2 text-sm text-gray-400">
-                                    <!-- Populated by JS -->
-                                </div>
+                                <div id="detectionNotes" class="space-y-2 text-sm text-gray-400"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Office File Specific Info -->
                     <div id="officeInfo" class="bg-gray-900/30 rounded-lg p-4 hidden">
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
                                 <span class="text-base text-gray-300">Macro Analysis</span>
                                 <span id="macroStatus" class="px-3 py-1 text-sm rounded-full"></span>
                             </div>
-                            <div id="macroDetectionNotes" class="space-y-2 text-sm text-gray-400">
-                                <!-- Populated by JS -->
-                            </div>
-                            <div id="macroInfo" class="text-sm text-gray-400">
-                                <!-- Populated by JS -->
-                            </div>
+                            <div id="macroDetectionNotes" class="space-y-2 text-sm text-gray-400"></div>
+                            <div id="macroInfo" class="text-sm text-gray-400"></div>
                         </div>
                     </div>
 
-                    <!-- Generic File Info -->
-                    <div id="fileSpecificInfo" class="bg-gray-900/30 rounded-lg p-4 text-base text-gray-300">
-                        <!-- Dynamically populated based on file type -->
-                    </div>
+                    <div id="fileSpecificInfo" class="bg-gray-900/30 rounded-lg p-4 text-base text-gray-300"></div>
                 </div>
             </div>
         </div>
@@ -425,13 +509,14 @@
 <!-- Toast Notifications -->
 <div id="toastContainer" class="fixed bottom-4 right-4 space-y-2"></div>
 {% endblock %}
+
 <script>
-    // Create a global config object that your JS can access
     window.serverConfig = {
         maxFileSize: {{ config.utils.max_file_size }},
         maxFileSizeMB: {{ (config.utils.max_file_size / 1024 / 1024) | round(1) }}
     };
 </script>
+
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/upload.js') }}"defer></script>
+<script src="{{ url_for('static', filename='js/upload.js') }}" defer></script>
 {% endblock %}

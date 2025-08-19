@@ -186,7 +186,7 @@ class FuzzyAnalyzer {
             const response = await this.api.getFiles();
             
             if (response.status === 'success') {
-                this.displayAvailableFiles(response.file_based.files);
+                this.displayAvailableFiles(response.payload_based.payloads);
             } else {
                 this.showError('Failed to load files');
             }

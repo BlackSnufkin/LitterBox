@@ -1950,6 +1950,69 @@ const tools = {
     },
 };
 
+// HolyGrail scan function (add this anywhere in the file)
+window.startHolyGrailScan = function() {
+    const pathParts = window.location.pathname.split('/');
+    const fileHash = pathParts[pathParts.length - 1];
+    
+    if (!fileHash) {
+        console.error('No file hash found');
+        return;
+    }
+
+    // Show loading message
+    const button = document.getElementById('holygrailAnalysisButton');
+    if (button) {
+        button.innerHTML = `
+            <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Starting HolyGrail Analysis...</span>
+        `;
+        button.disabled = true;
+    }
+
+    // Call HolyGrail analysis endpoint
+    fetch(`/holygrail?hash=${fileHash}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Redirect to results page
+            window.location.href = `/results/${fileHash}/byovd`;
+        } else {
+            // Handle error and restore button
+            console.error('HolyGrail analysis failed:', data.error || data.message);
+            restoreHolyGrailButton();
+        }
+    })
+    .catch(error => {
+        console.error('HolyGrail analysis error:', error);
+        restoreHolyGrailButton();
+    });
+
+    function restoreHolyGrailButton() {
+        if (button) {
+            button.innerHTML = `
+                <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h-1a1 1 0 000 2h1M18 9h1a1 1 0 010 2h-1"/>
+                </svg>
+                <span>HolyGrail BYOVD Scan</span>
+            `;
+            button.disabled = false;
+        }
+    }
+};
+
 // Initialize Everything
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize tab navigation
@@ -1964,7 +2027,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize PayloadManager
     const payloadManager = new PayloadManager();
-
+    // Check file extension and show appropriate button
+    const fileExtension = localStorage.getItem('currentFileExtension');
+    const dynamicButton = document.getElementById('dynamicAnalysisButton');
+    const holygrailButton = document.getElementById('holygrailAnalysisButton');
+    
+    if (fileExtension && fileExtension.toLowerCase() === 'sys') {
+        // Show HolyGrail button for .sys files
+        if (dynamicButton) dynamicButton.style.display = 'none';
+        if (holygrailButton) holygrailButton.style.display = 'flex';
+    } else {
+        // Show Dynamic Analysis button for other files
+        if (holygrailButton) holygrailButton.style.display = 'none';
+        if (dynamicButton) dynamicButton.style.display = 'flex';
+    }
     // Make modal functions globally accessible
     window.showDynamicWarning = () => modal.show();
     window.hideDynamicWarning = () => modal.hide();

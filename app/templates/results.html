@@ -57,7 +57,9 @@
                         - analysis_type is 'static'
                         - file_hash exists
                     #}
+                    <!-- Conditional Analysis Buttons -->
                     {% if analysis_type == 'static' %}
+                        <!-- This will be determined by JavaScript -->
                         <button id="dynamicAnalysisButton" onclick="showDynamicWarning()" 
                                 class="px-5 py-2.5 text-base text-yellow-500 border border-yellow-900/20 rounded-lg hover:bg-yellow-500/10 transition-colors flex items-center space-x-2">
                             <span>Run Dynamic Analysis</span>
@@ -65,8 +67,20 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                             </svg>
                         </button>
+                        
+                        <!-- HolyGrail button (initially hidden) -->
+                        <button id="holygrailAnalysisButton" onclick="startHolyGrailScan()" style="display: none;"
+                                class="px-5 py-2.5 text-base text-yellow-500 border border-yellow-900/20 rounded-lg hover:bg-yellow-500/10 transition-colors flex items-center space-x-2">
+                            <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h-1a1 1 0 000 2h1M18 9h1a1 1 0 010 2h-1"/>
+                            </svg>
+                            <span>HolyGrail BYOVD Scan</span>
+                        </button>
                     {% endif %}
-
                     {# 
                         Display "Run Static Analysis" button only if:
                         - analysis_type is NOT 'static' (i.e., 'dynamic')

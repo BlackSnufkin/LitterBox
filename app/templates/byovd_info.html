@@ -1,0 +1,346 @@
+<!-- app/templates/byovd_info.html - Ultra-Performance Optimized -->
+{% extends "base.html" %}
+{% block page_title %}Driver Analysis Results{% endblock %}
+
+{% block head %}
+<!-- Critical performance hints -->
+<link rel="preload" href="{{ url_for('static', filename='js/byovd_info.js') }}" as="script">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+{% endblock %}
+
+{% block content %}
+<style>
+/* Critical CSS - Inlined for immediate rendering */
+:root{
+  --bg-primary:#0a0a0f;--bg-secondary:#111118;--bg-card:rgba(16,17,27,.9);
+  --border-primary:rgba(255,255,255,.08);--text-primary:#f1f5f9;
+  --text-secondary:#94a3b8;--accent-primary:#8b5cf6;--accent-secondary:#06b6d4;
+  --danger:#ef4444;--success:#10b981;--warning:#f59e0b;
+}
+
+/* Optimized base with hardware acceleration */
+*{box-sizing:border-box}
+body{
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  font-family:system-ui,-apple-system,sans-serif;
+  line-height:1.5;
+  overscroll-behavior:none;
+}
+
+
+
+
+/* Simplified animated background - reduced complexity */
+.bg-grid{
+  position:fixed;inset:0;opacity:.02;z-index:-1;pointer-events:none;
+  background:radial-gradient(circle at 50px 50px,rgba(139,92,246,.1) 1px,transparent 1px);
+  background-size:100px 100px;
+  will-change:transform;
+  animation:grid-drift 30s linear infinite;
+}
+@keyframes grid-drift{
+  0%{transform:translate3d(0,0,0)}
+  100%{transform:translate3d(100px,100px,0)}
+}
+
+/* Ultra-optimized card system */
+.cyber-card{
+  background:var(--bg-card);
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border-primary);
+  border-radius:16px;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  contain:layout style paint;
+  transform:translate3d(0,0,0);
+}
+.cyber-card:hover{
+  transform:translate3d(0,-1px,0);
+  transition:transform .2s ease;
+}
+
+/* Minimal chip design for performance */
+.cyber-chip{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.4rem .8rem;font-size:.875rem;font-weight:500;
+  border-radius:8px;transition:transform .15s ease;
+  will-change:transform;contain:layout style;
+}
+.cyber-chip:hover{transform:translate3d(0,-1px,0)}
+.cyber-chip.danger{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.cyber-chip.success{background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)}
+.cyber-chip.warning{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3)}
+.cyber-chip.info{background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.3)}
+
+/* Optimized verdict styles - reduced animation complexity */
+.verdict-holy{
+  background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(251,191,36,.1));
+  border:1px solid rgba(245,158,11,.4);
+  border-radius:12px;padding:1.5rem;
+  position:relative;contain:layout style;
+}
+.verdict-holy::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(245,158,11,.6),transparent);
+  animation:glow 3s ease-in-out infinite;
+}
+@keyframes glow{
+  0%,100%{opacity:.3}
+  50%{opacity:.8}
+}
+
+.verdict-neutral{
+  background:rgba(100,116,139,.08);
+  border:1px solid rgba(100,116,139,.2);
+  border-radius:12px;padding:1.5rem;
+}
+
+/* Ultra-fast progress system */
+.progress-container{
+  width:100%;height:6px;background:rgba(255,255,255,.1);
+  border-radius:3px;overflow:hidden;contain:layout;
+}
+.progress-bar{
+  height:100%;background:linear-gradient(90deg,var(--accent-primary),var(--accent-secondary));
+  border-radius:3px;transition:width .4s cubic-bezier(.25,.8,.25,1);
+  will-change:width;
+}
+
+/* Optimized score display */
+.score-value{
+  font-size:2.5rem;font-weight:700;line-height:1;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;contain:layout style;
+}
+
+/* Minimal loading states */
+.skeleton{
+  background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.1),rgba(255,255,255,.05));
+  background-size:200% 100%;border-radius:6px;contain:layout;
+}
+.skeleton.animate{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{
+  0%,100%{opacity:.5}
+  50%{opacity:.8}
+}
+
+/* Performance optimizations */
+.fade-in{animation:fadeIn .3s ease;contain:layout}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.results-container{
+  min-height:500px;contain:layout style;
+  transform:translate3d(0,0,0);
+}
+
+.loading-state{
+  display:flex;align-items:center;gap:.75rem;
+  padding:2rem;justify-content:center;
+  color:var(--text-secondary);
+}
+.cyber-chip.warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-color: #f59e0b;
+  color: #fff;
+}
+
+.cyber-chip.warning:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  border-color: #d97706;
+}
+/* Optimized responsive design */
+@media(max-width:768px){
+  .cyber-card{border-radius:12px;margin:0 .5rem}
+  .score-value{font-size:2rem}
+  .results-container{min-height:400px}
+}
+
+/* Reduce motion for accessibility */
+@media(prefers-reduced-motion:reduce){
+  *,::before,::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .bg-grid{animation:none}
+}
+
+/* Dark mode optimization */
+@media(prefers-color-scheme:dark){
+  :root{color-scheme:dark}
+}
+
+/* Print optimization */
+@media print{
+  .bg-grid,.cyber-card{display:none}
+  body{background:white;color:black}
+}
+</style>
+
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+  <!-- Optimized header with reduced DOM complexity -->
+  <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+    <div class="min-w-0 flex-1">
+      <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-1 sm:mb-2">
+        HolyGrail BYOVD Results
+      </h1>
+      <p class="text-sm sm:text-base text-gray-300 truncate">
+        Driver Imports · LoLDrivers · Microsoft Block Policy
+      </p>
+    </div>
+    <nav class="flex-shrink-0">
+      <a href="/summary" class="cyber-chip info" rel="noopener">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Back to Summary
+      </a>
+    </nav>
+    <nav class="flex-shrink-0">
+      <a href="/results/{{ file_info.md5 }}/static" class="cyber-chip warning" rel="noopener">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Static Analysis Results
+      </a>
+    </nav>
+  </header>
+  
+  <!-- Optimized main container -->
+  <main role="main">
+    <div class="cyber-card">
+      <div class="p-4 sm:p-6 results-container" id="holygrailResults">
+        <!-- Optimized loading state -->
+        <div class="loading-state">
+          <div class="w-5 h-5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" aria-hidden="true"></div>
+          <span>Loading BYOVD analysis results…</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Inline critical JavaScript for immediate execution -->
+<script>
+// Immediate performance optimizations
+(function() {
+  'use strict';
+  
+  // Prevent layout shifts by setting initial state
+  const results = document.getElementById('holygrailResults');
+  if (results) {
+    results.style.minHeight = '500px';
+  }
+  
+  // Optimize font loading
+  if ('fonts' in document) {
+    document.fonts.ready.then(function() {
+      document.body.classList.add('fonts-loaded');
+    });
+  }
+  
+  // Reduce motion if requested
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.style.setProperty('--animation-duration', '0.01ms');
+  }
+  
+  // Optimize scroll behavior
+  if ('scrollBehavior' in document.documentElement.style) {
+    document.documentElement.style.scrollBehavior = 'smooth';
+  }
+  
+  // Connection-aware loading
+  if ('connection' in navigator) {
+    const connection = navigator.connection;
+    if (connection && (connection.effectiveType === '2g' || connection.effectiveType === 'slow-2g')) {
+      document.body.classList.add('slow-connection');
+      // Disable animations on slow connections
+      document.documentElement.style.setProperty('--animation-duration', '0ms');
+    }
+  }
+  
+  // Passive event listeners for better scroll performance
+  document.addEventListener('touchstart', function(){}, {passive: true});
+  document.addEventListener('touchmove', function(){}, {passive: true});
+  
+  // Preload critical resources
+  const criticalResources = [
+    '{{ url_for("static", filename="js/byovd_info.js") }}'
+  ];
+  
+  criticalResources.forEach(function(resource) {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.href = resource;
+    link.as = 'script';
+    document.head.appendChild(link);
+  });
+  
+  // Performance monitoring
+  if ('performance' in window && 'mark' in performance) {
+    performance.mark('byovd-template-loaded');
+  }
+})();
+</script>
+{% endblock %}
+
+{% block scripts %}
+<!-- Optimized script loading with performance hints -->
+{% if holygrail_results %}
+<script>
+// Pass server data to avoid redundant API calls
+window.holygrailResults = {{ holygrail_results | tojson }};
+if ('performance' in window && 'mark' in performance) {
+  performance.mark('byovd-data-available');
+}
+</script>
+{% endif %}
+
+<!-- Deferred loading with error handling -->
+<script>
+(function() {
+  function loadMainScript() {
+    const script = document.createElement('script');
+    script.src = '{{ url_for("static", filename="js/byovd_info.js") }}';
+    script.async = true;
+    script.onerror = function() {
+      console.error('[BYOVD] Failed to load main script');
+      const container = document.getElementById('holygrailResults');
+      if (container) {
+        container.innerHTML = '<div class="text-center py-8 text-red-400">Failed to load analysis interface. Please refresh the page.</div>';
+      }
+    };
+    document.head.appendChild(script);
+  }
+  
+  // Load script when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadMainScript);
+  } else {
+    loadMainScript();
+  }
+})();
+</script>
+
+<!-- Performance monitoring -->
+<script>
+if ('performance' in window && 'getEntriesByType' in performance) {
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      const navigation = performance.getEntriesByType('navigation')[0];
+      const loadTime = navigation.loadEventEnd - navigation.fetchStart;
+      
+      if (loadTime > 3000) {
+        console.warn('[BYOVD] Slow page load detected:', loadTime + 'ms');
+      }
+      
+      // Report Core Web Vitals if available
+      if ('web-vitals' in window) {
+        getCLS(console.log);
+        getFID(console.log);
+        getLCP(console.log);
+      }
+    }, 0);
+  });
+}
+</script>
+{% endblock %}

@@ -1,102 +1,114 @@
-<!-- app/templates/base.html -->
+<!-- app/templates/base_new.html -->
 <!DOCTYPE html>
+{% set favicon_url = url_for('static', filename='favicon.ico') %}
 <html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>{{ config.application.name }} - Malware Analysis</title>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}"/>
+    <link rel="icon" type="image/x-icon" href="{{ favicon_url }}"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
-    <style>
-        /* Simple fade animation for popover */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.2s ease-out;
-        }
-    </style>
 </head>
 <body class="bg-gradient-to-br from-black via-gray-900 to-black text-gray-100 min-h-screen font-['Inter'] antialiased">
 
     <!-- Sidebar -->
-    <div class="fixed top-0 left-0 h-full w-72 bg-black/60 backdrop-blur-xl border-r border-gray-800 shadow-lg flex flex-col justify-between">
-        <div class="p-8">
-            <!-- Logo Section -->
-            <div class="flex items-center space-x-4 mb-10">
-                <!-- Logo Icon -->
-                <div>
+    <div id="app-sidebar" class="app-sidebar bg-black/60 backdrop-blur-xl border-r border-gray-800 shadow-lg flex flex-col justify-between">
+        <!-- Toggle Button -->
+        <button id="sidebar-toggle" class="sidebar-toggle" title="Toggle Sidebar">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="text-gray-400">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        
+        <!-- Header Section -->
+        <div class="sidebar-header">
+            <div class="logo-wrapper">
+                <div class="logo-text">
                     <h1 class="text-2xl font-bold bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
                         {{ config.application.name }}
                     </h1>
                     <p class="text-xs text-gray-400">SandBox for Red Team</p>
                 </div>
-                <img src="{{ url_for('static', filename='favicon.ico') }}" class="w-20 h-20" alt="Logo"/>
-
+                <div class="logo-icon">
+                <img src="{{ favicon_url }}" class="w-16 h-16" alt="Logo"/>
+                </div>
             </div>
+        </div>
 
-            <!-- In base.html navigation -->
-            <nav class="space-y-3">
-                <a href="/" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-red-600/20 transition-colors group">
-                    <svg class="w-5 h-5 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Navigation Section -->
+        <div class="sidebar-nav flex-1">
+            <div class="border-t border-gray-700 mx-6"></div>
+            <nav class="space-y-1">
+                <a href="/" class="nav-item text-gray-400">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                     </svg>
-                    <span class="font-medium">Analyze Payload</span>
+                    <span class="nav-text">Analyze Payload</span>
+                    <div class="nav-tooltip">Analyze Payload</div>
                 </a>
 
-                <!-- Process Analysis Button -->
-                <button onclick="showProcessWarning()" class="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-red-600/20 transition-colors group">
-                    <svg class="w-5 h-5 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="showProcessWarning()" class="nav-item w-full text-gray-400">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
                     </svg>
-                    <span class="font-medium">Analyze Process</span>
+                    <span class="nav-text">Analyze Process</span>
+                    <div class="nav-tooltip">Analyze Process</div>
                 </button>
-                <!-- Doppelganger Button -->
-                <button onclick="openDoppelganger()" class="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-red-600/20 transition-colors group">
-                    <svg class="w-5 h-5 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
-                            d="M8 7h12M8 12h12M8 17h12M4 7h0M4 12h0M4 17h0">
-                        </path>
+                
+                <button onclick="openDoppelganger()" class="nav-item w-full text-gray-400">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12M8 12h12M8 17h12M4 7h0M4 12h0M4 17h0"/>
                         <circle cx="4" cy="7" r="1" stroke-width="1.5"/>
                         <circle cx="4" cy="12" r="1" stroke-width="1.5"/>
                         <circle cx="4" cy="17" r="1" stroke-width="1.5"/>
                     </svg>
-                    <span class="font-medium">Doppelganger</span>
+                    <span class="nav-text">Doppelganger</span>
+                    <div class="nav-tooltip">Doppelganger</div>
                 </button>
-                <!-- Summary Button -->
-                <button onclick="showSummary()" class="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-red-600/20 transition-colors group">
-                    <svg class="w-5 h-5 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                
+                <a href="/holygrail" class="nav-item text-gray-400">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h-1a1 1 0 000 2h1M18 9h1a1 1 0 010 2h-1"/>
+                    </svg>
+                    <span class="nav-text">HolyGrails</span>
+                    <div class="nav-tooltip">HolyGrails</div>
+                </a>
+                
+                <button onclick="showSummary()" class="nav-item w-full text-gray-400">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <span class="font-medium">Results Summary</span>
+                    <span class="nav-text">Results Summary</span>
+                    <div class="nav-tooltip">Results Summary</div>
                 </button>
-                <!-- Cleanup Button -->
-                <button onclick="cleanupSystem()" class="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-red-600/20 transition-colors group">
-                    <svg class="w-5 h-5 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                
+                <button onclick="cleanupSystem()" class="nav-item w-full text-gray-400">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
-                    <span class="font-medium">Cleanup Garbage</span>
+                    <span class="nav-text">Cleanup Garbage</span>
+                    <div class="nav-tooltip">Cleanup Garbage</div>
                 </button>
             </nav>
         </div>
 
-        <!-- System Status -->
-        <div id="status-container" class="p-4 bg-gradient-to-br from-gray-800 via-black to-gray-900 border-t border-gray-700 shadow-inner relative">
-            <div class="flex items-center space-x-3">
-                <div id="status-indicator" class="w-3 h-3 rounded-full bg-gray-500 transition-colors duration-200"></div>
-                <span class="text-sm text-gray-400">{{ config.application.name }} Status: 
-                    <span id="status-text" class="font-medium text-gray-400 transition-colors duration-200">Checking...</span>
+        <!-- Footer/Status Section -->
+        <div class="sidebar-footer bg-gradient-to-br from-gray-800 via-black to-gray-900 border-t border-gray-700 shadow-inner relative">
+            <div class="status-wrapper">
+                <div id="status-indicator" class="status-indicator bg-gray-500 transition-colors duration-200"></div>
+                <span class="status-text text-gray-400">
+                    {{ config.application.name }} Status: 
+                    <span id="status-text" class="font-medium transition-colors duration-200">Checking...</span>
                 </span>
             </div>
 
             <!-- Hidden popover for issues -->
-            <div 
-                id="issues-popover" 
-                class="hidden absolute bottom-full right-4 mb-2 bg-black border border-gray-700 text-gray-200 rounded-lg p-4 shadow-xl w-64 z-50 fade-in"
-            >
-                <!-- Arrow pointer -->
+            <div id="issues-popover" class="hidden absolute bottom-full right-4 mb-2 bg-black border border-gray-700 text-gray-200 rounded-lg p-4 shadow-xl w-64 z-50 fade-in">
                 <div class="absolute bottom-0 right-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-black border-r border-b border-gray-700"></div>
                 <h3 class="text-md font-semibold mb-2 text-red-400">System Issues</h3>
                 <ul id="issues-list" class="list-disc list-inside text-sm text-red-300 space-y-1"></ul>
@@ -105,9 +117,9 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="ml-72">
+    <div id="app-content" class="app-content">
         <!-- Top Bar -->
-        <div class="fixed top-0 right-0 left-72 h-16 bg-black/50 backdrop-blur-lg border-b border-gray-800 shadow-lg z-10">
+        <div id="app-topbar" class="app-topbar fixed top-0 right-0 h-16 bg-black/50 backdrop-blur-lg border-b border-gray-800 shadow-lg z-10">
             <div class="h-full px-8 flex items-center justify-between">
                 <h2 class="text-lg font-medium text-gray-200">{% block page_title %}{% endblock %}</h2>
                 <div class="flex items-center space-x-4">
@@ -123,69 +135,46 @@
             {% block content %}{% endblock %}
         </main>
     </div>
-            <!-- Process Analysis Modal -->
-            <div id="processWarningModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-                <div class="bg-gray-900 rounded-xl border border-red-900/20 p-6 max-w-lg w-full mx-4">
-                    <!-- Header -->
-                    <div class="flex items-center space-x-3 mb-4">
-                        <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                        </svg>
-                        <h3 class="text-lg font-medium text-gray-100">Process Analysis</h3>
-                    </div>
-                    
-                    <!-- Content -->
-                    <div class="text-gray-300 mb-6">
-                        <div class="mb-4">
-                            <label class="block text-sm text-gray-400 mb-2">Process ID (PID)</label>
-                            <input type="number" 
-                                   id="processId" 
-                                   class="w-full bg-gray-800/80 border border-gray-700 rounded-lg px-4 py-2 text-gray-600 placeholder-gray-600 focus:border-red-500 focus:ring-1 focus:ring-red-500/50 focus:outline-none transition-colors"
-                                   placeholder="Enter process ID">
-                        </div>
-                        <p class="text-sm text-yellow-500">This will perform dynamic analysis on the running process.</p>
-                    </div>
-
-                    <!-- Buttons -->
-                    <div class="flex justify-end space-x-3">
-                        <button onclick="hideProcessWarning()" 
-                                class="px-4 py-2 text-gray-400 hover:text-white">
-                            Cancel
-                        </button>
-                        <button onclick="startProcessAnalysis()" 
-                                class="px-4 py-2 text-red-500 border border-red-900/20 rounded-lg hover:bg-red-500/10">
-                            Start Analysis
-                        </button>
-                    </div>
-                </div>
+    
+    <!-- Process Analysis Modal -->
+    <div id="processWarningModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-gray-900 rounded-xl border border-red-900/20 p-6 max-w-lg w-full mx-4">
+            <div class="flex items-center space-x-3 mb-4">
+                <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-100">Process Analysis</h3>
             </div>
+            <div class="text-gray-300 mb-6">
+                <div class="mb-4">
+                    <label class="block text-sm text-gray-400 mb-2">Process ID (PID)</label>
+                    <input type="number" id="processId" class="w-full bg-gray-800/80 border border-gray-700 rounded-lg px-4 py-2 text-gray-600 placeholder-gray-600 focus:border-red-500 focus:ring-1 focus:ring-red-500/50 focus:outline-none transition-colors" placeholder="Enter process ID">
+                </div>
+                <p class="text-sm text-yellow-500">This will perform dynamic analysis on the running process.</p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button onclick="hideProcessWarning()" class="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+                <button onclick="startProcessAnalysis()" class="px-4 py-2 text-red-500 border border-red-900/20 rounded-lg hover:bg-red-500/10">Start Analysis</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Cleanup Warning Modal -->
     <div id="cleanupWarningModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
         <div class="bg-gray-900 rounded-xl border border-red-900/20 p-6 max-w-lg w-full mx-4">
-            <!-- Header -->
             <div class="flex items-center space-x-3 mb-4">
                 <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                 </svg>
                 <h3 class="text-lg font-medium text-gray-100">Warning: System Cleanup</h3>
             </div>
-            
-            <!-- Content -->
             <div class="text-gray-300 mb-6">
                 <p class="mb-4">This will permanently remove all uploaded files and analysis data.</p>
                 <p class="text-red-500">Are you sure you want to proceed?</p>
             </div>
-
-            <!-- Buttons -->
             <div class="flex justify-end space-x-3">
-                <button onclick="hideCleanupWarning()" 
-                        class="px-4 py-2 text-gray-400 hover:text-white">
-                    Cancel
-                </button>
-                <button onclick="executeCleanup()" 
-                        class="px-4 py-2 text-red-500 border border-red-900/20 rounded-lg hover:bg-red-500/10">
-                    Proceed
-                </button>
+                <button onclick="hideCleanupWarning()" class="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+                <button onclick="executeCleanup()" class="px-4 py-2 text-red-500 border border-red-900/20 rounded-lg hover:bg-red-500/10">Proceed</button>
             </div>
         </div>
     </div>

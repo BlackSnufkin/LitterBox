@@ -1,0 +1,843 @@
+<!-- app/templates/holygrail.html -->
+
+{% extends "base.html" %}
+{% block page_title %}HolyGrail – BYOVD Analysis{% endblock %}
+
+{% block content %}
+<style>
+  /* Performance-optimized CSS with GPU acceleration */
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #111118;
+    --bg-card: rgba(16, 17, 27, 0.85);
+    --border-primary: rgba(255, 255, 255, 0.08);
+    --border-accent: rgba(139, 92, 246, 0.3);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-primary: #8b5cf6;
+    --accent-secondary: #06b6d4;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --success: #10b981;
+  }
+
+  * { 
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* Optimized grid background - uses transform instead of background-position */
+  .bg-grid {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.03;
+    background-image: 
+      linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: -1;
+    will-change: transform;
+    animation: grid-move 20s linear infinite;
+  }
+
+  @keyframes grid-move {
+    0% { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(50px, 50px, 0); }
+  }
+
+  /* Optimized cards with GPU acceleration */
+  .cyber-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-primary);
+    border-radius: 20px;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+  }
+
+  .cyber-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .cyber-card:hover::before {
+    opacity: 1;
+  }
+
+  .cyber-card:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(139, 92, 246, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Optimized stepper */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(139, 92, 246, 0.05);
+    border-radius: 16px;
+    border: 1px solid rgba(139, 92, 246, 0.1);
+    transition: all 0.3s ease;
+    will-change: opacity, transform;
+  }
+
+  .stepper.analysis-complete {
+    opacity: 0;
+    transform: translate3d(0, -20px, 0);
+    pointer-events: none;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+  }
+
+  .step-circle {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    will-change: transform, background-color;
+  }
+
+  .step-circle.idle {
+    background: rgba(100, 116, 139, 0.1);
+    border: 2px solid rgba(100, 116, 139, 0.3);
+    color: var(--text-muted);
+  }
+
+  .step-circle.active {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border: 2px solid var(--accent-primary);
+    color: white;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .step-circle.done {
+    background: linear-gradient(135deg, var(--success), #059669);
+    border: 2px solid var(--success);
+    color: white;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale3d(1, 1, 1); }
+    50% { transform: scale3d(1.05, 1.05, 1); }
+  }
+
+  .step-connector {
+    width: 3rem;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.3));
+    border-radius: 1px;
+  }
+
+  /* Optimized upload zone */
+  .upload-zone {
+    position: relative;
+    border: 3px dashed var(--border-primary);
+    border-radius: 24px;
+    background: linear-gradient(135deg, 
+      rgba(139, 92, 246, 0.03) 0%, 
+      rgba(6, 182, 212, 0.03) 100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    will-change: transform, border-color;
+  }
+
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent, var(--accent-primary), transparent);
+    opacity: 0;
+    animation: rotate 3s linear infinite;
+    transition: opacity 0.3s ease;
+    will-change: transform, opacity;
+  }
+
+  .upload-zone:hover::before,
+  .upload-zone.drag-over::before {
+    opacity: 0.1;
+  }
+
+  @keyframes rotate {
+    100% { transform: rotate3d(0, 0, 1, 360deg); }
+  }
+
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: var(--accent-primary);
+    background: linear-gradient(135deg, 
+      rgba(139, 92, 246, 0.08) 0%, 
+      rgba(6, 182, 212, 0.08) 100%);
+    transform: scale3d(1.01, 1.01, 1);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+  }
+
+  .upload-content {
+    position: relative;
+    z-index: 2;
+    padding: 3rem;
+    text-align: center;
+  }
+
+  .upload-icon {
+    width: 5rem;
+    height: 5rem;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+    animation: float 6s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -8px, 0); }
+  }
+
+  /* Optimized progress bar */
+  .progress-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    will-change: width;
+  }
+
+  .progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.3), 
+      transparent);
+    animation: shimmer 1.5s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translate3d(-100%, 0, 0); }
+    100% { transform: translate3d(100%, 0, 0); }
+  }
+
+  /* Optimized console */
+  .console-log {
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    padding: 1rem;
+    max-height: 12rem;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-primary) transparent;
+  }
+
+  .console-log::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .console-log::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .console-log::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: 3px;
+  }
+
+  .console-line {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    animation: fadeInUp 0.3s ease;
+    will-change: opacity, transform;
+  }
+
+  .console-line .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    box-shadow: 0 0 8px var(--accent-primary);
+    animation: blink 1.5s ease-in-out infinite;
+    will-change: opacity;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  /* Optimized chips and badges */
+  .cyber-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    will-change: transform;
+  }
+
+  .cyber-chip:hover {
+    background: rgba(139, 92, 246, 0.15);
+    transform: translate3d(0, -1px, 0);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+  }
+
+  .cyber-chip.danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+  }
+
+  .cyber-chip.success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+  }
+  .cyber-button.warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-color: #f59e0b;
+  }
+
+  .cyber-button.warning:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    border-color: #d97706;
+  }
+  .cyber-chip.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fbbf24;
+  }
+
+  /* Optimized verdict banners */
+  .verdict-holy {
+    background: linear-gradient(135deg, 
+      rgba(245, 158, 11, 0.15), 
+      rgba(251, 191, 36, 0.1));
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 16px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .verdict-holy::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(245, 158, 11, 0.1), 
+      transparent);
+    animation: sweep 2s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @keyframes sweep {
+    0% { transform: translate3d(-100%, 0, 0); }
+    100% { transform: translate3d(100%, 0, 0); }
+  }
+
+  .verdict-neutral {
+    background: linear-gradient(135deg, 
+      rgba(100, 116, 139, 0.1), 
+      rgba(71, 85, 105, 0.05));
+    border: 1px solid rgba(100, 116, 139, 0.2);
+    border-radius: 16px;
+    padding: 1.5rem;
+  }
+
+  /* Optimized score display */
+  .score-display {
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, 
+      rgba(139, 92, 246, 0.05), 
+      rgba(6, 182, 212, 0.05));
+    border-radius: 16px;
+    border: 1px solid rgba(139, 92, 246, 0.1);
+  }
+
+  .score-value {
+    font-size: 3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    will-change: contents;
+  }
+
+  /* Optimized buttons */
+  .cyber-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+  }
+
+  .cyber-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.2), 
+      transparent);
+    transition: transform 0.5s ease;
+    will-change: transform;
+  }
+
+  .cyber-button:hover::before {
+    transform: translate3d(200%, 0, 0);
+  }
+
+  .cyber-button:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+  }
+
+  .cyber-button.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .cyber-button.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .upload-content { padding: 2rem 1rem; }
+    .upload-icon { width: 4rem; height: 4rem; }
+    .score-value { font-size: 2.5rem; }
+    .stepper { gap: 0.5rem; }
+    .step-connector { width: 2rem; }
+  }
+
+  /* Optimized animations */
+  .fade-in {
+    animation: fadeIn 0.5s ease;
+  }
+
+  .slide-up {
+    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 20px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  /* Toast improvements */
+  .toast {
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid;
+    backdrop-filter: blur(20px);
+    font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+  }
+
+  @keyframes toastIn {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 1rem, 0) scale3d(0.95, 0.95, 1);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+    }
+  }
+
+</style>
+
+<div class="bg-grid"></div>
+
+<div class="max-w-6xl mx-auto px-6 py-8">
+  <!-- Page Header -->
+  <div id="pageHeader" class="text-center mb-8 -ml-4">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
+      HolyGrail BYOVD Hunter
+    </h1>
+    <p class="text-gray-300">
+      Driver Imports &middot; LoLDrivers &middot; Microsoft Driver Block Policy
+    </p>
+  </div>
+
+  <!-- Enhanced Stepper -->
+  <div id="stepper" class="stepper" style="justify-content: center;">
+    <div class="step">
+      <div id="s1" class="step-circle idle">1</div>
+      <span class="hidden sm:inline font-medium">Upload Driver</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step">
+      <div id="s2" class="step-circle idle">2</div>
+      <span class="hidden sm:inline font-medium">Analyze</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step">
+      <div id="s3" class="step-circle idle">3</div>
+      <span class="hidden sm:inline font-medium">Review Results</span>
+    </div>
+  </div>
+  <!-- Enhanced Upload Section -->
+  <div id="uploadArea" class="transition-all duration-500">
+    <div id="uploadCard" class="cyber-card">
+      <div class="upload-zone" id="dz" role="button" tabindex="0" aria-label="Upload driver file">
+        <input type="file" id="fileInput" class="hidden" accept=".sys">
+        
+        <label for="fileInput" class="upload-content cursor-pointer block">
+          <div class="upload-icon">
+            <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </div>
+          
+          <h3 class="text-2xl font-bold text-white mb-2">Drop Driver Here</h3>
+          <p class="text-lg text-gray-300 mb-6">or click to browse files</p>
+          
+          <div class="flex flex-wrap justify-center gap-3 mb-6">
+            <span class="cyber-chip">.SYS</span>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <span class="text-sm text-gray-400">
+              Max {{ (config.utils.max_file_size / 1024 / 1024) | round(1) }} MB
+            </span>
+          </div>
+        </label>
+      </div>
+      
+      <div id="uploadStatus" class="hidden p-6"></div>
+    </div>
+  </div>
+
+  <!-- Enhanced Console -->
+  <div id="consoleCard" class="hidden cyber-card mt-6 fade-in">
+    <div class="p-6 border-b border-white/10">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm text-gray-400 uppercase tracking-wide">Analyzing</p>
+            <h3 id="consoleTitle" class="text-lg font-semibold text-white">Driver Analysis</h3>
+          </div>
+        </div>
+        <button id="cancelBtn" class="cyber-button secondary">Cancel</button>
+      </div>
+    </div>
+    
+    <div class="p-6">
+      <div class="progress-container mb-4">
+        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+      </div>
+      <div class="console-log">
+        <ul id="consoleLog" class="space-y-1"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Results -->
+  <div id="resultsCard" class="hidden slide-up">
+    <!-- Header Card -->
+    <div class="cyber-card p-6 mb-6">
+      <div class="flex items-start justify-between gap-6">
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-400 uppercase tracking-wide">Analysis Complete</p>
+          <h1 id="summaryName" class="text-2xl font-bold text-white mt-1 truncate">No file</h1>
+          <div class="flex flex-wrap items-center gap-3 mt-3">
+            <span class="cyber-chip">
+              <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+              </svg>
+              <span id="summaryType">—</span>
+            </span>
+            <span class="cyber-chip">
+              <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+              </svg>
+              <span id="summaryTime">—</span>
+            </span>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          <button id="resetBtn" class="cyber-button secondary">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1,4 1,10 7,10"/>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+            Reset
+          </button>
+          <button id="staticScanBtn" onclick="runStaticScan()" class="cyber-button warning">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Run Static Scan
+          </button>
+          <label class="cyber-button cursor-pointer">
+            <input type="file" id="fileInputSmall" class="hidden" accept=".sys">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17,8 12,3 7,8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Upload Another
+          </label>
+        </div>
+      </div>
+
+      <!-- Verdict Banner -->
+      <div id="verdictBanner" class="mt-6"></div>
+
+      <!-- Status Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div class="cyber-card p-4 text-center">
+          <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">LOLDrivers</p>
+          <div id="lolBadge" class="text-sm font-medium">Checking...</div>
+        </div>
+        <div class="cyber-card p-4 text-center">
+          <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Windows 10</p>
+          <div id="w10Badge" class="text-sm font-medium">Checking...</div>
+        </div>
+        <div class="cyber-card p-4 text-center">
+          <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Windows 11</p>
+          <div id="w11Badge" class="text-sm font-medium">Checking...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Score and Details Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <!-- Score Display -->
+      <div class="score-display p-5">
+        <p class="text-sm text-gray-400 uppercase tracking-wide mb-3">BYOVD Score</p>
+
+        <div class="score-value text-4xl font-bold mb-4" id="scoreValue">0</div>
+
+        <div class="progress-container mb-4">
+          <div id="scoreBar" class="progress-bar" style="width: 0%"></div>
+        </div>
+
+        <p id="scoreLabel" class="text-sm text-gray-300">Calculating...</p>
+      </div>
+
+
+      <!-- File Hash -->
+      <div class="lg:col-span-2">
+        <div class="cyber-card p-4">
+          <p class="text-xs text-gray-400 uppercase tracking-wide mb-3">SHA256 Hash</p>
+          <div class="flex items-center gap-3">
+            <code id="sha256Full" class="flex-1 text-sm font-mono text-gray-100 break-all bg-black/30 p-3 rounded-lg">Unknown</code>
+            <button id="copyShaBtn" class="cyber-button secondary">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metadata Row -->
+    <div class="grid grid-cols-5 gap-2 mb-6">
+      <div class="cyber-card p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">File Version</p>
+        <p id="fileVersion" class="text-sm font-mono text-white">Unknown</p>
+      </div>
+      <div class="cyber-card p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">File Size</p>
+        <p id="fileSizePretty" class="text-sm text-white">Unknown</p>
+      </div>
+      <div class="cyber-card p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Architecture</p>
+        <p id="arch" class="text-sm font-mono text-white">Unknown</p>
+      </div>
+      <div class="cyber-card p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Original Filename</p>
+        <p id="originalFilename" class="text-sm font-mono text-white">Unknown</p>
+      </div>
+      <div class="cyber-card p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Compile Time</p>
+        <p id="compileTime" class="text-sm font-mono text-white">Unknown</p>
+      </div>
+    </div>
+
+
+    <!-- Dangerous Imports -->
+    <div class="cyber-card p-6 mb-6" id="importsCard">
+      <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        Dangerous Imports
+      </h4>
+      <div id="importsWrap" class="flex flex-wrap gap-2 mb-4"></div>
+      <p class="text-xs text-gray-500">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</p>
+    </div>
+
+    <!-- Windows Block Status -->
+    <div class="cyber-card p-6">
+      <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <circle cx="12" cy="16" r="1"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        Windows Block Status
+      </h4>
+      <div id="blockRows" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+
+    <!-- Hidden elements for JS -->
+    <div class="hidden">
+      <span id="summarySize">—</span>
+      <code id="summaryMd5">—</code>
+      <code id="summarySha">—</code>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced Toast Container -->
+<div id="toastContainer" class="fixed bottom-6 right-6 space-y-3 z-50" aria-live="polite"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/holygrail.js') }}" defer></script>
+{% endblock %}

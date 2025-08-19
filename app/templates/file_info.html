@@ -38,7 +38,6 @@
         </button>
     </div>
 
-    {# Add this right after the header div, before Navigation Buttons #}
     <!-- Comprehensive Risk Assessment -->
     <div class="bg-black/60 backdrop-blur-sm rounded-xl border border-gray-800 p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
@@ -89,7 +88,6 @@
         {% endif %}
     </div>
 
-
     <!-- File Hash Information -->
     <div class="bg-black/60 backdrop-blur-sm rounded-xl border border-gray-800 p-6 mb-6">
         <h2 class="text-lg font-medium text-gray-100 mb-4">File Hashes</h2>
@@ -133,11 +131,23 @@
     <div class="bg-black/60 backdrop-blur-sm rounded-xl border border-gray-800 p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-medium text-gray-100">PE Information</h2>
-            {% if file_info.pe_info.detection_notes %}
-            <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg text-sm">
-                {{ file_info.pe_info.detection_notes|length }} Detection Notes
-            </span>
-            {% endif %}
+            <div class="flex items-center gap-3">
+                {% if file_info.pe_info.build_with %}
+                    <span class="px-3 py-1 text-sm rounded-lg font-medium
+                        {% if file_info.pe_info.build_with == 'go' %}
+                            bg-blue-500/20 text-blue-400 border border-blue-900/20
+                        {% elif file_info.pe_info.build_with == 'rust' %}
+                            bg-purple-500/20 text-purple-400 border border-purple-900/20
+                        {% endif %}">
+                        {{ file_info.pe_info.build_with.upper() }} Binary
+                    </span>
+                {% endif %}
+                {% if file_info.pe_info.detection_notes %}
+                    <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg text-sm">
+                        {{ file_info.pe_info.detection_notes|length }} Detection Notes
+                    </span>
+                {% endif %}
+            </div>
         </div>
         
         <!-- PE Basic Info -->
@@ -167,9 +177,13 @@
                 <p class="text-sm text-gray-400">PE Checksum</p>
                 <p class="text-gray-200 font-mono">
                     {% if file_info.pe_info.checksum_info.is_valid %}
-                    <span class="text-green-400">Valid</span>
+                        <span class="text-green-400">Valid</span>
+                    {% elif file_info.pe_info.checksum_info.build_with %}
+                        <span class="text-{% if file_info.pe_info.checksum_info.build_with == 'go' %}blue{% elif file_info.pe_info.checksum_info.build_with == 'rust' %}purple{% endif %}-400">
+                            {{ file_info.pe_info.checksum_info.build_with.upper() }} Binary
+                        </span>
                     {% else %}
-                    <span class="text-red-400">Invalid</span>
+                        <span class="text-red-400">Invalid</span>
                     {% endif %}
                 </p>
             </div>
@@ -181,8 +195,20 @@
         <div class="space-y-2 mb-6">
             <h3 class="text-sm font-medium text-gray-400 mb-3">Detection Notes</h3>
             {% for note in file_info.pe_info.detection_notes %}
-            <div class="flex items-start gap-2 bg-red-500/10 p-3 rounded-lg border border-red-900/20">
-                <svg class="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-start gap-2 
+                {% if file_info.pe_info.build_with and ('runtime' in note.lower() or file_info.pe_info.build_with in note.lower()) %}
+                    bg-{% if file_info.pe_info.build_with == 'go' %}blue{% elif file_info.pe_info.build_with == 'rust' %}purple{% endif %}-500/10 border border-{% if file_info.pe_info.build_with == 'go' %}blue{% elif file_info.pe_info.build_with == 'rust' %}purple{% endif %}-900/20
+                {% else %}
+                    bg-red-500/10 border border-red-900/20
+                {% endif %}
+                p-3 rounded-lg">
+                <svg class="w-5 h-5 
+                    {% if file_info.pe_info.build_with and ('runtime' in note.lower() or file_info.pe_info.build_with in note.lower()) %}
+                        text-{% if file_info.pe_info.build_with == 'go' %}blue{% elif file_info.pe_info.build_with == 'rust' %}purple{% endif %}-400
+                    {% else %}
+                        text-red-400
+                    {% endif %}
+                    mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
                 <span class="text-gray-300">{{ note }}</span>
@@ -193,35 +219,51 @@
 
         {% if file_info.pe_info.checksum_info and not file_info.pe_info.checksum_info.is_valid %}
         <!-- Checksum Details -->
-        {% if file_info.pe_info.checksum_info.is_go_binary %}
-        <div class="bg-blue-500/10 p-4 rounded-lg border border-blue-900/20 mb-6">
-            <h3 class="text-sm font-medium text-blue-400 mb-2">Go Binary Checksum</h3>
-            <p class="text-sm text-gray-400 mb-3">Go binaries typically have non-standard PE checksums - This is normal behavior</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <p class="text-sm text-gray-400">Stored Checksum</p>
-                    <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.stored_checksum }}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-400">Calculated Checksum</p>
-                    <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.calculated_checksum }}</p>
+        {% set build_with = file_info.pe_info.checksum_info.build_with %}
+        {% if build_with == 'go' %}
+            <div class="bg-blue-500/10 p-4 rounded-lg border border-blue-900/20 mb-6">
+                <h3 class="text-sm font-medium text-blue-400 mb-2">Go Binary Checksum</h3>
+                <p class="text-sm text-gray-400 mb-3">Go binaries typically have non-standard PE checksums - This is normal behavior</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-400">Stored Checksum</p>
+                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.stored_checksum }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">Calculated Checksum</p>
+                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.calculated_checksum }}</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        {% elif build_with == 'rust' %}
+            <div class="bg-purple-500/10 p-4 rounded-lg border border-purple-900/20 mb-6">
+                <h3 class="text-sm font-medium text-purple-400 mb-2">Rust Binary Checksum</h3>
+                <p class="text-sm text-gray-400 mb-3">Rust binaries may have non-standard PE checksums - This is normal behavior</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-400">Stored Checksum</p>
+                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.stored_checksum }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">Calculated Checksum</p>
+                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.calculated_checksum }}</p>
+                    </div>
+                </div>
+            </div>
         {% else %}
-        <div class="bg-yellow-500/10 p-4 rounded-lg border border-yellow-900/20 mb-6">
-            <h3 class="text-sm font-medium text-yellow-400 mb-2">Checksum Mismatch</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <p class="text-sm text-gray-400">Stored Checksum</p>
-                    <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.stored_checksum }}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-400">Calculated Checksum</p>
-                    <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.calculated_checksum }}</p>
+            <div class="bg-yellow-500/10 p-4 rounded-lg border border-yellow-900/20 mb-6">
+                <h3 class="text-sm font-medium text-yellow-400 mb-2">Checksum Mismatch</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-400">Stored Checksum</p>
+                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.stored_checksum }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">Calculated Checksum</p>
+                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.calculated_checksum }}</p>
+                    </div>
                 </div>
             </div>
-        </div>
         {% endif %}
         {% endif %}
 
@@ -268,10 +310,13 @@
 
         <!-- Suspicious Imports -->
         {% if file_info.pe_info.suspicious_imports %}
-        {% set go_runtime_imports = file_info.pe_info.suspicious_imports | selectattr('is_go_runtime') | list %}
-        {% set suspicious_imports = file_info.pe_info.suspicious_imports | rejectattr('is_go_runtime') | list %}
+        {% set runtime_imports = file_info.pe_info.suspicious_imports | selectattr('is_runtime_import') | list %}
+        {% set suspicious_imports = file_info.pe_info.suspicious_imports | rejectattr('is_runtime_import') | list %}
+        {% set build_with = file_info.pe_info.build_with %}
+        
         <div>
-            {% if file_info.pe_info.is_go_binary and go_runtime_imports %}
+            <!-- Dynamic title and styling based on runtime type -->
+            {% if build_with == 'go' %}
                 {% if suspicious_imports %}
                     <h3 class="text-sm font-medium text-gray-400 mb-3">API Imports Analysis</h3>
                     <div class="mb-3 p-3 bg-blue-500/10 rounded-lg border border-blue-900/20">
@@ -283,7 +328,7 @@
                             <span class="text-sm text-blue-300 font-medium">Go Binary Detected</span>
                         </div>
                         <p class="text-sm text-gray-400 mt-1 ml-6">
-                            Found {{ go_runtime_imports|length }} Go runtime imports (benign) and {{ suspicious_imports|length }} potentially suspicious imports.
+                            Found {{ runtime_imports|length }} Go runtime imports (benign) and {{ suspicious_imports|length }} potentially suspicious imports.
                         </p>
                     </div>
                 {% else %}
@@ -297,8 +342,37 @@
                             <span class="text-sm text-blue-300 font-medium">Go Binary Detected</span>
                         </div>
                         <p class="text-sm text-gray-400 mt-1 ml-6">
-                            These {{ go_runtime_imports|length }} imports are typically part of the Go runtime and are not necessarily malicious. 
-                            Go binaries automatically include these system calls for memory management, threading, and OS interaction.
+                            These {{ runtime_imports|length }} imports are typically part of the Go runtime and are not necessarily malicious.
+                        </p>
+                    </div>
+                {% endif %}
+            {% elif build_with == 'rust' %}
+                {% if suspicious_imports %}
+                    <h3 class="text-sm font-medium text-gray-400 mb-3">API Imports Analysis</h3>
+                    <div class="mb-3 p-3 bg-purple-500/10 rounded-lg border border-purple-900/20">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm text-purple-300 font-medium">Rust Binary Detected</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-1 ml-6">
+                            Found {{ runtime_imports|length }} Rust runtime imports (benign) and {{ suspicious_imports|length }} potentially suspicious imports.
+                        </p>
+                    </div>
+                {% else %}
+                    <h3 class="text-sm font-medium text-gray-400 mb-3">API Imports (Rust Runtime)</h3>
+                    <div class="mb-3 p-3 bg-purple-500/10 rounded-lg border border-purple-900/20">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm text-purple-300 font-medium">Rust Binary Detected</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-1 ml-6">
+                            These {{ runtime_imports|length }} imports are typically part of the Rust runtime and are not necessarily malicious.
                         </p>
                     </div>
                 {% endif %}
@@ -306,29 +380,38 @@
                 <h3 class="text-sm font-medium text-gray-400 mb-3">Suspicious Imports</h3>
             {% endif %}
             
+            <!-- Grouped imports display with runtime-aware styling -->
             <div class="space-y-4">
                 {% for dll, imports in file_info.pe_info.grouped_suspicious_imports.items() %}
-                {% set dll_go_runtime_imports = imports | selectattr('is_go_runtime') | list %}
-                {% set dll_suspicious_imports = imports | rejectattr('is_go_runtime') | list %}
+                {% set dll_runtime_imports = imports | selectattr('is_runtime_import') | list %}
+                {% set dll_suspicious_imports = imports | rejectattr('is_runtime_import') | list %}
                 
-                {% if dll_go_runtime_imports %}
-                    <div class="bg-blue-500/10 p-4 rounded-lg border border-blue-900/20">
-                        <h4 class="text-blue-400 font-mono mb-2">{{ dll }} <span class="ml-2 px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full">Go Runtime</span></h4>
-                        <div class="space-y-2">
-                            {% for import in dll_go_runtime_imports %}
-                            <div class="pl-4 border-l-2 border-blue-900/20">
-                                <p class="text-gray-300 font-mono">{{ import.function }} <span class="text-blue-300">[{{ import.category }}]</span>
-                                    {% if import.hint is not none %}
-                                        <span class="text-xs text-gray-500 ml-2" title="Import hint: suggested index in DLL export table">Hint: {{ import.hint }}</span>
-                                    {% endif %}
-                                </p>
-                                <p class="text-sm text-gray-400 mt-1">{{ import.note }}</p>
+                <!-- Runtime imports section -->
+                {% if dll_runtime_imports %}
+                    {% if build_with == 'go' %}
+                        <div class="bg-blue-500/10 p-4 rounded-lg border border-blue-900/20">
+                            <h4 class="text-blue-400 font-mono mb-2">{{ dll }} <span class="ml-2 px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full">Go Runtime</span></h4>
+                    {% elif build_with == 'rust' %}
+                        <div class="bg-purple-500/10 p-4 rounded-lg border border-purple-900/20">
+                            <h4 class="text-purple-400 font-mono mb-2">{{ dll }} <span class="ml-2 px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full">Rust Runtime</span></h4>
+                    {% endif %}
+                            <div class="space-y-2">
+                                {% for import in dll_runtime_imports %}
+                                <div class="pl-4 border-l-2 border-{% if build_with == 'go' %}blue{% elif build_with == 'rust' %}purple{% endif %}-900/20">
+                                    <p class="text-gray-300 font-mono">{{ import.function }} 
+                                        <span class="text-{% if build_with == 'go' %}blue{% elif build_with == 'rust' %}purple{% endif %}-300">[{{ import.category }}]</span>
+                                        {% if import.hint is not none %}
+                                            <span class="text-xs text-gray-500 ml-2" title="Import hint: suggested index in DLL export table">Hint: {{ import.hint }}</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="text-sm text-gray-400 mt-1">{{ import.note }}</p>
+                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
-                    </div>
                 {% endif %}
                 
+                <!-- Suspicious imports section -->
                 {% if dll_suspicious_imports %}
                     <div class="bg-red-500/10 p-4 rounded-lg border border-red-900/20">
                         <h4 class="text-red-400 font-mono mb-2">{{ dll }}</h4>

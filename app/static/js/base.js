@@ -1,29 +1,125 @@
-// app/static/js/status.js
+// app/static/js/sidebar_new.js
 
 // Constants
 const CONFIG = {
     notificationDuration: 5000,
     fadeDelay: 300,
-    modalFocusDelay: 100
+    modalFocusDelay: 100,
+    sidebar: {
+        storageKey: 'litterbox_sidebar_collapsed',
+        animationDuration: 300
+    }
 };
+
+// Sidebar Manager - Clean and Simple Approach
+class SidebarManager {
+    constructor() {
+        this.sidebar = document.getElementById('app-sidebar');
+        this.content = document.getElementById('app-content');
+        this.topbar = document.getElementById('app-topbar');
+        this.toggleBtn = document.getElementById('sidebar-toggle');
+        
+        this.isCollapsed = this.getStoredState();
+        
+        this.init();
+    }
+    
+    init() {
+        if (!this.sidebar || !this.toggleBtn) {
+            console.warn('Sidebar elements not found');
+            return;
+        }
+        
+        // Apply initial state without animation
+        this.applyState(false);
+        
+        // Add event listeners
+        this.toggleBtn.addEventListener('click', () => this.toggle());
+        
+        // Keyboard shortcut (Ctrl/Cmd + B)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                this.toggle();
+            }
+        });
+        
+        console.log('Sidebar initialized, collapsed:', this.isCollapsed);
+    }
+    
+    toggle() {
+        this.isCollapsed = !this.isCollapsed;
+        this.applyState(true);
+        this.saveState();
+        console.log('Sidebar toggled, collapsed:', this.isCollapsed);
+    }
+    
+    applyState(withAnimation = true) {
+        if (!withAnimation) {
+            // Temporarily disable transitions
+            this.sidebar.style.transition = 'none';
+            this.content.style.transition = 'none';
+            this.topbar.style.transition = 'none';
+        }
+        
+        if (this.isCollapsed) {
+            this.sidebar.classList.add('collapsed');
+            this.content.classList.add('sidebar-collapsed');
+            this.topbar.classList.add('sidebar-collapsed');
+            this.toggleBtn.title = 'Expand Sidebar';
+        } else {
+            this.sidebar.classList.remove('collapsed');
+            this.content.classList.remove('sidebar-collapsed');
+            this.topbar.classList.remove('sidebar-collapsed');
+            this.toggleBtn.title = 'Collapse Sidebar';
+        }
+        
+        if (!withAnimation) {
+            // Re-enable transitions after next frame
+            requestAnimationFrame(() => {
+                this.sidebar.style.transition = '';
+                this.content.style.transition = '';
+                this.topbar.style.transition = '';
+            });
+        }
+    }
+    
+    getStoredState() {
+        const stored = localStorage.getItem(CONFIG.sidebar.storageKey);
+        return stored === 'true';
+    }
+    
+    saveState() {
+        localStorage.setItem(CONFIG.sidebar.storageKey, this.isCollapsed.toString());
+    }
+    
+    expand() {
+        if (this.isCollapsed) {
+            this.toggle();
+        }
+    }
+    
+    collapse() {
+        if (!this.isCollapsed) {
+            this.toggle();
+        }
+    }
+}
 
 // Status Manager Class
 class StatusManager {
     constructor() {
-        // Return existing instance if it exists
         if (window._statusManagerInstance) {
             return window._statusManagerInstance;
         }
 
-        // Set up instance and status check flag
         window._statusManagerInstance = this;
         this.hasCheckedStatus = sessionStorage.getItem('statusChecked') === 'true';
 
-        // Initialize elements
         this.elements = {
             indicator: document.getElementById('status-indicator'),
             text: document.getElementById('status-text'),
-            container: document.getElementById('status-container'),
+            container: document.querySelector('.sidebar-footer'),
             popover: document.getElementById('issues-popover'),
             issuesList: document.getElementById('issues-list')
         };
@@ -33,7 +129,6 @@ class StatusManager {
             currentIssues: []
         };
 
-        // If we've already checked status before, set active state without checking
         if (this.hasCheckedStatus) {
             this.setInitialState();
         }
@@ -43,7 +138,7 @@ class StatusManager {
 
     setInitialState() {
         if (this.elements.indicator && this.elements.text) {
-            this.elements.indicator.className = 'w-3 h-3 rounded-full transition-colors duration-200 bg-green-500 animate-pulse';
+            this.elements.indicator.className = 'status-indicator bg-green-500 animate-pulse transition-colors duration-200';
             this.elements.text.className = 'font-medium transition-colors duration-200 text-green-500';
             this.elements.text.textContent = 'Active';
         }
@@ -58,7 +153,6 @@ class StatusManager {
         document.addEventListener('click', this.handleClickOutside);
     }
 
-    // Rest of your methods stay exactly the same
     async checkStatus() {
         try {
             const response = await fetch('/health');
@@ -77,7 +171,7 @@ class StatusManager {
 
     resetClasses() {
         const { indicator, text } = this.elements;
-        indicator.className = 'w-3 h-3 rounded-full transition-colors duration-200';
+        indicator.className = 'status-indicator transition-colors duration-200';
         text.className = 'font-medium transition-colors duration-200';
     }
 
@@ -89,7 +183,9 @@ class StatusManager {
         text.classList.add('text-green-500');
         text.textContent = 'Active';
         
-        container.style.cursor = 'default';
+        if (container) {
+            container.style.cursor = 'default';
+        }
         this.hidePopover();
         this.removeClickHandler();
     }
@@ -112,15 +208,19 @@ class StatusManager {
     updateIssuesDisplay(issues) {
         const { issuesList, container } = this.elements;
         
-        issuesList.innerHTML = '';
-        issues.forEach(issue => {
-            const li = document.createElement('li');
-            li.textContent = issue;
-            li.className = 'text-red-300 mb-1 last:mb-0';
-            issuesList.appendChild(li);
-        });
+        if (issuesList) {
+            issuesList.innerHTML = '';
+            issues.forEach(issue => {
+                const li = document.createElement('li');
+                li.textContent = issue;
+                li.className = 'text-red-300 mb-1 last:mb-0';
+                issuesList.appendChild(li);
+            });
+        }
 
-        container.style.cursor = 'pointer';
+        if (container) {
+            container.style.cursor = 'pointer';
+        }
     }
 
     handleError(error) {
@@ -143,15 +243,19 @@ class StatusManager {
         const { container } = this.elements;
         
         this.removeClickHandler();
-        container.onclick = (e) => {
-            e.stopPropagation();
-            this.togglePopover();
-        };
+        if (container) {
+            container.onclick = (e) => {
+                e.stopPropagation();
+                this.togglePopover();
+            };
+        }
     }
 
     removeClickHandler() {
         const { container } = this.elements;
-        container.onclick = null;
+        if (container) {
+            container.onclick = null;
+        }
     }
 
     togglePopover() {
@@ -161,12 +265,14 @@ class StatusManager {
     showPopover() {
         const { popover } = this.elements;
         
-        popover.classList.remove('hidden');
-        requestAnimationFrame(() => {
-            popover.classList.add('fade-in');
-        });
-        
-        this.state.isPopoverVisible = true;
+        if (popover) {
+            popover.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                popover.classList.add('fade-in');
+            });
+            
+            this.state.isPopoverVisible = true;
+        }
     }
 
     hidePopover() {
@@ -185,7 +291,7 @@ class StatusManager {
     handleClickOutside(event) {
         const { container } = this.elements;
         
-        if (this.state.isPopoverVisible && !container.contains(event.target)) {
+        if (this.state.isPopoverVisible && container && !container.contains(event.target)) {
             this.hidePopover();
         }
     }
@@ -196,12 +302,11 @@ class StatusManager {
     }
 }
 
-// Show Summary
+// Navigation Functions
 function showSummary() {
     window.location.href = '/summary';
 }
 
-// Show Blender
 function openDoppelganger() {
     window.location.href = '/doppelganger';
 }
@@ -296,6 +401,7 @@ const ModalManager = {
     }
 };
 
+// Process Manager
 const ProcessManager = {
     validatePID(pid) {
         if (!pid) {
@@ -325,7 +431,6 @@ const ProcessManager = {
         const submitButton = this.updateButtonState('Validating...');
         
         try {
-            // First validate the PID on the server
             const validationResponse = await fetch(`/validate/${pid}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -336,11 +441,9 @@ const ProcessManager = {
                 throw new Error(this.getErrorMessage(validationResponse.status, pid, data));
             }
             
-            // If validation successful, hide modal and show notification
             ModalManager.hideProcessWarning();
             NotificationSystem.show(`Starting analysis of process ${pid}...`, 'bg-green-500');
             
-            // Navigate to analysis page - this single GET request will trigger the analysis
             window.location.href = `/analyze/dynamic/${pid}`;
             
         } catch (error) {
@@ -375,7 +478,8 @@ const ProcessManager = {
         }
     }
 };
-// Cleanup System
+
+// Updated Cleanup System
 const CleanupSystem = {
     async execute() {
         ModalManager.hideCleanupWarning();
@@ -393,16 +497,15 @@ const CleanupSystem = {
             NotificationSystem.show(`Error during cleanup: ${error.message}`, 'bg-red-500');
         }
     },
-
     formatResponse(data) {
         if (data.status === 'success') {
             return {
-                message: `Cleanup successful:\n- ${data.details.uploads_cleaned} files removed\n- ${data.details.analysis_cleaned} PE-Sieve folders cleaned\n- ${data.details.result_cleaned} result folders cleaned`,
+                message: `Cleanup successful:\n- ${data.details.uploads_cleaned} uploaded files removed\n- ${data.details.analysis_cleaned} analysis results cleaned (PE-Sieve, HolyGrail)\n- ${data.details.result_cleaned} result folders cleaned\n- Doppelganger database cleaned`,
                 className: 'bg-green-500'
             };
         } else if (data.status === 'warning') {
             return {
-                message: `Cleanup completed with warnings:\n- ${data.details.uploads_cleaned} files removed\n- ${data.details.analysis_cleaned} PE-Sieve folders cleaned\n- ${data.details.result_cleaned} result folders cleaned\n\nErrors:\n${data.details.errors.join('\n')}`,
+                message: `Cleanup completed with warnings:\n- ${data.details.uploads_cleaned} uploaded files removed\n- ${data.details.analysis_cleaned} analysis results cleaned (PE-Sieve, HolyGrail)\n- ${data.details.result_cleaned} result folders cleaned\n- Doppelganger database cleaned\n\nErrors:\n${data.details.errors.join('\n')}`,
                 className: 'bg-yellow-500'
             };
         } else {
@@ -414,10 +517,14 @@ const CleanupSystem = {
     }
 };
 
-
-
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing LitterBox UI...');
+    
+    // Initialize Sidebar Manager
+    const sidebarManager = new SidebarManager();
+    window.sidebarManager = sidebarManager; // For debugging
+    
     // Initialize Status Manager
     const statusManager = new StatusManager();
     statusManager.init();
@@ -444,6 +551,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ModalManager.hideCleanupWarning();
         }
     });
+    
+    console.log('LitterBox UI initialized successfully');
 });
 
 // Export functions for global access
@@ -455,3 +564,8 @@ window.hideCleanupWarning = ModalManager.hideCleanupWarning.bind(ModalManager);
 window.executeCleanup = CleanupSystem.execute.bind(CleanupSystem);
 window.cleanupSystem = ModalManager.showCleanupWarning.bind(ModalManager);
 window.showNotification = NotificationSystem.show.bind(NotificationSystem);
+
+// Export sidebar controls
+window.toggleSidebar = () => window.sidebarManager?.toggle();
+window.collapseSidebar = () => window.sidebarManager?.collapse();
+window.expandSidebar = () => window.sidebarManager?.expand();
