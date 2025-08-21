@@ -49,7 +49,6 @@ analysis:
       tool_path: ".\\Scanners\\Yara\\yara64.exe"
       command: "{tool_path} -s -m {rules_path} {file_path}"
       rules_path: ".\\Scanners\\Yara\\rules\\LitterBox.yar"
-      driver_rules_path: ".\\Scanners\\Yara\\rules\\LitterBox.yar"
       timeout: 120
     
     checkplz:

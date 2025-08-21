@@ -132,7 +132,7 @@ Delivers code similarity analysis through:
 ### Static Analysis Suite
 - [YARA](https://github.com/elastic/protections-artifacts/tree/main/yara) - Signature detection engine
 - [CheckPlz](https://github.com/BlackSnufkin/CheckPlz) - AV detection testing framework
-- [Stringnalyzer](https://github.com/BlackSnufkin/Rusty-Playground/Stringnalyzer) - Advanced string analysis utility
+- [Stringnalyzer](https://github.com/BlackSnufkin/Rusty-Playground/tree/main/Stringnalyzer) - Advanced string analysis utility
 - [HolyGrail](https://github.com/BlackSnufkin/HolyGrail) - BYOVD Hunter
 
 ### Dynamic Analysis Suite
