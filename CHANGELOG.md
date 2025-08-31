@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Collapsible sidebar with smooth animations and state persistence
 - Enhanced Python client library with HolyGrail analysis support and comprehensive API coverage
 - Comprehensive LNK files parser library
+- `--ip` parameter to specify custom host IP address
 
 ### Changed
 - Extended binary detection to support Go and Rust runtime analysis
@@ -23,6 +24,7 @@ All notable changes to this project will be documented in this file.
 - Improved risk calculation to exclude runtime binaries from checksum penalties
 - Replaced binary flags with runtime type classification system
 - Updated analysis pipeline to distinguish drivers vs. payloads.
+- 
 
 ### Fixed
 - Static analysis results scan duration bug
