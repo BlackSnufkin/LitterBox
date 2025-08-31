@@ -293,6 +293,9 @@ If LitterBox has been useful for your security research:
 
 <a href="https://www.buymeacoffee.com/blacksnufkin"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" width="200" height="60"></a>
 
+## Stargazers 🌟
+[![Stars](https://starchart.cc/blacksnufkin/litterbox.svg?variant=adaptive)](https://starchart.cc/blacksnufkin/litterbox)
+
 ## Security Advisory
 
 - **DEVELOPMENT USE ONLY**: This platform is designed exclusively for testing environments. Production deployment presents significant security risks.
