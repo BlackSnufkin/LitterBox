@@ -274,7 +274,7 @@ cd LitterBox/Docker
 chmod +x setup.sh
 ./setup.sh
 ```
-> Note: Initial setup takes approximately 1 hour depending on internet speed and system resources.
+> **Note**: Initial setup takes approximately `1 hour` depending on internet speed and system resources.
 
 The setup script automatically:
 - Installs Docker, Docker Compose, and CPU checker
