@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.1.0] - 2025-09-01
+### Added
+- Docker deployment support for Linux hosts
+- Automated Windows 10 container setup with LitterBox installation
+- Web viewer and RDP access for containerized environments
+- `--ip` parameter to specify custom host IP address
+
+### Fixed
+- Missing page title in doppelganger template
+
 
 ## [v4.0.0] - 2025-08-19
 ### Added
@@ -14,7 +24,6 @@ All notable changes to this project will be documented in this file.
 - Collapsible sidebar with smooth animations and state persistence
 - Enhanced Python client library with HolyGrail analysis support and comprehensive API coverage
 - Comprehensive LNK files parser library
-- `--ip` parameter to specify custom host IP address
 
 ### Changed
 - Extended binary detection to support Go and Rust runtime analysis

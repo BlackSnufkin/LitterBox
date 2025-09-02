@@ -2,11 +2,13 @@
 
 ![LitterBox Logo](https://github.com/user-attachments/assets/20030454-55b8-4473-b7b7-f65bb7150d51)
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)]()
-[![License](https://img.shields.io/badge/license-GPL%20v3-green.svg)]()
-[![OS](https://img.shields.io/badge/os-Windows-blue.svg)]()
-[![MCP Supported](https://img.shields.io/badge/MCP-Supported-blueviolet.svg)]()
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=plastic&logo=python&logoColor=white)]()
+[![Windows](https://img.shields.io/badge/Windows-Supported-0078D6?style=plastic&logo=onlyfans&logoColor=black)]()
+[![Linux](https://img.shields.io/badge/Linux-Supported-FCC624?style=plastic&logo=linux&logoColor=black)]()
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=plastic&logo=docker&logoColor=white)]()
+[![MCP](https://img.shields.io/badge/MCP-Ready-412991?style=plastic&logo=openai&logoColor=black)]()
 [![GitHub Stars](https://img.shields.io/github/stars/BlackSnufkin/LitterBox)](https://github.com/BlackSnufkin/LitterBox/stargazers)
+
 
 ## Table of Contents
 - [Overview](#overview)
@@ -15,7 +17,8 @@
 - [Integrated Tools](#integrated-tools)
 - [API Reference](#api-reference)
 - [Installation](#installation)
-- [Access Methods](#access-methods)
+  - [Windows Installation](#windows-installation)
+  - [Linux Installation (Docker)](#linux-installation)
 - [Configuration](#configuration)
 - [Client Libraries](#client-libraries)
 - [Contributing](#contributing)
@@ -47,6 +50,7 @@ The platform includes LLM-assisted analysis capabilities through the LitterBoxMC
 | Entropy Analysis | Detection of encryption and obfuscation |
 | Type Classification | Advanced MIME and file type analysis |
 | Metadata Preservation | Original filename and timestamp tracking |
+| Runtime detection | Compiled binary identification
 
 ### Executable Analysis
 
@@ -214,13 +218,14 @@ DELETE /file/<hash>              # Remove specific analysis
 
 ## Installation
 
-### System Requirements
-- Windows operating system (Linux not supported)
+### Windows Installation
+
+**System Requirements:**
+- Windows operating system
 - Python 3.11 or higher
 - Administrator privileges
 
-### Deployment Process
-
+**Deployment Process:**
 1. Clone the repository:
 ```bash
 git clone https://github.com/BlackSnufkin/LitterBox.git
@@ -234,27 +239,61 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-## Operation
-
-Standard operation:
+**Operation:**
 ```bash
+# Standard operation
 python litterbox.py
-```
 
-Diagnostic mode:
-```bash
+# Diagnostic mode
 python litterbox.py --debug
 ```
 
-## Access Methods
+**Access:**
+- **Web UI**: `http://127.0.0.1:1337`
+- **API Access**: Python client integration
+- **LLM Integration**: MCP server
 
-LitterBox offers three access interfaces:
+---
 
-- **Web UI**: Browser-based interface at `http://127.0.0.1:1337`
-- **API Access**: Programmatic integration via Python client
-- **LLM Integration**: AI agent interaction through MCP server
+### Linux Installation
 
-For API access, see the [Client Libraries](#client-libraries) section.
+**System Requirements:**
+- Linux operating system
+- Docker and Docker Compose
+- Hardware virtualization support
+
+**Deployment Process:**
+1. Clone the repository:
+```bash
+git clone https://github.com/BlackSnufkin/LitterBox.git
+cd LitterBox/Docker
+```
+
+2. Run automated setup:
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+> Note: Initial setup takes approximately 1 hour depending on internet speed and system resources.
+
+The setup script automatically:
+- Installs Docker, Docker Compose, and CPU checker
+- Verifies KVM hardware virtualization support
+- Creates Windows 10 container environment with automated LitterBox installation
+- Starts containerized Windows instance
+
+**Access:**
+- **Installation monitor**: `http://localhost:8006` (track Windows setup progress)
+- **RDP access**: `localhost:3389` (available after installation completes, creds in docker file)
+
+Once installation completes, LitterBox provides:
+- **Web UI**: `http://127.0.0.1:1337`
+- **API Access**: Python client integration
+- **LLM Integration**: MCP server
+
+---
+
+>For API access, see the [Client Libraries](#client-libraries) section.
 
 ## Configuration
 
@@ -318,14 +357,5 @@ This project incorporates technologies from the following contributors:
 
 ## Interface
 
-![Upload Interface](Screenshots/upload.png)
+![LitterBox Demo](Screenshots/lb-demo.gif)
 
-![Dynamic Analysis](Screenshots/dynamic.png)
-
-![Static Analysis](Screenshots/static.png)
-
-![BYOVD Analysis](Screenshots/byovd.png)
-
-![Doppelganger Analysis](Screenshots/doppelganger.png)
-
-![Summary View](Screenshots/summary.png)
