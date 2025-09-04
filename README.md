@@ -6,7 +6,7 @@
 [![Windows](https://img.shields.io/badge/Windows-Supported-0078D6?style=plastic&logo=onlyfans&logoColor=black)]()
 [![Linux](https://img.shields.io/badge/Linux-Supported-FCC624?style=plastic&logo=linux&logoColor=black)]()
 [![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=plastic&logo=docker&logoColor=white)]()
-[![MCP](https://img.shields.io/badge/MCP-Ready-412991?style=plastic&logo=openai&logoColor=black)]()
+[![MCP](https://img.shields.io/badge/MCP-Enabled-412991?style=plastic&logo=openai&logoColor=black)]()
 [![GitHub Stars](https://img.shields.io/github/stars/BlackSnufkin/LitterBox)](https://github.com/BlackSnufkin/LitterBox/stargazers)
 
 
