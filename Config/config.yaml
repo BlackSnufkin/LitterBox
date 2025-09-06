@@ -48,7 +48,7 @@ analysis:
       enabled: true
       tool_path: ".\\Scanners\\Yara\\yara64.exe"
       command: "{tool_path} -s -m {rules_path} {file_path}"
-      rules_path: ".\\Scanners\\Yara\\rules\\LitterBox.yar"
+      rules_path: ".\\Scanners\\Yara\\LitterBox.yar"
       timeout: 120
     
     checkplz:
@@ -68,7 +68,7 @@ analysis:
       enabled: true
       tool_path: ".\\Scanners\\Yara\\yara64.exe"
       command: "{tool_path} -s -m {rules_path} {pid}"
-      rules_path: ".\\Scanners\\Yara\\rules\\LitterBox.yar"
+      rules_path: ".\\Scanners\\Yara\\LitterBox.yar"
       timeout: 120
 
     pe_sieve:

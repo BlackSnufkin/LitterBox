@@ -93,6 +93,17 @@ select {
     padding-right: 2.5rem;
 }
 
+.logo-wrapper {
+    display: flex;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.logo-wrapper:hover {
+    opacity: 0.8;
+}
+
 /* Autofill Style Override */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

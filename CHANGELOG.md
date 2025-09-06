@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 
 ## [v4.1.0] - 2025-09-01
+### Changed
+- Moved YARA rules: `LitterBox.yar` relocated to scanner directory
+- Individual rules now in `.\Rules` subdirectory with updated include paths
+
+### Added
+- Clickable header section: Logo and title now navigate to home page
+
+
+## [v4.1.0] - 2025-09-01
 ### Added
 - Docker deployment support for Linux hosts
 - Automated Windows 10 container setup with LitterBox installation
