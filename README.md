@@ -40,6 +40,16 @@ The platform includes LLM-assisted analysis capabilities through the LitterBoxMC
 
 **Note**: While designed primarily for red teams, LitterBox can be equally valuable for blue teams by shifting perspective – using the same tools in their malware analysis workflows.
 
+## Documentation
+
+**[LitterBox Wiki](../../wiki)** - Advanced configuration and technical guides
+
+Key sections:
+- **Scanner Configuration** - HolyGrail, Blender, and FuzzyHash setup
+- **YARA Rules Management** - Custom rules and organization  
+- **Configuration Reference** - Complete config.yml options
+- **Architecture & Development** - System design and custom scanners
+
 ## Analysis Capabilities
 
 ### Initial Processing
