@@ -12,6 +12,7 @@
 
 ## Table of Contents
 - [Overview](#overview)
+- [Documentation](#documentation)
 - [Analysis Capabilities](#analysis-capabilities)
 - [Analysis Engines](#analysis-engines)
 - [Integrated Tools](#integrated-tools)
