@@ -23,14 +23,14 @@
     <!-- Navigation Buttons -->
     <div class="flex items-center gap-4 mb-6">
         <button onclick="window.location.href='/results/{{ file_info.md5 }}/static'" 
-                class="px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-900/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-2">
+                class="lb-btn lb-btn-secondary">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
             <span>Static Analysis</span>
         </button>
         <button onclick="window.location.href='/results/{{ file_info.md5 }}/dynamic'" 
-                class="px-4 py-2 bg-green-500/10 text-green-400 border border-green-900/20 rounded-lg hover:bg-green-500/20 transition-colors flex items-center gap-2">
+                class="lb-btn">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
@@ -39,19 +39,10 @@
     </div>
 
     <!-- Comprehensive Risk Assessment -->
-    <div class="bg-black/60 backdrop-blur-sm rounded-xl border border-gray-800 p-6 mb-6">
+    <div class="lb-card-elevated mb-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-medium text-gray-100">Risk Assessment</h2>
-            <span class="px-3 py-1 rounded-lg text-sm font-medium 
-                {% if file_info.risk_assessment.level == 'Critical' %}
-                    bg-red-900/20 text-red-400 border border-red-900/20
-                {% elif file_info.risk_assessment.level == 'High' %}
-                    bg-red-500/20 text-red-400 border border-red-900/20
-                {% elif file_info.risk_assessment.level == 'Medium' %}
-                    bg-yellow-500/20 text-yellow-400 border border-yellow-900/20
-                {% else %}
-                    bg-green-500/20 text-green-400 border border-green-900/20
-                {% endif %}">
+            <span class="lb-badge lb-badge-{{ file_info.risk_assessment.level|lower }}">
                 {{ file_info.risk_assessment.level }} Risk ({{ file_info.risk_assessment.score }}%)
             </span>
         </div>
@@ -89,7 +80,7 @@
     </div>
 
     <!-- File Hash Information -->
-    <div class="bg-black/60 backdrop-blur-sm rounded-xl border border-gray-800 p-6 mb-6">
+    <div class="lb-card-elevated mb-6">
         <h2 class="text-lg font-medium text-gray-100 mb-4">File Hashes</h2>
         <div class="space-y-3">
             <div>
@@ -104,7 +95,7 @@
     </div>
 
     <!-- Basic Information -->
-    <div class="bg-black/60 backdrop-blur-sm rounded-xl border border-gray-800 p-6 mb-6">
+    <div class="lb-card-elevated mb-6">
         <h2 class="text-lg font-medium text-gray-100 mb-4">Basic Information</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
@@ -128,7 +119,7 @@
 
     {% if file_info.pe_info %}
     <!-- PE Information -->
-    <div class="bg-black/60 backdrop-blur-sm rounded-xl border border-gray-800 p-6 mb-6">
+    <div class="lb-card-elevated mb-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-medium text-gray-100">PE Information</h2>
             <div class="flex items-center gap-3">

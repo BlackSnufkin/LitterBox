@@ -12,7 +12,7 @@
             <p class="text-base text-gray-500 mb-6">Comprehensive overview of all scan results.</p>
         </div>
         <button onclick="window.location.href='/results/{{ file_info.md5 }}/info'" 
-                class="px-4 py-2 bg-blue-500/10 text-blue-500 border border-blue-500 rounded-lg hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors"
+                class="lb-btn lb-btn-secondary"
                 aria-label="Navigate back to file information">
             Back to File Info
         </button>
@@ -20,7 +20,7 @@
 
     <!-- Target Details -->
     <div id="targetDetails" class="mb-6">
-        <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4 mb-4">
+        <div class="lb-card mb-4">
             <h4 class="text-base font-medium text-gray-100 mb-2">Target File</h4>
             <p class="text-gray-300">
                 <span class="font-semibold">File Path:</span> 
@@ -52,7 +52,7 @@
     </div>
 
     <!-- String Analysis Results -->
-    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-6">
+    <div class="lb-card">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-medium text-gray-100">String Analysis Results</h2>
             <div class="text-sm text-gray-400">

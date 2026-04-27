@@ -385,7 +385,7 @@ class ByovdApp {
     const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleString() : '—';
 
     return `
-      <div class="cyber-card p-4">
+      <div class="lb-card">
         <div class="flex items-center justify-between flex-col sm:flex-row gap-3">
           <div class="flex items-center gap-3">
             <span class="px-2 py-1 text-sm rounded-lg ${statusClass} text-white">${statusText}</span>
@@ -400,7 +400,7 @@ class ByovdApp {
   buildVerdictSection(data) {
     if (data.isHolyGrail) {
       return `
-        <div class="verdict-holy">
+        <div class="lb-card-high">
           <div class="flex items-center gap-3 mb-3">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
               <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -443,7 +443,7 @@ class ByovdApp {
     ];
 
     return `
-      <div class="verdict-neutral ${colors} border rounded-xl p-4">
+      <div class="${colors} border rounded-xl p-4">
         <h3 class="text-xl font-semibold text-white mb-1">${title}</h3>
         <p class="text-base text-gray-300 mb-2">${description}</p>
         <div class="text-sm text-gray-400">${statusDetails.join(' • ')}</div>
@@ -461,7 +461,7 @@ class ByovdApp {
     else { label = 'LOW'; color = 'text-red-300'; }
 
     return `
-      <div class="cyber-card p-4">
+      <div class="lb-card">
         <h3 class="text-xl font-medium text-gray-100 mb-3">Reputation & Policy</h3>
         <div class="mb-6 p-4 bg-black/20 rounded-lg">
           <div class="flex items-center justify-between mb-3">
@@ -512,7 +512,7 @@ class ByovdApp {
       : '';
 
     return `
-      <div class="cyber-card p-4">
+      <div class="lb-card">
         <h3 class="text-xl font-medium text-gray-100 mb-3">Metadata</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -584,7 +584,7 @@ class ByovdApp {
       : '<p class="text-base text-gray-500">No offensive primitives observed.</p>';
 
     return `
-      <div class="cyber-card p-4">
+      <div class="lb-card">
         <h3 class="text-xl font-medium text-gray-100 mb-3">User Mode Capabilities</h3>
         ${content}
       </div>
@@ -599,7 +599,7 @@ class ByovdApp {
       : '<span class="text-base text-gray-500">No critical imports reported.</span>';
 
     return `
-      <div class="cyber-card p-4">
+      <div class="lb-card">
         <h3 class="text-xl font-medium text-gray-100 mb-3">Critical Imports</h3>
         <div class="flex flex-wrap gap-2 mb-4">${chips}</div>
         <p class="text-sm text-gray-500">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</p>
@@ -637,7 +637,7 @@ class ByovdApp {
     };
 
     return `
-      <div class="cyber-card p-4">
+      <div class="lb-card">
         <h3 class="text-xl font-medium text-gray-100 mb-3">Windows Block Status</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           ${buildCard('Windows 10', data.isWin10Blocked, data.detailed.win10_block_reason, data.detailed.win10_blocking_details)}
@@ -663,9 +663,9 @@ class ByovdApp {
   showSkeleton() {
     DOMUtils.setHTML(this.container, `
       <div class="space-y-4">
-        <div class="cyber-card p-4"><div class="skeleton animate h-16"></div></div>
-        <div class="cyber-card p-4"><div class="skeleton animate h-24"></div></div>
-        <div class="cyber-card p-4"><div class="skeleton animate h-32"></div></div>
+        <div class="lb-card"><div class="skeleton animate h-16"></div></div>
+        <div class="lb-card"><div class="skeleton animate h-24"></div></div>
+        <div class="lb-card"><div class="skeleton animate h-32"></div></div>
       </div>
     `);
   }

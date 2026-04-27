@@ -5,571 +5,198 @@
 
 {% block content %}
 <style>
-  /* Performance-optimized CSS with GPU acceleration */
-  :root {
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #111118;
-    --bg-card: rgba(16, 17, 27, 0.85);
-    --border-primary: rgba(255, 255, 255, 0.08);
-    --border-accent: rgba(139, 92, 246, 0.3);
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --accent-primary: #8b5cf6;
-    --accent-secondary: #06b6d4;
-    --danger: #ef4444;
-    --warning: #f59e0b;
-    --success: #10b981;
-  }
+  /* Page-specific styles for the HolyGrail BYOVD page.
+   * Shared component classes (.lb-card, .lb-btn, .lb-badge) live in
+   * style.css — this block only defines what's truly unique to this page:
+   * the animated grid background, the upload-zone, the stepper, the
+   * progress bar, the console log, score display, and toast styling.
+   * All values reference --lb-* design tokens for consistency. */
 
-  * { 
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  body {
-    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-    min-height: 100vh;
-    color: var(--text-primary);
-    overflow-x: hidden;
-  }
-
-  .hidden {
-    display: none !important;
-  }
-
-  /* Optimized grid background - uses transform instead of background-position */
+  /* Animated grid background (cyber accent — used only on this page) */
   .bg-grid {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0.03;
-    background-image: 
-      linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px);
-    background-size: 50px 50px;
+    inset: 0;
     pointer-events: none;
-    z-index: -1;
-    will-change: transform;
-    animation: grid-move 20s linear infinite;
+    z-index: 0;
+    background-image:
+      linear-gradient(to right, rgba(239, 68, 68, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(239, 68, 68, 0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: grid-move 30s linear infinite;
   }
 
-  @keyframes grid-move {
-    0% { transform: translate3d(0, 0, 0); }
-    100% { transform: translate3d(50px, 50px, 0); }
-  }
-
-  /* Optimized cards with GPU acceleration */
-  .cyber-card {
-    background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border-primary);
-    border-radius: 20px;
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    will-change: transform;
-  }
-
-  .cyber-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .cyber-card:hover::before {
-    opacity: 1;
-  }
-
-  .cyber-card:hover {
-    transform: translate3d(0, -2px, 0);
-    box-shadow: 
-      0 12px 40px rgba(0, 0, 0, 0.5),
-      0 0 20px rgba(139, 92, 246, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-
-  /* Optimized stepper */
+  /* Stepper: Upload -> Analyze -> Review */
   .stepper {
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: rgba(139, 92, 246, 0.05);
-    border-radius: 16px;
-    border: 1px solid rgba(139, 92, 246, 0.1);
-    transition: all 0.3s ease;
-    will-change: opacity, transform;
+    margin: 0 auto 2rem;
+    flex-wrap: wrap;
   }
-
-  .stepper.analysis-complete {
-    opacity: 0;
-    transform: translate3d(0, -20px, 0);
-    pointer-events: none;
-  }
-
+  .stepper.hidden { display: none; }
   .step {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    transition: all 0.3s ease;
+    gap: 0.75rem;
+    color: var(--lb-text-muted);
   }
-
   .step-circle {
-    width: 2rem;
-    height: 2rem;
+    width: 2.25rem;
+    height: 2.25rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 0.875rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    will-change: transform, background-color;
+    border: 2px solid var(--lb-border);
+    background: var(--lb-surface-2);
+    color: var(--lb-text-muted);
+    transition: all var(--lb-transition);
+    flex-shrink: 0;
   }
-
-  .step-circle.idle {
-    background: rgba(100, 116, 139, 0.1);
-    border: 2px solid rgba(100, 116, 139, 0.3);
-    color: var(--text-muted);
-  }
-
   .step-circle.active {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    border: 2px solid var(--accent-primary);
-    color: white;
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
-    animation: pulse 2s ease-in-out infinite;
+    border-color: var(--lb-accent);
+    color: var(--lb-accent);
+    background: rgb(239 68 68 / 0.1);
+    box-shadow: 0 0 0 4px rgb(239 68 68 / 0.1);
   }
-
   .step-circle.done {
-    background: linear-gradient(135deg, var(--success), #059669);
-    border: 2px solid var(--success);
-    color: white;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    border-color: var(--lb-sev-low);
+    color: var(--lb-sev-low);
+    background: rgb(34 197 94 / 0.1);
   }
-
-  @keyframes pulse {
-    0%, 100% { transform: scale3d(1, 1, 1); }
-    50% { transform: scale3d(1.05, 1.05, 1); }
-  }
-
   .step-connector {
     width: 3rem;
-    height: 2px;
-    background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.3));
-    border-radius: 1px;
+    height: 1px;
+    background: var(--lb-border);
   }
 
-  /* Optimized upload zone */
+  /* Upload zone (dashed-border drop target) */
   .upload-zone {
     position: relative;
-    border: 3px dashed var(--border-primary);
-    border-radius: 24px;
-    background: linear-gradient(135deg, 
-      rgba(139, 92, 246, 0.03) 0%, 
-      rgba(6, 182, 212, 0.03) 100%);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    will-change: transform, border-color;
-  }
-
-  .upload-zone::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: conic-gradient(from 0deg, transparent, var(--accent-primary), transparent);
-    opacity: 0;
-    animation: rotate 3s linear infinite;
-    transition: opacity 0.3s ease;
-    will-change: transform, opacity;
-  }
-
-  .upload-zone:hover::before,
-  .upload-zone.drag-over::before {
-    opacity: 0.1;
-  }
-
-  @keyframes rotate {
-    100% { transform: rotate3d(0, 0, 1, 360deg); }
-  }
-
-  .upload-zone:hover,
-  .upload-zone.drag-over {
-    border-color: var(--accent-primary);
-    background: linear-gradient(135deg, 
-      rgba(139, 92, 246, 0.08) 0%, 
-      rgba(6, 182, 212, 0.08) 100%);
-    transform: scale3d(1.01, 1.01, 1);
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
-  }
-
-  .upload-content {
-    position: relative;
-    z-index: 2;
-    padding: 3rem;
+    padding: 3rem 2rem;
     text-align: center;
+    border: 2px dashed var(--lb-border);
+    border-radius: var(--lb-radius-lg);
+    background: var(--lb-surface-2);
+    cursor: pointer;
+    transition: all var(--lb-transition);
   }
-
+  .upload-zone:hover,
+  .upload-zone:focus {
+    border-color: var(--lb-accent);
+    background: rgb(239 68 68 / 0.05);
+    outline: none;
+  }
+  .upload-zone.drag-over {
+    border-color: var(--lb-accent);
+    background: rgb(239 68 68 / 0.08);
+  }
   .upload-icon {
-    width: 5rem;
-    height: 5rem;
-    margin: 0 auto 1.5rem;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    border-radius: 20px;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgb(239 68 68 / 0.2), rgb(239 68 68 / 0.05));
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
-    animation: float 6s ease-in-out infinite;
-    will-change: transform;
+    margin: 0 auto 1.25rem;
   }
 
-  @keyframes float {
-    0%, 100% { transform: translate3d(0, 0, 0); }
-    50% { transform: translate3d(0, -8px, 0); }
-  }
-
-  /* Optimized progress bar */
+  /* Progress bar */
   .progress-container {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    height: 0.5rem;
+    background: var(--lb-surface-3);
+    border-radius: var(--lb-radius-md);
     overflow: hidden;
-    position: relative;
   }
-
   .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    will-change: width;
+    background: linear-gradient(90deg, var(--lb-accent-deep), var(--lb-accent));
+    transition: width var(--lb-transition-slow);
   }
 
-  .progress-bar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, 
-      transparent, 
-      rgba(255, 255, 255, 0.3), 
-      transparent);
-    animation: shimmer 1.5s ease-in-out infinite;
-    will-change: transform;
-  }
-
-  @keyframes shimmer {
-    0% { transform: translate3d(-100%, 0, 0); }
-    100% { transform: translate3d(100%, 0, 0); }
-  }
-
-  /* Optimized console */
+  /* Console log (terminal-style output) */
   .console-log {
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 12px;
-    padding: 1rem;
-    max-height: 12rem;
+    max-height: 16rem;
     overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    scrollbar-width: thin;
-    scrollbar-color: var(--accent-primary) transparent;
+    background: var(--lb-bg);
+    border: 1px solid var(--lb-border);
+    border-radius: var(--lb-radius-md);
+    padding: 0.75rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
   }
-
-  .console-log::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .console-log::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .console-log::-webkit-scrollbar-thumb {
-    background: var(--accent-primary);
-    border-radius: 3px;
-  }
-
   .console-line {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    animation: fadeInUp 0.3s ease;
-    will-change: opacity, transform;
+    gap: 0.5rem;
+    color: var(--lb-text-muted);
+    padding: 0.125rem 0;
   }
-
   .console-line .dot {
-    width: 6px;
-    height: 6px;
+    width: 0.375rem;
+    height: 0.375rem;
     border-radius: 50%;
-    background: var(--accent-primary);
-    box-shadow: 0 0 8px var(--accent-primary);
-    animation: blink 1.5s ease-in-out infinite;
-    will-change: opacity;
+    background: var(--lb-accent);
+    flex-shrink: 0;
   }
 
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+  /* Score display: gradient-text variant of an elevated card */
+  .score-display {
+    background: var(--lb-surface-1);
+    border: 1px solid var(--lb-border);
+    border-radius: var(--lb-radius-xl);
+    text-align: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .score-value {
+    background: linear-gradient(135deg, var(--lb-accent), var(--lb-accent-soft));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translate3d(0, 10px, 0);
-    }
-    to {
-      opacity: 1;
-      transform: translate3d(0, 0, 0);
-    }
+  /* Toast notifications */
+  .toast {
+    padding: 0.75rem 1rem;
+    border-radius: var(--lb-radius-md);
+    border: 1px solid transparent;
+    font-size: 0.9375rem;
+    animation: toast-in 0.25s ease-out;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  @keyframes toast-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
   }
 
-  /* Optimized chips and badges */
-  .cyber-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    background: rgba(139, 92, 246, 0.1);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: 12px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    will-change: transform;
+  /* Slide-up entrance for results card */
+  .slide-up {
+    animation: slide-up 0.4s ease-out;
+  }
+  @keyframes slide-up {
+    from { transform: translateY(12px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
   }
 
-  .cyber-chip:hover {
-    background: rgba(139, 92, 246, 0.15);
-    transform: translate3d(0, -1px, 0);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
-  }
+  /* Verdict badges (LOL/Win10/Win11) - JS sets one of these classes */
+  .badge-success { color: var(--lb-sev-low); }
+  .badge-danger  { color: var(--lb-sev-critical); }
+  .badge-warning { color: var(--lb-sev-medium); }
 
-  .cyber-chip.danger {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.3);
+  /* AV-note callout above import chips when AV-killer pattern detected */
+  .av-note {
+    border: 1px solid rgb(239 68 68 / 0.3);
+    background: rgb(239 68 68 / 0.08);
+    border-radius: var(--lb-radius-md);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
     color: #fca5a5;
   }
-
-  .cyber-chip.success {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.3);
-    color: #6ee7b7;
-  }
-  .cyber-button.warning {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    border-color: #f59e0b;
-  }
-
-  .cyber-button.warning:hover {
-    background: linear-gradient(135deg, #d97706, #b45309);
-    border-color: #d97706;
-  }
-  .cyber-chip.warning {
-    background: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.3);
-    color: #fbbf24;
-  }
-
-  /* Optimized verdict banners */
-  .verdict-holy {
-    background: linear-gradient(135deg, 
-      rgba(245, 158, 11, 0.15), 
-      rgba(251, 191, 36, 0.1));
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: 16px;
-    padding: 1.5rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .verdict-holy::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-      transparent, 
-      rgba(245, 158, 11, 0.1), 
-      transparent);
-    animation: sweep 2s ease-in-out infinite;
-    will-change: transform;
-  }
-
-  @keyframes sweep {
-    0% { transform: translate3d(-100%, 0, 0); }
-    100% { transform: translate3d(100%, 0, 0); }
-  }
-
-  .verdict-neutral {
-    background: linear-gradient(135deg, 
-      rgba(100, 116, 139, 0.1), 
-      rgba(71, 85, 105, 0.05));
-    border: 1px solid rgba(100, 116, 139, 0.2);
-    border-radius: 16px;
-    padding: 1.5rem;
-  }
-
-  /* Optimized score display */
-  .score-display {
-    text-align: center;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, 
-      rgba(139, 92, 246, 0.05), 
-      rgba(6, 182, 212, 0.05));
-    border-radius: 16px;
-    border: 1px solid rgba(139, 92, 246, 0.1);
-  }
-
-  .score-value {
-    font-size: 3rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1;
-    will-change: contents;
-  }
-
-  /* Optimized buttons */
-  .cyber-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    border: none;
-    border-radius: 12px;
-    color: white;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    will-change: transform;
-  }
-
-  .cyber-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-      transparent, 
-      rgba(255, 255, 255, 0.2), 
-      transparent);
-    transition: transform 0.5s ease;
-    will-change: transform;
-  }
-
-  .cyber-button:hover::before {
-    transform: translate3d(200%, 0, 0);
-  }
-
-  .cyber-button:hover {
-    transform: translate3d(0, -2px, 0);
-    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
-  }
-
-  .cyber-button.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-
-  .cyber-button.secondary:hover {
-    background: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .upload-content { padding: 2rem 1rem; }
-    .upload-icon { width: 4rem; height: 4rem; }
-    .score-value { font-size: 2.5rem; }
-    .stepper { gap: 0.5rem; }
-    .step-connector { width: 2rem; }
-  }
-
-  /* Optimized animations */
-  .fade-in {
-    animation: fadeIn 0.5s ease;
-  }
-
-  .slide-up {
-    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translate3d(0, 20px, 0);
-    }
-    to {
-      opacity: 1;
-      transform: translate3d(0, 0, 0);
-    }
-  }
-
-  /* Toast improvements */
-  .toast {
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
-    border: 1px solid;
-    backdrop-filter: blur(20px);
-    font-weight: 500;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform, opacity;
-  }
-
-  @keyframes toastIn {
-    from {
-      opacity: 0;
-      transform: translate3d(0, 1rem, 0) scale3d(0.95, 0.95, 1);
-    }
-    to {
-      opacity: 1;
-      transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
-    }
-  }
-
 </style>
 
 <div class="bg-grid"></div>
@@ -604,7 +231,7 @@
   </div>
   <!-- Enhanced Upload Section -->
   <div id="uploadArea" class="transition-all duration-500">
-    <div id="uploadCard" class="cyber-card">
+    <div id="uploadCard" class="lb-card-elevated">
       <div class="upload-zone" id="dz" role="button" tabindex="0" aria-label="Upload driver file">
         <input type="file" id="fileInput" class="hidden" accept=".sys">
         
@@ -621,7 +248,7 @@
           <p class="text-lg text-gray-300 mb-6">or click to browse files</p>
           
           <div class="flex flex-wrap justify-center gap-3 mb-6">
-            <span class="cyber-chip">.SYS</span>
+            <span class="lb-badge lb-badge-info">.SYS</span>
           </div>
           
           <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -637,7 +264,7 @@
   </div>
 
   <!-- Enhanced Console -->
-  <div id="consoleCard" class="hidden cyber-card mt-6 fade-in">
+  <div id="consoleCard" class="hidden lb-card-elevated mt-6 fade-in">
     <div class="p-6 border-b border-white/10">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
@@ -653,7 +280,7 @@
             <h3 id="consoleTitle" class="text-lg font-semibold text-white">Driver Analysis</h3>
           </div>
         </div>
-        <button id="cancelBtn" class="cyber-button secondary">Cancel</button>
+        <button id="cancelBtn" class="lb-btn lb-btn-ghost">Cancel</button>
       </div>
     </div>
     
@@ -670,20 +297,20 @@
   <!-- Enhanced Results -->
   <div id="resultsCard" class="hidden slide-up">
     <!-- Header Card -->
-    <div class="cyber-card p-6 mb-6">
+    <div class="lb-card-elevated mb-6">
       <div class="flex items-start justify-between gap-6">
         <div class="flex-1 min-w-0">
           <p class="text-sm text-gray-400 uppercase tracking-wide">Analysis Complete</p>
           <h1 id="summaryName" class="text-2xl font-bold text-white mt-1 truncate">No file</h1>
           <div class="flex flex-wrap items-center gap-3 mt-3">
-            <span class="cyber-chip">
+            <span class="lb-badge lb-badge-info">
               <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
               </svg>
               <span id="summaryType">—</span>
             </span>
-            <span class="cyber-chip">
+            <span class="lb-badge lb-badge-info">
               <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12,6 12,12 16,14"/>
@@ -694,20 +321,20 @@
         </div>
         
         <div class="flex items-center gap-3">
-          <button id="resetBtn" class="cyber-button secondary">
+          <button id="resetBtn" class="lb-btn lb-btn-ghost">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="1,4 1,10 7,10"/>
               <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
             </svg>
             Reset
           </button>
-          <button id="staticScanBtn" onclick="runStaticScan()" class="cyber-button warning">
+          <button id="staticScanBtn" onclick="runStaticScan()" class="lb-btn lb-btn-secondary">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
             Run Static Scan
           </button>
-          <label class="cyber-button cursor-pointer">
+          <label class="lb-btn lb-btn-primary cursor-pointer">
             <input type="file" id="fileInputSmall" class="hidden" accept=".sys">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -724,15 +351,15 @@
 
       <!-- Status Grid -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        <div class="cyber-card p-4 text-center">
+        <div class="lb-card text-center">
           <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">LOLDrivers</p>
           <div id="lolBadge" class="text-sm font-medium">Checking...</div>
         </div>
-        <div class="cyber-card p-4 text-center">
+        <div class="lb-card text-center">
           <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Windows 10</p>
           <div id="w10Badge" class="text-sm font-medium">Checking...</div>
         </div>
-        <div class="cyber-card p-4 text-center">
+        <div class="lb-card text-center">
           <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Windows 11</p>
           <div id="w11Badge" class="text-sm font-medium">Checking...</div>
         </div>
@@ -757,11 +384,11 @@
 
       <!-- File Hash -->
       <div class="lg:col-span-2">
-        <div class="cyber-card p-4">
+        <div class="lb-card">
           <p class="text-xs text-gray-400 uppercase tracking-wide mb-3">SHA256 Hash</p>
           <div class="flex items-center gap-3">
             <code id="sha256Full" class="flex-1 text-sm font-mono text-gray-100 break-all bg-black/30 p-3 rounded-lg">Unknown</code>
-            <button id="copyShaBtn" class="cyber-button secondary">
+            <button id="copyShaBtn" class="lb-btn lb-btn-ghost">
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -775,23 +402,23 @@
 
     <!-- Metadata Row -->
     <div class="grid grid-cols-5 gap-2 mb-6">
-      <div class="cyber-card p-4 text-center">
+      <div class="lb-card text-center">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">File Version</p>
         <p id="fileVersion" class="text-sm font-mono text-white">Unknown</p>
       </div>
-      <div class="cyber-card p-4 text-center">
+      <div class="lb-card text-center">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">File Size</p>
         <p id="fileSizePretty" class="text-sm text-white">Unknown</p>
       </div>
-      <div class="cyber-card p-4 text-center">
+      <div class="lb-card text-center">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Architecture</p>
         <p id="arch" class="text-sm font-mono text-white">Unknown</p>
       </div>
-      <div class="cyber-card p-4 text-center">
+      <div class="lb-card text-center">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Original Filename</p>
         <p id="originalFilename" class="text-sm font-mono text-white">Unknown</p>
       </div>
-      <div class="cyber-card p-4 text-center">
+      <div class="lb-card text-center">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Compile Time</p>
         <p id="compileTime" class="text-sm font-mono text-white">Unknown</p>
       </div>
@@ -799,7 +426,7 @@
 
 
     <!-- Dangerous Imports -->
-    <div class="cyber-card p-6 mb-6" id="importsCard">
+    <div class="lb-card-elevated mb-6" id="importsCard">
       <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <svg class="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -811,7 +438,7 @@
     </div>
 
     <!-- Windows Block Status -->
-    <div class="cyber-card p-6">
+    <div class="lb-card-elevated">
       <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>

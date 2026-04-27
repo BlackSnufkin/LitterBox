@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderHolyGrailBanner() {
     return `
-      <div class="verdict-holy">
+      <div class="lb-card-high">
         <div class="flex items-center gap-3 mb-3">
           <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
             <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else statusDetails.push('Win11: ALLOWED');
 
     return `
-      <div class="verdict-neutral ${colors[severity]} border rounded-xl p-4">
+      <div class="${colors[severity]} border rounded-xl p-4">
         <h3 class="text-lg font-semibold text-white mb-1">${title}</h3>
         <p class="text-sm text-gray-300 mb-2">${description}</p>
         <div class="text-xs text-gray-400">
@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fragment = document.createDocumentFragment();
     imports.forEach(imp => {
       const hit = avKeys.has(imp);
-      const cls = hit ? 'cyber-chip success' : 'cyber-chip';
+      const cls = hit ? 'lb-badge lb-badge-medium' : 'lb-badge lb-badge-info';
       const span = document.createElement('span');
       span.className = cls;
       span.textContent = imp;
@@ -522,10 +522,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       return `
-        <div class="cyber-card p-4 ${block.blocked ? 'border-red-500/30' : 'border-green-500/30'}">
+        <div class="lb-card ${block.blocked ? 'border-red-500/30' : 'border-green-500/30'}">
           <div class="flex items-center justify-between mb-2">
             <h5 class="font-medium text-white">${block.name}</h5>
-            <span class="cyber-chip ${block.blocked ? 'danger' : 'success'}">
+            <span class="lb-badge lb-badge-${block.blocked ? 'critical' : 'clean'}">
               ${block.blocked ? 'BLOCKED' : 'ALLOWED'}
             </span>
           </div>

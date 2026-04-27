@@ -5,7 +5,343 @@
  * `@apply` directives DO NOT work here — browsers silently ignore them.
  * Always write raw CSS in this file. Use Tailwind utility classes directly
  * in templates when you want utility behavior.
+ *
+ * The "lb-*" prefix marks the unified design system introduced in the
+ * Phase R UI redesign. Templates use these component classes instead of
+ * the long inline Tailwind chains they previously composed by hand.
+ *
+ * Design tokens come first, then component classes, then existing layout
+ * rules (sidebar/topbar/nav). Add new design-system pieces near the top;
+ * leave the layout rules at the bottom alone.
  */
+
+/* =============================================================
+ * Design tokens
+ * ============================================================= */
+:root {
+    /* Brand accent (red) */
+    --lb-accent:        #ef4444;   /* red-500 — primary brand */
+    --lb-accent-soft:   #f87171;   /* red-400 */
+    --lb-accent-deep:   #b91c1c;   /* red-700 */
+
+    /* Severity (semantic) */
+    --lb-sev-critical:  #ef4444;   /* red-500 */
+    --lb-sev-high:      #f97316;   /* orange-500 */
+    --lb-sev-medium:    #eab308;   /* yellow-500 */
+    --lb-sev-low:       #22c55e;   /* green-500 */
+    --lb-sev-clean:     #22c55e;
+    --lb-sev-info:      #6b7280;   /* gray-500 */
+
+    /* Surfaces (grayscale, dark) */
+    --lb-bg:            #000000;
+    --lb-surface-1:     rgb(17 24 39 / 0.6);    /* gray-900/60 — page panels */
+    --lb-surface-2:     rgb(17 24 39 / 0.3);    /* gray-900/30 — sub-panels */
+    --lb-surface-3:     rgb(31 41 55 / 0.5);    /* gray-800/50 — list items */
+
+    /* Borders */
+    --lb-border:        rgb(31 41 55 / 1);      /* gray-800 */
+    --lb-border-soft:   rgb(31 41 55 / 0.5);
+    --lb-border-accent: rgb(127 29 29 / 0.3);   /* red-900/30 */
+
+    /* Text */
+    --lb-text:          #f3f4f6;   /* gray-100 */
+    --lb-text-muted:    #9ca3af;   /* gray-400 */
+    --lb-text-faint:    #6b7280;   /* gray-500 */
+
+    /* Radii */
+    --lb-radius-sm:     0.375rem;
+    --lb-radius-md:     0.5rem;
+    --lb-radius-lg:     0.75rem;
+    --lb-radius-xl:     1rem;
+    --lb-radius-2xl:    1.25rem;
+
+    /* Shadows */
+    --lb-shadow-sm:     0 1px 2px rgb(0 0 0 / 0.3);
+    --lb-shadow-md:     0 4px 12px rgb(0 0 0 / 0.4);
+    --lb-shadow-lg:     0 12px 28px -8px rgb(0 0 0 / 0.5);
+
+    /* Cyber-accent glows (used ONLY on critical/severe states) */
+    --lb-glow-critical: 0 0 0 1px rgb(239 68 68 / 0.4),
+                        0 0 24px -4px rgb(239 68 68 / 0.35);
+    --lb-glow-high:     0 0 0 1px rgb(249 115 22 / 0.35),
+                        0 0 18px -6px rgb(249 115 22 / 0.3);
+
+    /* Motion */
+    --lb-transition-fast: 150ms ease;
+    --lb-transition:      200ms ease;
+    --lb-transition-slow: 300ms ease;
+
+    /* Sidebar / layout (kept here so all tokens live in one place) */
+    --sidebar-width-expanded: 250px;
+    --sidebar-width-collapsed: 72px;
+    --transition-speed: 0.3s;
+}
+
+/* =============================================================
+ * Component classes (lb-*)
+ *
+ * Templates and JS renderers should prefer these over re-typing
+ * long Tailwind utility chains. Add new components below; do not
+ * fold them into the layout-rules section at the bottom.
+ * ============================================================= */
+
+/* --- Cards / panels -------------------------------------------- */
+.lb-card {
+    background-color: var(--lb-surface-2);
+    border: 1px solid var(--lb-border);
+    border-radius: var(--lb-radius-lg);
+    padding: 1rem;
+}
+
+.lb-card-elevated {
+    background-color: var(--lb-surface-1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--lb-border);
+    border-radius: var(--lb-radius-xl);
+    padding: 1.5rem;
+    box-shadow: var(--lb-shadow-md);
+}
+
+.lb-card-critical {
+    background-color: var(--lb-surface-2);
+    border: 1px solid rgb(239 68 68 / 0.4);
+    border-radius: var(--lb-radius-lg);
+    padding: 1rem;
+    box-shadow: var(--lb-glow-critical);
+}
+
+.lb-card-high {
+    background-color: var(--lb-surface-2);
+    border: 1px solid rgb(249 115 22 / 0.35);
+    border-radius: var(--lb-radius-lg);
+    padding: 1rem;
+    box-shadow: var(--lb-glow-high);
+}
+
+/* --- Buttons --------------------------------------------------- */
+.lb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--lb-radius-md);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.25;
+    transition: background-color var(--lb-transition),
+                color var(--lb-transition),
+                border-color var(--lb-transition);
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    text-decoration: none;
+}
+.lb-btn:disabled,
+.lb-btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.lb-btn-primary {
+    color: var(--lb-accent-soft);
+    border-color: var(--lb-border-accent);
+    background-color: rgb(239 68 68 / 0.08);
+}
+.lb-btn-primary:hover {
+    background-color: rgb(239 68 68 / 0.18);
+    color: #fca5a5;
+}
+
+.lb-btn-secondary {
+    color: #60a5fa;                                /* blue-400 */
+    border-color: rgb(30 58 138 / 0.3);            /* blue-900/30 */
+    background-color: rgb(59 130 246 / 0.08);
+}
+.lb-btn-secondary:hover {
+    background-color: rgb(59 130 246 / 0.18);
+    color: #93c5fd;
+}
+
+.lb-btn-ghost {
+    color: var(--lb-text-muted);
+}
+.lb-btn-ghost:hover {
+    background-color: var(--lb-surface-3);
+    color: var(--lb-text);
+}
+
+/* --- Severity badges ------------------------------------------- */
+.lb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--lb-radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.lb-badge-critical {
+    color: var(--lb-sev-critical);
+    background-color: rgb(239 68 68 / 0.1);
+    border-color: rgb(239 68 68 / 0.3);
+}
+.lb-badge-high {
+    color: var(--lb-sev-high);
+    background-color: rgb(249 115 22 / 0.1);
+    border-color: rgb(249 115 22 / 0.3);
+}
+.lb-badge-medium {
+    color: var(--lb-sev-medium);
+    background-color: rgb(234 179 8 / 0.1);
+    border-color: rgb(234 179 8 / 0.3);
+}
+.lb-badge-low,
+.lb-badge-clean {
+    color: var(--lb-sev-low);
+    background-color: rgb(34 197 94 / 0.1);
+    border-color: rgb(34 197 94 / 0.3);
+}
+.lb-badge-info {
+    color: var(--lb-text-muted);
+    background-color: var(--lb-surface-3);
+    border-color: var(--lb-border);
+}
+
+/* --- Section header (used at the top of cards / sections) ------- */
+.lb-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--lb-border-soft);
+    color: var(--lb-text);
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+.lb-section-header > svg {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--lb-text-muted);
+}
+
+/* --- Hash / monospace value display ----------------------------- */
+.lb-hash-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--lb-surface-3);
+    border: 1px solid var(--lb-border);
+    border-radius: var(--lb-radius-md);
+    padding: 0.5rem 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    color: var(--lb-text);
+    word-break: break-all;
+}
+.lb-hash-display .lb-hash-copy {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--lb-radius-sm);
+    color: var(--lb-text-muted);
+    transition: all var(--lb-transition-fast);
+    cursor: pointer;
+    background: transparent;
+    border: none;
+}
+.lb-hash-display .lb-hash-copy:hover {
+    color: var(--lb-text);
+    background-color: rgb(255 255 255 / 0.05);
+}
+
+/* --- Empty / clean / threat states ------------------------------ */
+.lb-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    text-align: center;
+    border-radius: var(--lb-radius-lg);
+    border: 1px solid transparent;
+}
+.lb-empty-state-icon {
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 0.75rem;
+}
+.lb-empty-state-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+.lb-empty-state-subtext {
+    font-size: 0.875rem;
+    color: var(--lb-text-muted);
+}
+.lb-empty-state-clean {
+    background-color: rgb(34 197 94 / 0.08);
+    border-color: rgb(34 197 94 / 0.2);
+    color: var(--lb-sev-clean);
+}
+.lb-empty-state-threats {
+    background-color: rgb(239 68 68 / 0.08);
+    border-color: rgb(239 68 68 / 0.2);
+    color: var(--lb-sev-critical);
+}
+
+/* --- Cyber-accent grid background (opt-in only) ----------------- */
+.lb-grid-bg {
+    position: relative;
+}
+.lb-grid-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(to right, rgba(239, 68, 68, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(239, 68, 68, 0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: grid-move 30s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+.lb-grid-bg > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* --- Cyber-accent: animated border pulse for critical states ---- */
+.lb-pulse-critical {
+    animation: pulse-critical 2.5s ease-in-out infinite;
+}
+
+/* --- New keyframes used by the design system -------------------- */
+@keyframes grid-move {
+    0%   { background-position: 0 0; }
+    100% { background-position: 50px 50px; }
+}
+
+@keyframes pulse-critical {
+    0%, 100% {
+        box-shadow: 0 0 0 1px rgb(239 68 68 / 0.4),
+                    0 0 24px -4px rgb(239 68 68 / 0.35);
+    }
+    50% {
+        box-shadow: 0 0 0 1px rgb(239 68 68 / 0.6),
+                    0 0 30px -2px rgb(239 68 68 / 0.55);
+    }
+}
+
+/* =============================================================
+ * Existing rules (base, scrollbar, layout, sidebar) — unchanged.
+ * ============================================================= */
 
 /* Base Styles */
 body {
@@ -107,6 +443,9 @@ select {
 
 .logo-wrapper {
     display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
     cursor: pointer;
     text-decoration: none;
     transition: opacity 0.2s;
@@ -131,13 +470,6 @@ input:-webkit-autofill:active {
 }
 .fade-in {
     animation: fadeIn 0.2s ease-out;
-}
-
-/* Sidebar Variables */
-:root {
-    --sidebar-width-expanded: 250px;
-    --sidebar-width-collapsed: 72px;
-    --transition-speed: 0.3s;
 }
 
 /* Sidebar Base Styles */
@@ -202,14 +534,7 @@ input:-webkit-autofill:active {
     padding: 1rem 0.5rem;
 }
 
-/* Logo Section */
-.logo-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-}
-
+/* Logo Section — base .logo-wrapper rules live near the top of this file */
 .app-sidebar.collapsed .logo-wrapper {
     justify-content: center;
     gap: 0;

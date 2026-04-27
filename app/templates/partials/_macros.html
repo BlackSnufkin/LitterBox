@@ -28,7 +28,7 @@
 {# Renders the colored Suspicious / Clean status badge cell. #}
 {% macro scanner_status_cell(detections) -%}
 <td class="px-6 py-4">
-    <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if detections else 'bg-green-500/10 text-green-500' }}">
+    <span class="lb-badge {{ 'lb-badge-critical' if detections else 'lb-badge-clean' }}">
         {{ 'Suspicious' if detections else 'Clean' }}
     </span>
 </td>
@@ -48,17 +48,17 @@
 #}
 {% macro status_grid_3(total, duration_label, duration_value) -%}
 <div class="grid grid-cols-3 gap-4 mb-6">
-    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+    <div class="lb-card">
         <div class="text-sm text-gray-500">Overall Status</div>
         <div id="overallStatus" class="text-2xl font-semibold {{ 'text-red-500' if total > 0 else 'text-green-500' }}">
             {{ 'Threats Detected' if total > 0 else 'Clean' }}
         </div>
     </div>
-    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+    <div class="lb-card">
         <div class="text-sm text-gray-500">Total Detections</div>
         <div id="totalDetections" class="text-2xl font-semibold text-gray-300">{{ total }}</div>
     </div>
-    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+    <div class="lb-card">
         <div class="text-sm text-gray-500">{{ duration_label }}</div>
         <div class="text-2xl font-semibold text-gray-300">{{ duration_value }}</div>
     </div>

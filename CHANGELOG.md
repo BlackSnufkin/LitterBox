@@ -40,6 +40,60 @@ All notable changes to this project will be documented in this file.
     `scanner_count_cell`, `status_grid_3`. `static_info.html` and
     `dynamic_info.html` migrated.
 
+- **UI design system & visual unification.** The app previously had two
+  disjoint visual identities (purple/cyan cyber-themed `holygrail.html`
+  and `byovd_info.html` vs the calmer red-on-dark utilitarian look used
+  everywhere else). Pulled everything onto a single design language:
+  - New `:root` design tokens in `app/static/css/style.css`: brand
+    accents, semantic severity colors (critical/high/medium/low/clean),
+    surfaces, borders, text shades, radii, shadows, and severe-state
+    glow shadows. Plus a curated `.lb-*` component class catalog
+    (cards, buttons, badges, section headers, hash display, empty
+    state, animated grid backdrop, critical-state pulse) used as the
+    shared vocabulary by every page.
+  - `holygrail.html` lost ~437 lines of inline `<style>` (567 → 130);
+    `byovd_info.html` lost ~95 lines (164 → 70). The remaining
+    page-specific blocks (stepper, upload-zone, console-log, score
+    display, loading skeleton) were rewritten using design tokens.
+    The `cyber-card` / `cyber-chip` / `cyber-button` / `verdict-holy`
+    / `verdict-neutral` classes are gone — every site now uses
+    `lb-card{,-elevated,-critical,-high}`, `lb-btn-{primary,secondary,ghost}`,
+    `lb-badge-{critical,high,medium,low,clean,info}`. The cyber-glow
+    accent is retained but applied only on critical/severe states
+    (verdicts, high-severity badges) instead of as page-wide noise.
+  - `file_info.html`, `summary.html`, `results.html`, `dynamic_info.html`,
+    `static_info.html`, `doppelganger.html`, `error.html`, `upload.html`
+    swept to use the component classes; the 4-way Jinja risk-level
+    conditional in `file_info.html` collapsed into a single
+    `lb-badge-{{ risk_level|lower }}` lookup.
+  - Bug fix: duplicate `.logo-wrapper` definition in `style.css` (the
+    selector was defined twice with overlapping properties) merged
+    into a single rule.
+
+- **Fully self-contained downloadable report.** `report.html` was
+  rewritten by hand. Previously the report depended on
+  `https://cdn.tailwindcss.com` for runtime utility compilation,
+  which left the file partially-broken when downloaded and opened
+  from disk without internet. The new template:
+  - Drops the CDN dependency. All CSS is inlined in a single
+    `<style>` block in `<head>` — design tokens, component classes,
+    and only the layout rules the report itself needs.
+  - Drops the inline `tailwind.config` script.
+  - No `<script>` tags anywhere in the document.
+  - Restyled with deliberate typography (system font stack with
+    JetBrains Mono for monospace data), tabular-numeric scores,
+    restrained pill badges, generous whitespace, severity-coded
+    detection chips, per-scanner blocks with locked-size status
+    icons (the previous version had a broken-CSS path that rendered
+    a giant green checkmark on clean scans), and a dedicated print
+    media query.
+  - The LitterBox logo is now embedded as a base64 data URI in the
+    brand strip (matching the original behaviour), so the
+    downloaded file shows the logo offline without an external image
+    fetch.
+  - Output is ~21 KB for a clean-scan report (no logo) / ~87 KB with
+    logo embedded — small enough to email or attach.
+
 ### Fixed
 - **XSS hardening** at user-data interpolation sites in the results-page
   renderers. `str.data` (binary string content from analysed files),

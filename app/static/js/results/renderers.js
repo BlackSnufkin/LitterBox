@@ -41,7 +41,7 @@ export function renderSection(title, items) {
     const remainingCount = items.length - 25;
     
     return `
-    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+    <div class="lb-card">
         <div class="text-sm font-medium text-gray-300 mb-3">
             ${escapeHtml(title)} (${items.length})
         </div>

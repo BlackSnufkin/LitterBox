@@ -205,13 +205,13 @@ export const tools = {
                             ${isClean ? 'Clean' : (findings.initial_threat || 'Unknown Threat')}
                         </div>
                     </div>
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="text-sm text-gray-500">Scan Duration</div>
                         <div class="text-xl font-semibold text-gray-400">
                             ${typeof scanResults.scan_duration === 'number' ? scanResults.scan_duration.toFixed(3) + 's' : 'N/A'}
                         </div>
                     </div>
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="text-sm text-gray-500">Search Iterations</div>
                         <div class="text-xl font-semibold text-gray-400">
                             ${scanResults.search_iterations || 'N/A'}
@@ -283,7 +283,7 @@ export const tools = {
                 // Hex Dump Section (only shown when threats are detected)
                 if (scanResults.hex_dump) {
                     html += `
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-sm font-medium text-gray-300">Showing ±128 bytes around detection point</span>
                             <button 
@@ -323,13 +323,13 @@ export const tools = {
            // Stats Section with Download Button
            tools.stringnalyzer.statsElement.innerHTML = `
                <div class="grid grid-cols-2 gap-4 mb-6">
-                   <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                   <div class="lb-card">
                        <div class="text-sm text-gray-500">File Path</div>
                        <div class="text-sm text-gray-300 font-mono break-all">
                            ${findings.file_path || 'N/A'}
                        </div>
                    </div>
-                   <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                   <div class="lb-card">
                        <div class="text-sm text-gray-500">Total Strings</div>
                        <div class="text-xl font-semibold text-gray-400">
                            ${findings.total_strings || 0}
@@ -411,7 +411,7 @@ export const tools = {
                                 ${isClean ? 'Clean' : 'Suspicious'}
                             </div>
                         </div>
-                        <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                        <div class="lb-card">
                             <div class="text-sm text-gray-500">Total Scanned</div>
                             <div class="text-2xl font-semibold text-gray-300">${findings.total_scanned}</div>
                         </div>
@@ -548,7 +548,7 @@ export const tools = {
                             ${isClean ? 'Clean' : 'Suspicious'}
                         </div>
                     </div>
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="text-sm text-gray-500">Total Regions</div>
                         <div class="text-2xl font-semibold text-gray-300">${findings.total_regions}</div>
                     </div>
@@ -685,7 +685,7 @@ export const tools = {
                             ${isClean ? 'Clean' : 'Suspicious'}
                         </div>
                     </div>
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="text-sm text-gray-500">Memory Regions</div>
                         <div class="text-2xl font-semibold text-gray-300">${memoryStats.total_regions || 0}</div>
                     </div>
@@ -893,25 +893,25 @@ export const tools = {
                     </div>
                     
                     <!-- Total findings -->
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="text-sm text-gray-500">Findings</div>
                         <div class="text-2xl font-semibold text-gray-300">${summary.total_findings || 0}</div>
                     </div>
 
                     <!-- Threads analyzed -->
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="text-sm text-gray-500">Threads Analyzed</div>
                         <div class="text-2xl font-semibold text-gray-300">${summary.scanned_threads || 0}</div>
                     </div>
 
                     <!-- PID from the first detection (or N/A) -->
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="text-sm text-gray-500">PID</div>
                         <div class="text-2xl font-semibold text-gray-300">${processPid}</div>
                     </div>
 
                     <!-- Scan Duration -->
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+                    <div class="lb-card">
                         <div class="text-sm text-gray-500">Scan Duration</div>
                         <div class="text-2xl font-semibold text-gray-300">
                             ${(summary.duration || 0).toFixed(3)}s
