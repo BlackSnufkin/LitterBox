@@ -1,0 +1,94 @@
+{# app/templates/partials/_macros.html
+   Shared Jinja macros for the LitterBox UI.
+
+   Scanner-table macros:
+     {% from 'partials/_macros.html' import scanner_table_header,
+                                            scanner_yara_row,
+                                            scanner_status_cell,
+                                            scanner_count_cell %}
+
+   These eliminate duplication between static_info.html and dynamic_info.html
+   (both render the same scanner-result table format).
+#}
+
+
+{# Renders the <thead> of a scanner-results table. #}
+{% macro scanner_table_header() -%}
+<thead>
+    <tr class="border-b border-gray-800">
+        <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Scanner</th>
+        <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Status</th>
+        <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Detections</th>
+        <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Details</th>
+    </tr>
+</thead>
+{%- endmacro %}
+
+
+{# Renders the colored Suspicious / Clean status badge cell. #}
+{% macro scanner_status_cell(detections) -%}
+<td class="px-6 py-4">
+    <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if detections else 'bg-green-500/10 text-green-500' }}">
+        {{ 'Suspicious' if detections else 'Clean' }}
+    </span>
+</td>
+{%- endmacro %}
+
+
+{# Renders the detection-count cell (red if any, gray if zero). #}
+{% macro scanner_count_cell(detections) -%}
+<td class="px-6 py-4 text-base {{ 'text-red-500' if detections else 'text-gray-400' }}">{{ detections }}</td>
+{%- endmacro %}
+
+
+{# Renders the 3-card "Overall Status / Total Detections / <Duration>" grid.
+   Used identically (with different data) on the static and dynamic result pages.
+   `total` is the sum of all detections; `duration_label` and `duration_value`
+   keep flexibility for "Scan Duration" vs "Total Analysis Duration" wording.
+#}
+{% macro status_grid_3(total, duration_label, duration_value) -%}
+<div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+        <div class="text-sm text-gray-500">Overall Status</div>
+        <div id="overallStatus" class="text-2xl font-semibold {{ 'text-red-500' if total > 0 else 'text-green-500' }}">
+            {{ 'Threats Detected' if total > 0 else 'Clean' }}
+        </div>
+    </div>
+    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+        <div class="text-sm text-gray-500">Total Detections</div>
+        <div id="totalDetections" class="text-2xl font-semibold text-gray-300">{{ total }}</div>
+    </div>
+    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
+        <div class="text-sm text-gray-500">{{ duration_label }}</div>
+        <div class="text-2xl font-semibold text-gray-300">{{ duration_value }}</div>
+    </div>
+</div>
+{%- endmacro %}
+
+
+{# Full YARA scanner row — identical between static and dynamic result pages.
+   `matches` is analysis_results.yara.matches (a list of {rule, metadata} dicts).
+#}
+{% macro scanner_yara_row(detections, matches) -%}
+<tr>
+    <td class="px-6 py-4 text-base text-gray-300">YARA</td>
+    {{ scanner_status_cell(detections) }}
+    {{ scanner_count_cell(detections) }}
+    <td class="px-6 py-4">
+        {% if detections %}
+            <div class="text-base text-gray-400">
+                {% for match in matches %}
+                <div class="mb-1">
+                    Rule: <span class="text-red-400">{{ match.rule }}</span>
+                    {% if match.metadata %}
+                        (Severity: {{ match.metadata.severity }})
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <span class="text-base text-gray-400">No threats detected</span>
+        {% endif %}
+    </td>
+</tr>
+{%- endmacro %}

@@ -1,366 +1,11 @@
-// app/static/js/resutls.js
-// UI Components and Constants
-const UI = {
-    icons: {
-        running: `
-            <svg class="w-6 h-6 text-red-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>`,
-        complete: `
-            <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>`,
-        error: `
-            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>`
-    }
-};
+// app/static/js/results/tools.js
+// Per-scanner result renderers. Each entry exposes {element, [statsElement,] render(results)}.
 
-
-// Tab Manager
-class TabManager {
-    constructor() {
-        this.tabs = document.querySelectorAll('.tab-button');
-        this.tabContents = document.querySelectorAll('.tab-content');
-        this.setupTabs();
-    }
-
-    setupTabs() {
-        this.tabs.forEach(tab => {
-            tab.addEventListener('click', () => this.switchTab(tab));
-        });
-
-        // Activate first tab by default
-        if (this.tabs.length > 0) {
-            this.tabs[0].click();
-        }
-    }
-
-    switchTab(selectedTab) {
-        const target = selectedTab.dataset.tab;
-        
-        // Hide all tab content and deactivate tabs
-        this.tabContents.forEach(content => content.classList.add('hidden'));
-        this.tabs.forEach(tab => tab.classList.remove('border-red-500', 'text-white'));
-        
-        // Show target content and activate tab
-        document.getElementById(target).classList.remove('hidden');
-        selectedTab.classList.add('border-red-500', 'text-white');
-    }
-}
-
-// Payload Manager Class
-class PayloadManager {
-    constructor() {
-        this.toggleBtn = document.getElementById('togglePayloadOutput');
-        this.content = document.getElementById('payloadOutputContent');
-        this.chevron = document.getElementById('payloadChevron');
-        this.stdout = document.getElementById('payloadStdout');
-        this.stderr = document.getElementById('payloadStderr');
-        this.stdoutSection = document.getElementById('stdoutSection');
-        this.stderrSection = document.getElementById('stderrSection');
-        this.info = document.getElementById('payloadOutputInfo');
-        this.status = document.getElementById('payloadOutputStatus');
-
-        this.setupToggle();
-    }
-
-    setupToggle() {
-        if (this.toggleBtn && this.content && this.chevron) {
-            this.toggleBtn.addEventListener('click', () => {
-                this.content.classList.toggle('hidden');
-                this.chevron.classList.toggle('rotate-90');
-            });
-        }
-    }
-
-    updatePayloadOutput(results) {
-        if (!results.process_output) return;
-
-        const { stdout, stderr, output_truncated, exit_code } = results.process_output;
-
-        // Update stdout
-        if (stdout && this.stdout && this.stdoutSection) {
-            this.stdout.textContent = stdout;
-            this.stdoutSection.classList.remove('hidden');
-        }
-
-        // Update stderr
-        if (stderr && this.stderr && this.stderrSection) {
-            this.stderr.textContent = stderr;
-            this.stderrSection.classList.remove('hidden');
-        }
-
-        // Update status badge
-        if (stdout || stderr) {
-            this.status.textContent = 'Output Available';
-            this.status.classList.add('bg-green-500/10', 'text-green-500');
-            this.status.classList.remove('bg-gray-800', 'text-gray-400');
-        } else {
-            this.status.textContent = 'No Process Output';
-        }
-
-        // Add additional info
-        if (this.info) {
-            const infoText = [];
-            if (output_truncated) {
-                infoText.push('Output was truncated due to size limitations');
-            }
-            if (exit_code !== null) {
-                infoText.push(`Process exit code: ${exit_code}`);
-            }
-            this.info.textContent = infoText.join(' • ');
-        }
-    }
-}
-
-// Analysis Type Handler
-class AnalysisTypeHandler {
-    constructor() {
-        this.setupAnalysisType();
-    }
-
-    isNumeric(str) {
-        return /^\d+$/.test(str);
-    }
-
-    setupAnalysisType() {
-        const pathSegments = window.location.pathname.split('/').filter(segment => segment.length > 0);
-        const identifier = pathSegments[pathSegments.length - 1];
-        
-        // If PID, hide static analysis button
-        if (this.isNumeric(identifier)) {
-            const staticButton = document.getElementById('staticAnalysisButton');
-            if (staticButton) {
-                staticButton.style.display = 'none';
-            }
-        }
-    }
-}
-
-// Analysis Core Logic
-class AnalysisCore {
-    constructor() {
-        this.elements = {
-            analysisStatus: document.getElementById('analysisStatus'),
-            statusIcon: document.getElementById('statusIcon'),
-            analysisTimer: document.getElementById('analysisTimer'),
-            stageLine: document.getElementById('stageLine'),
-            analysisStage: document.getElementById('analysisStage')
-        };
-        this.startTime = Date.now();
-        this.timerInterval = null;
-
-        const pathParts = window.location.pathname.split('/');
-        this.analysisType = pathParts[2];
-        this.fileHash = pathParts[3];
-    }
-
-    updateTimer() {
-        const elapsed = Date.now() - this.startTime;
-        const minutes = Math.floor(elapsed / 60000);
-        const seconds = Math.floor((elapsed % 60000) / 1000);
-        const milliseconds = elapsed % 1000;
-        this.elements.analysisTimer.textContent = 
-            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
-        // Update summary scan duration
-        document.getElementById('scanDuration').textContent = this.elements.analysisTimer.textContent;
-    }
-    startTimer() {
-        this.timerInterval = setInterval(() => this.updateTimer(), 1000);
-    }
-
-    stopTimer() {
-        clearInterval(this.timerInterval);
-    }
-
-    updateStatusIcon(status) {
-        this.elements.statusIcon.innerHTML = UI.icons[status] || '';
-    }
-
-    updateStageToComplete() {
-        this.elements.stageLine.classList.remove('bg-gray-800');
-        this.elements.stageLine.classList.add('bg-green-500/20');
-        
-        this.elements.analysisStage.innerHTML = `
-            <div class="w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>
-            <span class="text-gray-400">Analysis</span>`;
-    }
-
-    async startAnalysis() {
-        this.updateStatusIcon('running');
-        this.elements.analysisStatus.textContent = 'Running analysis...';
-        this.startTimer();
-
-        try {
-            // Retrieve the arguments from localStorage
-            const savedArgs = localStorage.getItem('analysisArgs');
-            const args = savedArgs ? JSON.parse(savedArgs) : []; // Default to an empty array if no args are saved
-
-            const response = await fetch(`/analyze/${this.analysisType}/${this.fileHash}`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    args // Dynamically include the arguments retrieved from storage
-                })
-            });
-
-            const data = await response.json();
-
-            // Handle early termination
-            if (data.status === 'early_termination') {
-                this.updateTimer();
-                this.stopTimer();
-                this.updateStatusIcon('error');
-                this.elements.analysisStatus.textContent = data.error || 'Process terminated early';
-                
-                // Create a minimal results object for summary
-                const results = {
-                    status: 'early_termination',
-                    analysis_metadata: {
-                        early_termination: true,
-                        total_duration: data.details?.termination_time || 0
-                    }
-                };
-                
-                if (tools.summary) {
-                    tools.summary.render(results);
-                }
-                return;
-            }
-            
-            // Normal completion flow
-            this.updateTimer();
-            this.stopTimer();
-            this.updateStatusIcon('complete');
-            this.elements.analysisStatus.textContent = 'Analysis completed';
-            this.updateStageToComplete();
-
-            // First update the summary with all results
-            if (tools.summary && data.results) {
-                tools.summary.render(data.results);
-            }
-
-            // Then process individual tool results
-            Object.entries(data.results || {}).forEach(([toolKey, results]) => {
-                if (results && tools[toolKey] && toolKey !== 'summary') {
-                    tools[toolKey].render(results);
-                }
-            });
-        } catch (error) {
-            this.stopTimer();
-            this.updateStatusIcon('error');
-            this.elements.analysisStatus.textContent = `Error: ${error.message}`;
-        }
-    }
-
-}
-
-// Modal Handler
-class ModalHandler {
-    constructor() {
-        this.modal = document.getElementById('dynamicWarningModal');
-        this.dialog = this.modal.querySelector('.bg-gray-900');
-        this.setupListeners();
-    }
-
-    setupListeners() {
-        this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.hide();
-            }
-        });
-    }
-
-    show() {
-        this.modal.classList.remove('hidden');
-        setTimeout(() => {
-            this.dialog.classList.remove('scale-95', 'opacity-0');
-        }, 50);
-    }
-
-    hide() {
-        this.dialog.classList.add('scale-95', 'opacity-0');
-        setTimeout(() => {
-            this.modal.classList.add('hidden');
-        }, 300);
-    }
-}
-
-function handleUrlIdentifier() {
-    const urlPath = window.location.pathname;
-    const pathSegments = urlPath.split('/').filter(segment => segment.length > 0);
-    const identifier = pathSegments[pathSegments.length - 1];
-
-    if (isNumeric(identifier)) {
-        const staticButton = document.getElementById('staticAnalysisButton');
-        if (staticButton) {
-            staticButton.style.display = 'none';
-        }
-    }
-
-    function isNumeric(str) {
-        return /^\d+$/.test(str);
-    }
-}
-
-
-
-function getEventTypeColor(type) {
-    const colors = {
-        'Process Start': 'bg-green-500',
-        'Child Process': 'bg-yellow-500',
-        'DLL Load': 'bg-blue-500',
-        'Image Load': 'bg-purple-500',
-        'Thread Start': 'bg-pink-500'
-    };
-    return colors[type] || 'bg-gray-500';
-}
-
-function formatBytes(bytes) {
-    if (!bytes) return 'N/A';
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
-}
-
-
-function renderSection(title, items) {
-    if (!items || items.length === 0) return '';
-    
-    const displayItems = items.slice(0, 25);
-    const remainingCount = items.length - 25;
-    
-    return `
-    <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
-        <div class="text-sm font-medium text-gray-300 mb-3">
-            ${title} (${items.length})
-        </div>
-        <div class="space-y-2">
-            ${displayItems.map(item => `
-                <div class="text-sm text-gray-400 font-mono break-all bg-gray-900/50 p-2 rounded">
-                    ${item}
-                </div>
-            `).join('')}
-            ${remainingCount > 0 ? `
-                <div class="text-sm text-gray-500 mt-2 p-2">
-                    ... and ${remainingCount} more items
-                </div>
-            ` : ''}
-        </div>
-    </div>`;
-}
+import { escapeHtml } from '../utils/escape.js';
+import { UI, getEventTypeColor, renderSection, formatBytes } from './renderers.js';
 
 // Tools Registry Object (keeping reference to tools)
-const tools = {
+export const tools = {
     yara: {
             element: document.getElementById('yaraResults'),
             statsElement: document.getElementById('yaraStats'),
@@ -414,7 +59,7 @@ const tools = {
                     <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4 mb-4">
                         <div class="text-sm text-gray-400">
                             <div class="font-medium text-gray-300 mb-1">Target Information</div>
-                            <div class="font-mono break-all">${results.scan_info.target}</div>
+                            <div class="font-mono break-all">${escapeHtml(results.scan_info.target)}</div>
                             ${results.scan_info.rules_file ? 
                                 `<div class="mt-1 text-gray-500">Rules: ${results.scan_info.rules_file}</div>` : ''}
                         </div>
@@ -466,7 +111,7 @@ const tools = {
                                     <div class="w-6 h-6 flex items-center justify-center ${severity > 50 ? 'bg-red-500/10' : 'bg-yellow-500/10'} rounded">
                                         <span class="${severity > 50 ? 'text-red-500' : 'text-yellow-500'} text-xs">#${index + 1}</span>
                                     </div>
-                                    <span class="${severity > 50 ? 'text-red-500' : 'text-yellow-500'} text-sm">${match.rule}</span>
+                                    <span class="${severity > 50 ? 'text-red-500' : 'text-yellow-500'} text-sm">${escapeHtml(match.rule)}</span>
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <span class="px-1.5 py-0.5 text-xs ${severity > 50 ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'} rounded">
@@ -504,9 +149,9 @@ const tools = {
                                             <div class="bg-gray-900/30 rounded p-3">
                                                 <div class="flex items-center justify-between mb-2">
                                                     <div class="flex items-center space-x-2">
-                                                        <span class="text-xs text-gray-500 font-mono">${str.offset}</span>
-                                                        ${str.identifier ? 
-                                                            `<span class="text-xs px-2 py-0.5 bg-gray-800 rounded text-gray-400">${str.identifier}</span>` : ''}
+                                                        <span class="text-xs text-gray-500 font-mono">${escapeHtml(str.offset)}</span>
+                                                        ${str.identifier ?
+                                                            `<span class="text-xs px-2 py-0.5 bg-gray-800 rounded text-gray-400">${escapeHtml(str.identifier)}</span>` : ''}
                                                         ${str.data_type ? 
                                                             `<span class="text-xs px-2 py-0.5 bg-gray-800 rounded text-gray-400">${str.data_type}</span>` : ''}
                                                     </div>
@@ -516,7 +161,7 @@ const tools = {
                                                         Copy
                                                     </button>
                                                 </div>
-                                                <pre class="text-sm text-gray-300 font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto">${str.data}</pre>
+                                                <pre class="text-sm text-gray-300 font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto">${escapeHtml(str.data)}</pre>
                                             </div>
                                         `).join('')}
                                     </div>
@@ -647,7 +292,7 @@ const tools = {
                                 Copy
                             </button>
                         </div>
-                        <pre class="text-base font-mono text-gray-400 whitespace-pre-wrap overflow-x-auto p-4 bg-gray-900/50 rounded-lg leading-relaxed">${scanResults.hex_dump}</pre>
+                        <pre class="text-base font-mono text-gray-400 whitespace-pre-wrap overflow-x-auto p-4 bg-gray-900/50 rounded-lg leading-relaxed">${escapeHtml(scanResults.hex_dump)}</pre>
                     </div>`;
                 }
             }
@@ -1943,118 +1588,11 @@ const tools = {
             document.getElementById('scanDuration').textContent = document.getElementById('analysisTimer').textContent;
             // Add this part to handle payload output
             if (results.process_output) {
-                updatePayloadOutput(results);
+                // updatePayloadOutput is bound on window by core.js's DOMContentLoaded.
+                window.updatePayloadOutput?.(results);
             }
 
         }
     },
 };
-
-// HolyGrail scan function (add this anywhere in the file)
-window.startHolyGrailScan = function() {
-    const pathParts = window.location.pathname.split('/');
-    const fileHash = pathParts[pathParts.length - 1];
-    
-    if (!fileHash) {
-        console.error('No file hash found');
-        return;
-    }
-
-    // Show loading message
-    const button = document.getElementById('holygrailAnalysisButton');
-    if (button) {
-        button.innerHTML = `
-            <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>Starting HolyGrail Analysis...</span>
-        `;
-        button.disabled = true;
-    }
-
-    // Call HolyGrail analysis endpoint
-    fetch(`/holygrail?hash=${fileHash}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            // Redirect to results page
-            window.location.href = `/results/${fileHash}/byovd`;
-        } else {
-            // Handle error and restore button
-            console.error('HolyGrail analysis failed:', data.error || data.message);
-            restoreHolyGrailButton();
-        }
-    })
-    .catch(error => {
-        console.error('HolyGrail analysis error:', error);
-        restoreHolyGrailButton();
-    });
-
-    function restoreHolyGrailButton() {
-        if (button) {
-            button.innerHTML = `
-                <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h-1a1 1 0 000 2h1M18 9h1a1 1 0 010 2h-1"/>
-                </svg>
-                <span>HolyGrail BYOVD Scan</span>
-            `;
-            button.disabled = false;
-        }
-    }
-};
-
-// Initialize Everything
-document.addEventListener('DOMContentLoaded', function () {
-    // Initialize tab navigation
-    const tabManager = new TabManager();
-
-    // Process URL identifier logic
-    handleUrlIdentifier();
-
-    // Initialize modal and analysis handlers
-    const modal = new ModalHandler();
-    const analysis = new AnalysisCore();
-
-    // Initialize PayloadManager
-    const payloadManager = new PayloadManager();
-    // Check file extension and show appropriate button
-    const fileExtension = localStorage.getItem('currentFileExtension');
-    const dynamicButton = document.getElementById('dynamicAnalysisButton');
-    const holygrailButton = document.getElementById('holygrailAnalysisButton');
-    
-    if (fileExtension && fileExtension.toLowerCase() === 'sys') {
-        // Show HolyGrail button for .sys files
-        if (dynamicButton) dynamicButton.style.display = 'none';
-        if (holygrailButton) holygrailButton.style.display = 'flex';
-    } else {
-        // Show Dynamic Analysis button for other files
-        if (holygrailButton) holygrailButton.style.display = 'none';
-        if (dynamicButton) dynamicButton.style.display = 'flex';
-    }
-    // Make modal functions globally accessible
-    window.showDynamicWarning = () => modal.show();
-    window.hideDynamicWarning = () => modal.hide();
-
-    // Start analysis if parameters exist
-    if (analysis.analysisType && analysis.fileHash) {
-        analysis.startAnalysis();
-    }
-
-    // Use PayloadManager methods
-    window.updatePayloadOutput = (results) => payloadManager.updatePayloadOutput(results);
-});
-
-
-
-
 

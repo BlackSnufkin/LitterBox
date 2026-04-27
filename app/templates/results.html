@@ -388,5 +388,5 @@
 
 {% block scripts %}
   <!-- Include scripts in the right order -->
-  <script src="{{ url_for('static', filename='js/results.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/results/core.js') }}"></script>
 {% endblock %}

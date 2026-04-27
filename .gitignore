@@ -1,8 +1,18 @@
+# Python
 __pycache__/
-Scanners/PE-Sieve/Analysis
-Scanners/HollowsHunter/Analysis
-Uploads/
-Results/
-DoppelgangerDB/Blender
+
+# Virtual environment
 venv/
-Scanners/HolyGrail/Analysis
+
+# Runtime artifact directories (anchored to repo root so they don't
+# accidentally shadow same-named directories elsewhere — notably the
+# refactored `app/static/js/results/` and `app/blueprints/results.py`).
+/Uploads/
+/Results/
+/DoppelgangerDB/Blender/
+
+# Scanner output / dump artifacts (root-anchored)
+/Scanners/PE-Sieve/Analysis/
+/Scanners/PE-Sieve/process_*/
+/Scanners/HollowsHunter/Analysis/
+/Scanners/HolyGrail/Analysis/

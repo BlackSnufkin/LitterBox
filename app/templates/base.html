@@ -180,6 +180,6 @@
     </div>
 
     {% block scripts %}{% endblock %}
-    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/base.js') }}"></script>
 </body>
 </html>

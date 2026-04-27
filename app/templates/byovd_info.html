@@ -4,7 +4,7 @@
 
 {% block head %}
 <!-- Critical performance hints -->
-<link rel="preload" href="{{ url_for('static', filename='js/byovd_info.js') }}" as="script">
+<link rel="modulepreload" href="{{ url_for('static', filename='js/byovd/core.js') }}">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 {% endblock %}
@@ -262,16 +262,15 @@ body{
   document.addEventListener('touchstart', function(){}, {passive: true});
   document.addEventListener('touchmove', function(){}, {passive: true});
   
-  // Preload critical resources
+  // Preload critical resources (modulepreload for ES modules)
   const criticalResources = [
-    '{{ url_for("static", filename="js/byovd_info.js") }}'
+    '{{ url_for("static", filename="js/byovd/core.js") }}'
   ];
-  
+
   criticalResources.forEach(function(resource) {
     const link = document.createElement('link');
-    link.rel = 'preload';
+    link.rel = 'modulepreload';
     link.href = resource;
-    link.as = 'script';
     document.head.appendChild(link);
   });
   
@@ -300,8 +299,8 @@ if ('performance' in window && 'mark' in performance) {
 (function() {
   function loadMainScript() {
     const script = document.createElement('script');
-    script.src = '{{ url_for("static", filename="js/byovd_info.js") }}';
-    script.async = true;
+    script.type = 'module';
+    script.src = '{{ url_for("static", filename="js/byovd/core.js") }}';
     script.onerror = function() {
       console.error('[BYOVD] Failed to load main script');
       const container = document.getElementById('holygrailResults');

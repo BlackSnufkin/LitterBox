@@ -1,4 +1,9 @@
-// app/static/js/sidebar_new.js
+// app/static/js/base.js
+//
+// Loaded as an ES module by base.html. Module strict mode means top-level
+// `function foo() {}` no longer auto-globalises; we explicitly attach every
+// name that templates reference via inline `onclick="..."` handlers to
+// `window` at the bottom of this file.
 
 // Constants
 const CONFIG = {
@@ -569,3 +574,9 @@ window.showNotification = NotificationSystem.show.bind(NotificationSystem);
 window.toggleSidebar = () => window.sidebarManager?.toggle();
 window.collapseSidebar = () => window.sidebarManager?.collapse();
 window.expandSidebar = () => window.sidebarManager?.expand();
+
+// Top-level helpers referenced by base.html inline onclick handlers.
+// In module strict mode `function showSummary() {}` does NOT create
+// `window.showSummary`, so attach them explicitly.
+window.showSummary = showSummary;
+window.openDoppelganger = openDoppelganger;

@@ -1,6 +1,7 @@
 <!-- app/templates/static_results.html -->
 
 {% extends "base.html" %}
+{% from 'partials/_macros.html' import scanner_table_header, scanner_yara_row, scanner_status_cell, scanner_count_cell, status_grid_3 %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto px-4 py-6">
@@ -29,72 +30,19 @@
     </div>
 
     <!-- Overall Status Grid -->
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
-            <div class="text-sm text-gray-500">Overall Status</div>
-            <div id="overallStatus" class="text-2xl font-semibold {{ 'text-red-500' if yara_detections or checkplz_detections else 'text-green-500' }}">
-                {{ 'Threats Detected' if yara_detections or checkplz_detections else 'Clean' }}
-            </div>
-        </div>
-        <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
-            <div class="text-sm text-gray-500">Total Detections</div>
-            <div id="totalDetections" class="text-2xl font-semibold text-gray-300">{{ yara_detections + checkplz_detections }}</div>
-        </div>
-        <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
-            <div class="text-sm text-gray-500">Scan Duration</div>
-            <div class="text-2xl font-semibold text-gray-300">
-                {{ scan_duration }}
-            </div>
-        </div>
-    </div>
+    {{ status_grid_3(yara_detections + checkplz_detections, 'Scan Duration', scan_duration) }}
 
     <!-- Scanner Results Table -->
     <div class="bg-gray-900/30 rounded-lg border border-gray-800 overflow-hidden mb-6">
         <table class="w-full">
-            <thead>
-                <tr class="border-b border-gray-800">
-                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Scanner</th>
-                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Status</th>
-                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Detections</th>
-                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Details</th>
-                </tr>
-            </thead>
+            {{ scanner_table_header() }}
             <tbody id="scannerResultsBody" class="divide-y divide-gray-800">
-                <!-- YARA Results Row -->
-                <tr>
-                    <td class="px-6 py-4 text-base text-gray-300">YARA</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if yara_detections else 'bg-green-500/10 text-green-500' }}">
-                            {{ 'Suspicious' if yara_detections else 'Clean' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-base {{ 'text-red-500' if yara_detections else 'text-gray-400' }}">{{ yara_detections }}</td>
-                    <td class="px-6 py-4">
-                        {% if yara_detections %}
-                            <div class="text-base text-gray-400">
-                                {% for match in analysis_results.yara.matches %}
-                                <div class="mb-1">
-                                    Rule: <span class="text-red-400">{{ match.rule }}</span>
-                                    {% if match.metadata %}
-                                        (Severity: {{ match.metadata.severity }})
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <span class="text-base text-gray-400">No threats detected</span>
-                        {% endif %}
-                    </td>
-                </tr>
+                {{ scanner_yara_row(yara_detections, analysis_results.yara.matches) }}
                 <!-- CheckPlz Results Row -->
                 <tr>
                     <td class="px-6 py-4 text-base text-gray-300">CheckPlz</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if checkplz_detections else 'bg-green-500/10 text-green-500' }}">
-                            {{ 'Suspicious' if checkplz_detections else 'Clean' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-base {{ 'text-red-500' if checkplz_detections else 'text-gray-400' }}">{{ checkplz_detections }}</td>
+                    {{ scanner_status_cell(checkplz_detections) }}
+                    {{ scanner_count_cell(checkplz_detections) }}
                     <td class="px-6 py-4 text-base text-gray-400">
                         {{ analysis_results.checkplz.findings.initial_threat if checkplz_detections else 'No threats detected' }}
                     </td>

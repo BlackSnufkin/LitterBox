@@ -1,6 +1,7 @@
 <!-- app/templates/dynamic_results.html -->
 
 {% extends "base.html" %}
+{% from 'partials/_macros.html' import scanner_table_header, scanner_yara_row, scanner_status_cell, scanner_count_cell, status_grid_3 %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto px-4 py-6">
@@ -41,73 +42,22 @@
     </div>
 
     <!-- Overall Status Grid -->
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
-            <div class="text-sm text-gray-500">Overall Status</div>
-            <div id="overallStatus" class="text-2xl font-semibold {{ 'text-red-500' if yara_detections + pesieve_detections + moneta_detections + patriot_detections + hsb_detections > 0 else 'text-green-500' }}">
-                {{ 'Threats Detected' if yara_detections + pesieve_detections + moneta_detections + patriot_detections + hsb_detections > 0 else 'Clean' }}
-            </div>
-        </div>
-        <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
-            <div class="text-sm text-gray-500">Total Detections</div>
-            <div id="totalDetections" class="text-2xl font-semibold text-gray-300">{{ yara_detections + pesieve_detections + moneta_detections + patriot_detections + hsb_detections }}</div>
-        </div>
-        <div class="bg-gray-900/30 rounded-lg border border-gray-800 p-4">
-            <div class="text-sm text-gray-500">Total Analysis Duration</div>
-            <div id="scanDuration" class="text-2xl font-semibold text-gray-300">
-                {{ "%.2f"|format(analysis_results.analysis_metadata.total_duration if analysis_results.analysis_metadata else 0) }}s
-            </div>
-        </div>
-    </div>
+    {% set total_detections = yara_detections + pesieve_detections + moneta_detections + patriot_detections + hsb_detections %}
+    {% set duration_value = "%.2f"|format(analysis_results.analysis_metadata.total_duration if analysis_results.analysis_metadata else 0) ~ "s" %}
+    {{ status_grid_3(total_detections, 'Total Analysis Duration', duration_value) }}
 
     <!-- Scanner Results Table -->
     <div class="bg-gray-900/30 rounded-lg border border-gray-800 overflow-hidden">
         <table class="w-full">
-            <thead>
-                <tr class="border-b border-gray-800">
-                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Scanner</th>
-                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Status</th>
-                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Detections</th>
-                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Details</th>
-                </tr>
-            </thead>
+            {{ scanner_table_header() }}
             <tbody id="scannerResultsBody" class="divide-y divide-gray-800">
-                <!-- YARA Results Row -->
-                <tr>
-                    <td class="px-6 py-4 text-base text-gray-300">YARA</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if yara_detections else 'bg-green-500/10 text-green-500' }}">
-                            {{ 'Suspicious' if yara_detections else 'Clean' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-base {{ 'text-red-500' if yara_detections else 'text-gray-400' }}">{{ yara_detections }}</td>
-                    <td class="px-6 py-4">
-                        {% if yara_detections %}
-                            <div class="text-base text-gray-400">
-                                {% for match in analysis_results.yara.matches %}
-                                <div class="mb-1">
-                                    Rule: <span class="text-red-400">{{ match.rule }}</span>
-                                    {% if match.metadata %}
-                                        (Severity: {{ match.metadata.severity }})
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <span class="text-base text-gray-400">No threats detected</span>
-                        {% endif %}
-                    </td>
-                </tr>
+                {{ scanner_yara_row(yara_detections, analysis_results.yara.matches) }}
 
                 <!-- PE-sieve Results Row -->
                 <tr>
                     <td class="px-6 py-4 text-base text-gray-300">PE-sieve</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if pesieve_detections else 'bg-green-500/10 text-green-500' }}">
-                            {{ 'Suspicious' if pesieve_detections else 'Clean' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-base {{ 'text-red-500' if pesieve_detections else 'text-gray-400' }}">{{ pesieve_detections }}</td>
+                    {{ scanner_status_cell(pesieve_detections) }}
+                    {{ scanner_count_cell(pesieve_detections) }}
                     <td class="px-6 py-4">
                         {% if pesieve_detections %}
                             {% set findings = analysis_results.pe_sieve.findings %}
@@ -159,12 +109,8 @@
                 <!-- Moneta Results Row -->
                 <tr>
                     <td class="px-6 py-4 text-base text-gray-300">Moneta</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if moneta_detections else 'bg-green-500/10 text-green-500' }}">
-                            {{ 'Suspicious' if moneta_detections else 'Clean' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-base {{ 'text-red-500' if moneta_detections else 'text-gray-400' }}">{{ moneta_detections }}</td>
+                    {{ scanner_status_cell(moneta_detections) }}
+                    {{ scanner_count_cell(moneta_detections) }}
                     <td class="px-6 py-4">
                         {% if moneta_detections %}
                             <div class="text-base text-gray-400">
@@ -206,12 +152,8 @@
                 <!-- Patriot Results Row -->
                 <tr>
                     <td class="px-6 py-4 text-base text-gray-300">Patriot</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if patriot_detections else 'bg-green-500/10 text-green-500' }}">
-                            {{ 'Suspicious' if patriot_detections else 'Clean' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-base {{ 'text-red-500' if patriot_detections else 'text-gray-400' }}">{{ patriot_detections }}</td>
+                    {{ scanner_status_cell(patriot_detections) }}
+                    {{ scanner_count_cell(patriot_detections) }}
                     <td class="px-6 py-4">
                         {% if patriot_detections %}
                             <div class="text-base text-gray-400">
@@ -230,12 +172,8 @@
                 <!-- HSB Results Row -->
                 <tr>
                     <td class="px-6 py-4 text-base text-gray-300">Hunt-Sleeping-Beacons</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-base rounded {{ 'bg-red-500/10 text-red-500' if hsb_detections else 'bg-green-500/10 text-green-500' }}">
-                            {{ 'Suspicious' if hsb_detections else 'Clean' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-base {{ 'text-red-500' if hsb_detections else 'text-gray-400' }}">{{ hsb_detections }}</td>
+                    {{ scanner_status_cell(hsb_detections) }}
+                    {{ scanner_count_cell(hsb_detections) }}
                     <td class="px-6 py-4">
                         {% if hsb_detections %}
                             <div class="text-base text-gray-400">

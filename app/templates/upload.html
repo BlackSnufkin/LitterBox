@@ -518,5 +518,8 @@
 </script>
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/upload.js') }}" defer></script>
+{# The inline <script> above sets window.serverConfig before this module runs.
+   Module scripts have defer semantics, so the classic inline script always
+   executes first — core.js can safely read window.serverConfig at top level. #}
+<script type="module" src="{{ url_for('static', filename='js/upload/core.js') }}"></script>
 {% endblock %}

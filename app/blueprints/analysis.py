@@ -1,0 +1,276 @@
+# app/blueprints/analysis.py
+"""PID validation, static/dynamic analysis dispatch, BYOVD driver analysis."""
+import os
+
+from flask import Blueprint, current_app, jsonify, render_template, request
+
+from ..analyzers.holygrail import HolyGrailAnalyzer
+from ..services.error_handling import error_handler
+from ..services.rendering import is_kernel_driver_file
+from ..utils import file_io, path_manager, validators
+
+analysis_bp = Blueprint('analysis', __name__)
+
+
+def _deps():
+    return current_app.extensions['litterbox']
+
+
+@analysis_bp.route('/validate/<pid>', methods=['POST'])
+@error_handler
+def validate_process(pid):
+    app = current_app
+    app.logger.debug(f"Received PID validation request for PID: {pid}")
+
+    is_valid, error_msg = validators.validate_pid(pid)
+    if not is_valid:
+        app.logger.debug(f"PID {pid} is invalid. Reason: {error_msg}")
+        return jsonify({'error': error_msg}), 404
+
+    app.logger.debug(f"PID {pid} is valid.")
+    return jsonify({'status': 'valid'}), 200
+
+
+@analysis_bp.route('/analyze/<analysis_type>/<target>', methods=['GET', 'POST'])
+@error_handler
+def analyze_file(analysis_type, target):
+    app = current_app
+    app.logger.debug(
+        f"Received request to analyze. Analysis type: {analysis_type}, Target: {target}"
+    )
+
+    if request.method == 'GET':
+        app.logger.debug(
+            f"GET request received for analysis type: {analysis_type}, Target: {target}"
+        )
+        return render_template('results.html', analysis_type=analysis_type, file_hash=target)
+
+    app.logger.debug(f"POST request received. Performing {analysis_type} analysis.")
+    is_pid = analysis_type == 'dynamic' and target.isdigit()
+
+    if is_pid:
+        return _perform_pid_analysis(target)
+    return _perform_file_analysis(analysis_type, target)
+
+
+def _perform_pid_analysis(pid):
+    app = current_app
+    deps = _deps()
+
+    is_valid, error_msg = validators.validate_pid(pid)
+    if not is_valid:
+        app.logger.debug(f"PID validation failed for PID {pid}. Reason: {error_msg}")
+        return jsonify({'error': error_msg}), 404
+
+    result_folder = os.path.join(app.config['utils']['result_folder'], f'dynamic_{pid}')
+    os.makedirs(result_folder, exist_ok=True)
+
+    cmd_args = _extract_and_validate_args(request, app.logger)
+
+    app.logger.debug(f"Performing dynamic analysis on PID: {pid}")
+    results = deps.manager.run_dynamic_analysis(pid, True, cmd_args)
+
+    return _handle_analysis_results(results, result_folder, 'dynamic_analysis_results.json')
+
+
+def _perform_file_analysis(analysis_type, target):
+    app = current_app
+    deps = _deps()
+
+    if analysis_type == 'static' and target.isdigit():
+        app.logger.debug(f"Static analysis requested on PID {target}. This is invalid.")
+        return jsonify({'error': 'Cannot perform static analysis on PID'}), 400
+
+    if analysis_type not in ['static', 'dynamic']:
+        app.logger.debug(f"Invalid analysis type received: {analysis_type}")
+        return jsonify({'error': 'Invalid analysis type'}), 400
+
+    file_path = path_manager.find_file_by_hash(target, app.config['utils']['upload_folder'])
+    result_path = path_manager.find_file_by_hash(target, app.config['utils']['result_folder'])
+
+    if not file_path:
+        app.logger.debug(f"File with hash {target} not found in upload folder.")
+        return jsonify({'error': 'File not found'}), 404
+
+    app.logger.debug(f"File found at: {file_path}, Results will be saved to: {result_path}")
+
+    if analysis_type == 'static':
+        app.logger.debug(f"Performing static analysis on file: {file_path}")
+        results = deps.manager.run_static_analysis(file_path)
+        results_file = 'static_analysis_results.json'
+    else:
+        cmd_args = _extract_and_validate_args(request, app.logger)
+        app.logger.debug(f"Performing dynamic analysis on target: {file_path}, is_pid: False")
+        results = deps.manager.run_dynamic_analysis(file_path, False, cmd_args)
+        results_file = 'dynamic_analysis_results.json'
+
+    return _handle_analysis_results(results, result_path, results_file)
+
+
+def _extract_and_validate_args(req, logger):
+    try:
+        request_data = req.get_json() or {}
+        cmd_args = request_data.get('args', [])
+
+        if not isinstance(cmd_args, list):
+            logger.error("Invalid arguments format provided")
+            return []
+
+        for arg in cmd_args:
+            if not isinstance(arg, str):
+                logger.error("Non-string argument provided")
+                return []
+            if any(char in arg for char in ';&|'):
+                logger.error("Potentially dangerous argument detected")
+                return []
+
+        logger.debug(f"Command line arguments received: {cmd_args}")
+        return cmd_args
+    except Exception as e:
+        logger.error(f"Error parsing request data: {e}")
+        return []
+
+
+def _handle_analysis_results(results, result_path, results_filename):
+    app = current_app
+    deps = _deps()
+
+    deps.helpers.save_analysis_results(results, result_path, results_filename)
+
+    if results.get('status') == 'early_termination':
+        app.logger.error("Process terminated early during initialization")
+        return jsonify({
+            'status': 'early_termination',
+            'error': results.get('error', {}).get('message', 'Process terminated early'),
+            'details': {
+                'termination_time': results.get('error', {}).get('termination_time'),
+                'init_time': results.get('error', {}).get('init_time'),
+                'message': results.get('error', {}).get('details'),
+            },
+        }), 202
+
+    if results.get('status') == 'error':
+        app.logger.debug("Analysis completed with errors.")
+        return jsonify({
+            'status': 'error',
+            'error': results.get('error', {}).get('message', 'Analysis failed'),
+            'details': results.get('error', {}).get('details'),
+        }), 500
+
+    app.logger.debug("Analysis completed successfully.")
+    return jsonify({'status': 'success', 'results': results})
+
+
+@analysis_bp.route('/holygrail', methods=['GET', 'POST'])
+@error_handler
+def holygrail():
+    """
+    holygrail endpoint for kernel driver analysis.
+
+    GET: Render upload page or run BYOVD analysis when a `hash` query is given.
+    POST: Save an uploaded kernel driver (.sys).
+    """
+    app = current_app
+    app.logger.debug("Accessed holygrail endpoint")
+
+    if request.method == 'GET':
+        target_hash = request.args.get('hash')
+
+        if target_hash:
+            return _run_byovd_analysis(target_hash)
+
+        app.logger.debug("Rendering holygrail upload page")
+        return render_template('holygrail.html')
+
+    if 'file' not in request.files:
+        app.logger.debug("No file part in holygrail request")
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        app.logger.debug("No file selected in holygrail upload")
+        return jsonify({'error': 'No selected file'}), 400
+
+    if not is_kernel_driver_file(file.filename):
+        app.logger.debug(f"File '{file.filename}' is not a valid kernel driver format")
+        return jsonify({'error': 'File must be a kernel driver (.sys)'}), 400
+
+    app.logger.debug(f"Kernel driver file '{file.filename}' uploaded. Saving...")
+    file_info = file_io.save_uploaded_file(file, app.config)
+
+    app.logger.debug(f"Kernel driver '{file.filename}' saved successfully")
+    return jsonify({
+        'message': 'Kernel driver uploaded successfully',
+        'file_info': file_info,
+        'next_step': 'Ready for BYOVD analysis',
+    }), 200
+
+
+def _run_byovd_analysis(target_hash):
+    app = current_app
+    deps = _deps()
+    app.logger.debug(f"Starting BYOVD analysis for hash: {target_hash}")
+
+    try:
+        file_path = path_manager.find_file_by_hash(target_hash, app.config['utils']['upload_folder'])
+        if not file_path:
+            app.logger.error(f"Driver file not found for hash: {target_hash}")
+            return jsonify({'status': 'error', 'error': 'Driver file not found'}), 404
+
+        app.logger.debug(f"Found driver file: {file_path}")
+
+        result_path = path_manager.find_file_by_hash(target_hash, app.config['utils']['result_folder'])
+        if not result_path:
+            app.logger.error(f"Result path not found for hash: {target_hash}")
+            return jsonify({'status': 'error', 'error': 'Result path not found'}), 404
+
+        app.logger.debug(f"Results will be saved to: {result_path}")
+
+        analyzer = HolyGrailAnalyzer(app.config, logger=app.logger)
+        results = analyzer.analyze(file_path)
+
+        app.logger.debug(f"Analysis completed with status: {results.get('status')}")
+
+        if results['status'] == 'completed':
+            compile_time = None
+            try:
+                pe = file_io.get_pe_info(file_path, app.config['utils']['malapi_path'])
+                pe_info = (pe or {}).get('pe_info') or {}
+                compile_time = pe_info.get('compile_time')
+            except Exception as e:
+                app.logger.debug(f"Compile time extraction failed: {e}")
+
+            if compile_time:
+                results['compile_time'] = compile_time
+                if 'findings' in results and 'detailed_analysis' in results['findings']:
+                    results['findings']['detailed_analysis']['compile_time'] = compile_time
+
+            deps.helpers.save_analysis_results(results, result_path, 'byovd_results.json')
+            app.logger.debug(f"HolyGrail results saved to: {result_path}/byovd_results.json")
+
+            return jsonify({
+                'status': 'success',
+                'message': 'BYOVD analysis completed',
+                'results': results,
+                'compile_time': compile_time,
+            })
+
+        if results['status'] == 'disabled':
+            return jsonify({
+                'status': 'error',
+                'message': 'holygrail analyzer is disabled in configuration',
+                'error': results.get('error'),
+            }), 503
+
+        app.logger.error(f"Analysis failed: {results.get('error')}")
+        return jsonify({
+            'status': 'error',
+            'message': results.get('error', 'Analysis failed'),
+        }), 500
+
+    except Exception as e:
+        app.logger.error(f"Exception during BYOVD analysis: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Unexpected error: {str(e)}',
+        }), 500
