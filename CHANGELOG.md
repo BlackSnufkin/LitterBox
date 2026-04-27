@@ -2,6 +2,78 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.2.0] - 2026-04-27
+### Changed
+- **Backend modularised.**
+  - `app/routes.py` (1,389 lines) split into 6 Flask blueprints under
+    `app/blueprints/` (upload, analysis, results, doppelganger, management,
+    api), plus service modules under `app/services/` (rendering, summary,
+    tool_check, error_handling) and shared `RouteHelpers` in `app/helpers.py`.
+  - `app/__init__.py` now wires `AnalysisManager` and `RouteHelpers` into
+    `app.extensions['litterbox']` for blueprint use.
+  - `app/utils.py` (1,400 lines) split into the `app/utils/` package with
+    single-concern modules: `file_io`, `validators`, `path_manager`,
+    `risk_analyzer`, `forensics`, `json_helpers`, `reporting`. Every caller
+    migrated; no shim/facade.
+  - Extracted `BaseSubprocessAnalyzer` template-method base class in
+    `app/analyzers/base.py`. The 9 subprocess-based analyzers (yara/checkplz/
+    stringnalyzer static; yara/pe_sieve/moneta/patriot/hsb/hollows_hunter
+    dynamic) are now thin subclasses that declare config + implement
+    `_parse_output`, eliminating ~40% of duplicated boilerplate.
+
+- **Frontend modularised (no build step added).**
+  - The four large monolithic JS files split into per-concern ES6 modules:
+    - `results.js` (2,060) → `app/static/js/results/{core,managers,tools,renderers}.js`
+    - `holygrail.js` (1,025) → `app/static/js/holygrail/{core,utils}.js`
+    - `byovd_info.js` (1,069) → `app/static/js/byovd/{core,api,utils}.js`
+    - `upload.js` (974) → `app/static/js/upload/{core,lnk}.js`
+  - New `app/static/js/utils/` package with shared helpers: `escape`,
+    `formatters`, `severity`, `fetch`, `modals`, `dom`. Single source of
+    truth for `escapeHtml`, `formatBytes`, severity-color mapping, etc.
+  - Every JS file now loads as `<script type="module">`. `window.X = ...`
+    assignments preserved at the bottom of each module so inline
+    `onclick="..."` handlers in templates keep resolving.
+
+- **Templates de-duplicated.**
+  - New `app/templates/partials/_macros.html` with reusable Jinja macros:
+    `scanner_table_header`, `scanner_yara_row`, `scanner_status_cell`,
+    `scanner_count_cell`, `status_grid_3`. `static_info.html` and
+    `dynamic_info.html` migrated.
+
+### Fixed
+- **XSS hardening** at user-data interpolation sites in the results-page
+  renderers. `str.data` (binary string content from analysed files),
+  `scanResults.hex_dump`, `scan_info.target`, YARA `match.rule`, and the
+  shared `renderSection` list-item renderer (which feeds Stringnalyzer
+  outputs — URLs, paths, IPs, suspicious strings) now all run through
+  `escapeHtml` before insertion via `innerHTML`. Previously these were
+  template-literal interpolations that would have rendered any HTML
+  content from analysed binaries directly into the operator's DOM.
+- **Drag-and-drop upload visual feedback.** `.drag-over` in `style.css`
+  used `@apply border-red-500 bg-red-500/5`, but the project uses a
+  precompiled Tailwind build with no `@apply` processor — those two
+  utilities were silently ignored, leaving only the slight scale-up.
+  Replaced with raw CSS equivalent so the red border and tinted
+  background actually appear when dragging files over the drop zone.
+- **Latent reference bugs in `/files` and `/results/<hash>/info`** that
+  passed a removed `utils` parameter through helper chains. Surfaced
+  during the routes split; cleaned in `app/services/{rendering,summary}.py`.
+- `.gitignore` `Results/` pattern was unanchored and shadowed the new
+  `app/static/js/results/` module directory + `app/blueprints/results.py`.
+  All path patterns are now anchored to the repo root with leading `/`.
+  Also added `/Scanners/PE-Sieve/process_*/` to ignore runtime scan
+  artifacts.
+
+### Notes
+- No new dependencies. Setup story is unchanged:
+  `pip install -r requirements.txt && py litterbox.py --debug` (admin).
+- No public API or endpoint URL changes — every previously-working
+  request and JSON response shape is preserved.
+- Tailwind stays at the precompiled v2.2.19 build. Tailwind purging /
+  config / v3 features remain out of scope to keep the deploy
+  Python-only. See `CLAUDE.md` for the full rationale.
+
+
 ## [v4.1.0] - 2025-09-01
 ### Changed
 - Moved YARA rules: `LitterBox.yar` relocated to scanner directory

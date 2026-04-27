@@ -4,6 +4,9 @@ __pycache__/
 # Virtual environment
 venv/
 
+# AI-session tooling (not a project artifact)
+CLAUDE.md
+
 # Runtime artifact directories (anchored to repo root so they don't
 # accidentally shadow same-named directories elsewhere — notably the
 # refactored `app/static/js/results/` and `app/blueprints/results.py`).
