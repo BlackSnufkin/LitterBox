@@ -1,176 +1,135 @@
-<!-- app/templates/doppelganger.html -->
-
 {% extends "base.html" %}
-{% block page_title %}Doppelganger Analysis{% endblock %}
-{% block content %}
-<div class="max-w-6xl mx-auto px-4 py-12">
-    <!-- Header Section with Navigation -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <p class="text-gray-400">
-                    {% if analysis_type == 'blender' %}
-                    Analyze and compare system processes with payloads to find shared IOCs.
-                    {% else %}
-                    Find similarities between payloads and open-source tools.
-                    {% endif %}
-                </p>
-            </div>
-            <!-- Last Report Time Display (for Blender) -->
-            <div class="text-sm text-gray-400 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>Last {% if analysis_type == 'blender' %}scan: {{ last_modified }}{% else %}update: {{ db_stats.last_updated }}{% endif %}</span>
-            </div>
-        </div>
 
-        <!-- Analysis Type Selector -->
-        <div class="mb-4">
-            <select id="analysisType" 
-                    class="w-48 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-100 focus:border-blue-500 focus:ring-blue-500">
+{% block breadcrumb %}
+    Doppelganger
+    <span class="lb-tb-sep">›</span> {{ analysis_type|title }}
+{% endblock %}
+
+{% set active_nav = 'doppelganger' %}
+
+{% block content %}
+
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>Doppelganger Analysis
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
+            <span class="lb-muted" style="font-size: 11px;">
+                Last {% if analysis_type == 'blender' %}scan: {{ last_modified }}{% else %}update: {{ db_stats.last_updated }}{% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">
+            {% if analysis_type == 'blender' %}
+            Analyse and compare system processes with payloads to find shared IOCs.
+            {% else %}
+            Find similarities between payloads and open-source tools.
+            {% endif %}
+        </p>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <label class="lb-eyebrow">Mode:</label>
+            <select id="analysisType" class="lb-select" style="width: auto; min-width: 200px;">
                 <option value="blender" {% if analysis_type == 'blender' %}selected{% endif %}>Blender Analyzer</option>
                 <option value="fuzzy" {% if analysis_type == 'fuzzy' %}selected{% endif %}>FuzzyHash Analyzer</option>
             </select>
         </div>
-        <!-- Navigation Tabs -->
-        <div class="border-b border-gray-700">
-            <div class="flex gap-4">
-                <!-- Blender Tabs -->
-                <div id="blenderTabs" class="{% if analysis_type != 'blender' %}hidden{% endif %} flex gap-4">
-                    <button id="scanView" 
-                            onclick="blenderAnalyzer.switchView('scan')"
-                            class="nav-tab active px-4 py-2 -mb-px text-red-400 border-b-2 border-red-400 hover:text-gray-300">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                            System Scan
-                        </div>
-                    </button>
-                    <button id="compareView"
-                            onclick="blenderAnalyzer.switchView('compare')"
-                            class="nav-tab active px-4 py-2 -mb-px text-gray-400 border-b-2 border-transparent hover:text-gray-300">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                            </svg>
-                            Payloads List
-                        </div>
-                    </button>
-                </div>
+    </div>
+</div>
 
-                <!-- Fuzzy Tabs -->
-                <div id="fuzzyTabs" class="{% if analysis_type != 'fuzzy' %}hidden{% endif %} flex gap-4">
-                    <button id="createDbView"
-                            onclick="fuzzyAnalyzer.switchView('create_db')"
-                            class="nav-tab px-4 py-2 -mb-px border-b-2 active border-blue-500 text-blue-500">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
-                            <span>FuzzyHash Database</span>
-                        </div>
-                    </button>
-                    <button id="analyzeView" 
-                            onclick="fuzzyAnalyzer.switchView('analyze')"
-                            class="nav-tab px-4 py-2 -mb-px border-b-2 text-gray-400 border-transparent">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                            <span>Payloads List</span>
-                        </div>
-                    </button>
-                </div>
-            </div>
+<!-- Blender / Fuzzy tabs -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>Views
+    </div>
+    <div style="display: flex; border-bottom: 1px solid var(--lb-border);">
+        <!-- Blender Tabs -->
+        <div id="blenderTabs" class="{% if analysis_type != 'blender' %}hidden{% endif %}" style="display: flex;">
+            <button id="scanView" onclick="blenderAnalyzer.switchView('scan')" class="nav-tab active" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid var(--lb-accent); color: var(--lb-accent); font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                System Scan
+            </button>
+            <button id="compareView" onclick="blenderAnalyzer.switchView('compare')" class="nav-tab" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--lb-text-dim); font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Payloads List
+            </button>
+        </div>
+
+        <!-- Fuzzy Tabs -->
+        <div id="fuzzyTabs" class="{% if analysis_type != 'fuzzy' %}hidden{% endif %}" style="display: flex;">
+            <button id="createDbView" onclick="fuzzyAnalyzer.switchView('create_db')" class="nav-tab active" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid var(--lb-accent); color: var(--lb-accent); font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                FuzzyHash Database
+            </button>
+            <button id="analyzeView" onclick="fuzzyAnalyzer.switchView('analyze')" class="nav-tab" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--lb-text-dim); font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Payloads List
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Blender Content -->
+<div id="blenderContent" class="{% if analysis_type != 'blender' %}hidden{% endif %}">
+
+    <div id="scanActions" class="view-content lb-panel hidden">
+        <div class="lb-panel-body">
+            <button id="startScan" class="lb-btn lb-btn-primary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                New System Scan
+            </button>
         </div>
     </div>
 
-    <!-- Blender Content -->
-    <div id="blenderContent" class="{% if analysis_type != 'blender' %}hidden{% endif %}">
-        <!-- Action Buttons - Only shown in Scan view -->
-        <div id="scanActions" class="view-content bg-gray-800/50 border border-gray-700 rounded-lg p-6 mb-6 hidden">
-            <div class="flex items-center gap-4">
-                <button id="startScan" class="lb-btn lb-btn-secondary">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <span>New System Scan</span>
+    <div id="blenderResults" class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span><span id="blenderResultsTitle">Payload View</span></div>
+        <div class="lb-panel-body">
+            <div id="blenderScanResults" class="lb-dim"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Fuzzy Content -->
+<div id="fuzzyContent" class="{% if analysis_type != 'fuzzy' %}hidden{% endif %}">
+
+    <section id="databaseStats" class="lb-panel">
+        <!-- Will be populated by JS -->
+    </section>
+
+    <section id="fuzzyTabContent">
+        <div id="createDbForm" class="view-content lb-panel">
+            <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Create Database</div>
+            <div class="lb-panel-body">
+                <label for="folderPath" class="lb-eyebrow" style="display: block; margin-bottom: 6px;">Folder Path</label>
+                <input type="text" id="folderPath" class="lb-input lb-mono" placeholder="Enter folder path" style="margin-bottom: 12px;"/>
+                <button onclick="fuzzyAnalyzer.createDb()" class="lb-btn lb-btn-primary">
+                    Create Database
                 </button>
             </div>
         </div>
 
-        <!-- Results Display -->
-        <div id="blenderResults" class="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-            <h2 id="blenderResultsTitle" class="text-xl font-medium text-gray-100 mb-4">Payload View</h2>
-            <div id="blenderScanResults" class="text-gray-400">
-                <!-- Results will be populated here -->
+        <div id="analyzeForm" class="view-content hidden lb-panel">
+            <!-- Will be populated by loadAvailableFiles() -->
+        </div>
+
+        <div id="fuzzyResults" class="lb-panel">
+            <div class="lb-panel-hdr"><span class="lb-glyph">▸</span><span id="fuzzyResultsTitle">Database Creation Results</span></div>
+            <div class="lb-panel-body">
+                <div id="fuzzyAnalysisResults" class="lb-dim"></div>
             </div>
         </div>
-    </div>
-
-    <!-- Fuzzy Content -->
-    <div id="fuzzyContent" class="{% if analysis_type != 'fuzzy' %}hidden{% endif %}">
-        <!-- Database Statistics Section -->
-        <section id="databaseStats" class="mb-6 bg-gray-700/50 border border-gray-700 rounded-lg p-6">
-            <!-- Will be populated by JS -->
-        </section>
-
-        <!-- Tab Content Section -->
-        <section id="fuzzyTabContent" class="space-y-6">
-            <!-- Create Database Form -->
-            <div id="createDbForm" class="view-content bg-gray-700/50 border border-gray-700 rounded-lg p-6">
-                <div class="space-y-4">
-                    <div>
-                        <label for="folderPath" class="block text-sm font-medium text-gray-300">Folder Path</label>
-                        <input type="text" 
-                               id="folderPath" 
-                               class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-100 focus:border-blue-500 focus:ring-blue-500"
-                               placeholder="Enter folder path">
-                    </div>
-                    <button onclick="fuzzyAnalyzer.createDb()" 
-                            class="lb-btn lb-btn-secondary">
-                        Create Database
-                    </button>
-                </div>
-            </div>
-
-            <!-- Analyze Form -->
-            <div id="analyzeForm" class="view-content hidden bg-gray-700/50 border border-gray-700 rounded-lg p-6">
-                <!-- Will be populated by loadAvailableFiles() -->
-            </div>
-
-            <!-- Results Section -->
-            <div id="fuzzyResults" class="bg-gray-700/50 border border-gray-700 rounded-lg p-6">
-                <h2 id="fuzzyResultsTitle" class="text-xl font-medium text-gray-100 mb-4">Database Creation Results</h2>
-                <div id="fuzzyAnalysisResults" class="text-gray-400">
-                    <!-- Results will be populated by JS -->
-                </div>
-            </div>
-        </section>
-    </div>
+    </section>
 </div>
 
 <script>
-    // Initialize data
     window.initialScanData = {{ initial_data | tojson | safe if initial_data else 'null' }};
     window.lastScanDate = "{{ last_modified }}" || null;
     window.dbStats = {{ db_stats | tojson | safe if db_stats else 'null' }};
     window.analysisType = "{{ analysis_type }}";
 
-    // Handle analysis type switching
     document.addEventListener('DOMContentLoaded', () => {
-        const analysisType = document.getElementById('analysisType');
-        analysisType?.addEventListener('change', async function() {
-            const type = this.value;
-            
-            // Update URL and redirect
+        document.getElementById('analysisType')?.addEventListener('change', function() {
             const url = new URL(window.location);
-            url.searchParams.set('type', type);
+            url.searchParams.set('type', this.value);
             window.location.href = url.toString();
         });
     });

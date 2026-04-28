@@ -1,430 +1,298 @@
-<!-- app/templates/file_info.html -->
-
 {% extends "base.html" %}
 
+{% block breadcrumb %}
+    Files
+    <span class="lb-tb-sep">›</span> <span class="lb-mono">{{ file_info.original_name }}</span>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-6">
-    <!-- Header with File Info -->
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-medium text-gray-100">{{ file_info.original_name }}</h1>
-            <p class="text-base text-gray-400 mt-1 font-mono">MD5: {{ file_info.md5 }}</p>
+
+<!-- Header -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>{{ file_info.original_name }}
+        <span class="lb-panel-badge">FILE</span>
+    </div>
+    <div class="lb-panel-split">
+        <div class="lb-col">
+            <div class="lb-hero-label">Subject</div>
+            <div class="lb-hero-filename">{{ file_info.original_name }}</div>
+            <div class="lb-hero-meta lb-mono">MD5: {{ file_info.md5 }}</div>
         </div>
-        <div class="flex items-center gap-3">
-            <!-- Entropy Badge -->
-            <div class="flex flex-col items-end">
-                <span class="text-sm text-gray-400">Entropy</span>
-                <span class="text-lg font-medium {% if file_info.entropy > entropy_risk_levels.High %}text-red-400{% elif file_info.entropy > entropy_risk_levels.Medium %}text-yellow-400{% else %}text-green-400{% endif %}">
-                    {{ "%.2f"|format(file_info.entropy) }}
-                </span>
+        <div class="lb-col">
+            <div class="lb-hero-label">Risk</div>
+            <div class="lb-hero-score">{{ file_info.risk_assessment.score }}<span class="unit">/100</span></div>
+            <div class="lb-hero-meta {% if file_info.risk_assessment.level == 'Critical' or file_info.risk_assessment.level == 'High' %}crit{% elif file_info.risk_assessment.level == 'Medium' %}medium{% else %}low{% endif %}">
+                {{ file_info.risk_assessment.level }}
+            </div>
+        </div>
+        <div class="lb-col">
+            <div class="lb-hero-label">Entropy</div>
+            <div class="lb-hero-score" style="font-size: 22px;">{{ "%.2f"|format(file_info.entropy) }}</div>
+            <div class="lb-hero-meta {% if file_info.entropy > entropy_risk_levels.High %}crit{% elif file_info.entropy > entropy_risk_levels.Medium %}medium{% else %}low{% endif %}">
+                {% if file_info.entropy > entropy_risk_levels.High %}High{% elif file_info.entropy > entropy_risk_levels.Medium %}Medium{% else %}Low{% endif %}
             </div>
         </div>
     </div>
-    <!-- Navigation Buttons -->
-    <div class="flex items-center gap-4 mb-6">
-        <button onclick="window.location.href='/results/{{ file_info.md5 }}/static'" 
-                class="lb-btn lb-btn-secondary">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-            </svg>
-            <span>Static Analysis</span>
-        </button>
-        <button onclick="window.location.href='/results/{{ file_info.md5 }}/dynamic'" 
-                class="lb-btn">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-            </svg>
-            <span>Dynamic Analysis</span>
-        </button>
-    </div>
+</div>
 
-    <!-- Comprehensive Risk Assessment -->
-    <div class="lb-card-elevated mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-100">Risk Assessment</h2>
-            <span class="lb-badge lb-badge-{{ file_info.risk_assessment.level|lower }}">
-                {{ file_info.risk_assessment.level }} Risk ({{ file_info.risk_assessment.score }}%)
-            </span>
-        </div>
+<!-- Quick actions -->
+<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+    <button onclick="window.location.href='/results/{{ file_info.md5 }}/static'" class="lb-btn lb-btn-primary">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Static Analysis
+    </button>
+    <button onclick="window.location.href='/results/{{ file_info.md5 }}/dynamic'" class="lb-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Dynamic Analysis
+    </button>
+</div>
 
-        <!-- Risk Score Visualization -->
-        <div class="w-full h-3 bg-gray-800 rounded-full mb-4 overflow-hidden">
-            <div class="h-full rounded-full transition-all duration-500
-                {% if file_info.risk_assessment.level == 'Critical' %}
-                    bg-red-900
-                {% elif file_info.risk_assessment.level == 'High' %}
-                    bg-red-500
-                {% elif file_info.risk_assessment.level == 'Medium' %}
-                    bg-yellow-500
-                {% else %}
-                    bg-green-500
-                {% endif %}"
-                style="width: {{ file_info.risk_assessment.score }}%">
+<!-- Risk score bar -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Risk Assessment</div>
+    <div class="lb-panel-body">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <span class="lb-tag {{ file_info.risk_assessment.level|lower }}">{{ file_info.risk_assessment.level }}</span>
+            <span class="lb-mono lb-strong">{{ file_info.risk_assessment.score }}%</span>
+            <div style="flex: 1; height: 4px; background: var(--lb-bg); border: 1px solid var(--lb-border); position: relative;">
+                <div style="position: absolute; top: 0; left: 0; height: 100%; width: {{ file_info.risk_assessment.score }}%; background: {% if file_info.risk_assessment.level == 'Critical' or file_info.risk_assessment.level == 'High' %}var(--lb-sev-critical){% elif file_info.risk_assessment.level == 'Medium' %}var(--lb-sev-medium){% else %}var(--lb-sev-low){% endif %};"></div>
             </div>
         </div>
 
-        <!-- Risk Factors -->
         {% if file_info.risk_assessment.factors %}
-        <div class="space-y-2">
-            <h3 class="text-sm font-medium text-gray-400 mb-3">Risk Factors</h3>
+        <div class="lb-eyebrow" style="margin-bottom: 8px;">Risk Factors</div>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;">
             {% for factor in file_info.risk_assessment.factors %}
-            <div class="flex items-start gap-2 bg-gray-800/50 p-3 rounded-lg">
-                <svg class="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span class="text-gray-300">{{ factor }}</span>
-            </div>
+            <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid var(--lb-accent); font-size: 12px;">
+                <span style="color: var(--lb-accent);">!</span>
+                <span class="lb-dim">{{ factor }}</span>
+            </li>
             {% endfor %}
-        </div>
+        </ul>
         {% endif %}
     </div>
+</div>
 
-    <!-- File Hash Information -->
-    <div class="lb-card-elevated mb-6">
-        <h2 class="text-lg font-medium text-gray-100 mb-4">File Hashes</h2>
-        <div class="space-y-3">
+<!-- Hashes -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Hashes</div>
+    <div class="lb-panel-body">
+        <div class="lb-hash-row">
+            <div class="lb-hash-label">MD5</div>
+            <div class="lb-hash-value lb-mono">{{ file_info.md5 }}</div>
+        </div>
+        <div class="lb-hash-row">
+            <div class="lb-hash-label">SHA256</div>
+            <div class="lb-hash-value lb-mono">{{ file_info.sha256 }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Basic info -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Basic Information</div>
+    <div class="lb-panel-body">
+        <div class="lb-grid-3">
             <div>
-                <p class="text-sm text-gray-400">MD5</p>
-                <p class="text-gray-200 font-mono text-sm break-all">{{ file_info.md5 }}</p>
+                <div class="lb-eyebrow">File Size</div>
+                <div class="lb-strong" style="font-size: 13px;">{{ file_info.size|filesizeformat }}</div>
             </div>
             <div>
-                <p class="text-sm text-gray-400">SHA256</p>
-                <p class="text-gray-200 font-mono text-sm break-all">{{ file_info.sha256 }}</p>
+                <div class="lb-eyebrow">File Type</div>
+                <div class="lb-strong" style="font-size: 13px;">{{ file_info.mime_type }}</div>
+            </div>
+            <div>
+                <div class="lb-eyebrow">Extension</div>
+                <div class="lb-strong lb-mono" style="font-size: 13px;">{{ file_info.extension }}</div>
+            </div>
+            <div>
+                <div class="lb-eyebrow">Upload Time</div>
+                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.upload_time }}</div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Basic Information -->
-    <div class="lb-card-elevated mb-6">
-        <h2 class="text-lg font-medium text-gray-100 mb-4">Basic Information</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-                <p class="text-sm text-gray-400">File Size</p>
-                <p class="text-gray-200">{{ file_info.size|filesizeformat }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-400">File Type</p>
-                <p class="text-gray-200">{{ file_info.mime_type }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-400">Extension</p>
-                <p class="text-gray-200">{{ file_info.extension }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-400">Upload Time</p>
-                <p class="text-gray-200">{{ file_info.upload_time }}</p>
-            </div>
-        </div>
+{% if file_info.pe_info %}
+<!-- PE info -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>PE Information
+        {% if file_info.pe_info.build_with %}
+            <span class="lb-tag info" style="margin-left: 12px;">{{ file_info.pe_info.build_with.upper() }} BINARY</span>
+        {% endif %}
+        {% if file_info.pe_info.detection_notes %}
+            <span class="lb-tag critical" style="margin-left: 8px;">{{ file_info.pe_info.detection_notes|length }} NOTES</span>
+        {% endif %}
     </div>
+    <div class="lb-panel-body">
 
-    {% if file_info.pe_info %}
-    <!-- PE Information -->
-    <div class="lb-card-elevated mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-100">PE Information</h2>
-            <div class="flex items-center gap-3">
-                {% if file_info.pe_info.build_with %}
-                    <span class="px-3 py-1 text-sm rounded-lg font-medium
-                        {% if file_info.pe_info.build_with == 'go' %}
-                            bg-blue-500/20 text-blue-400 border border-blue-900/20
-                        {% elif file_info.pe_info.build_with == 'rust' %}
-                            bg-purple-500/20 text-purple-400 border border-purple-900/20
-                        {% endif %}">
-                        {{ file_info.pe_info.build_with.upper() }} Binary
-                    </span>
-                {% endif %}
-                {% if file_info.pe_info.detection_notes %}
-                    <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg text-sm">
-                        {{ file_info.pe_info.detection_notes|length }} Detection Notes
-                    </span>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- PE Basic Info -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <!-- Basic PE info -->
+        <div class="lb-grid-3" style="margin-bottom: 16px;">
             <div>
-                <p class="text-sm text-gray-400">File Type</p>
-                <p class="text-gray-200">{{ file_info.pe_info.file_type }}</p>
+                <div class="lb-eyebrow">File Type</div>
+                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.file_type }}</div>
             </div>
             <div>
-                <p class="text-sm text-gray-400">Machine Type</p>
-                <p class="text-gray-200">{{ file_info.pe_info.machine_type }}</p>
+                <div class="lb-eyebrow">Machine</div>
+                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.machine_type }}</div>
             </div>
             <div>
-                <p class="text-sm text-gray-400">Subsystem</p>
-                <p class="text-gray-200">{{ file_info.pe_info.subsystem }}</p>
+                <div class="lb-eyebrow">Subsystem</div>
+                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.subsystem }}</div>
             </div>
             <div>
-                <p class="text-sm text-gray-400">Compile Time</p>
-                <p class="text-gray-200">{{ file_info.pe_info.compile_time }}</p>
+                <div class="lb-eyebrow">Compile Time</div>
+                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.compile_time }}</div>
             </div>
             <div>
-                <p class="text-sm text-gray-400">Entry Point</p>
-                <p class="text-gray-200 font-mono">{{ file_info.pe_info.entry_point }}</p>
+                <div class="lb-eyebrow">Entry Point</div>
+                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.entry_point }}</div>
             </div>
             {% if file_info.pe_info.checksum_info %}
             <div>
-                <p class="text-sm text-gray-400">PE Checksum</p>
-                <p class="text-gray-200 font-mono">
+                <div class="lb-eyebrow">PE Checksum</div>
+                <div class="lb-mono" style="font-size: 12px;">
                     {% if file_info.pe_info.checksum_info.is_valid %}
-                        <span class="text-green-400">Valid</span>
+                        <span class="lb-tag clean">Valid</span>
                     {% elif file_info.pe_info.checksum_info.build_with %}
-                        <span class="text-{% if file_info.pe_info.checksum_info.build_with == 'go' %}blue{% elif file_info.pe_info.checksum_info.build_with == 'rust' %}purple{% endif %}-400">
-                            {{ file_info.pe_info.checksum_info.build_with.upper() }} Binary
-                        </span>
+                        <span class="lb-tag info">{{ file_info.pe_info.checksum_info.build_with.upper() }} BINARY</span>
                     {% else %}
-                        <span class="text-red-400">Invalid</span>
+                        <span class="lb-tag critical">Invalid</span>
                     {% endif %}
-                </p>
+                </div>
             </div>
             {% endif %}
         </div>
 
         {% if file_info.pe_info.detection_notes %}
-        <!-- Detection Notes -->
-        <div class="space-y-2 mb-6">
-            <h3 class="text-sm font-medium text-gray-400 mb-3">Detection Notes</h3>
-            {% for note in file_info.pe_info.detection_notes %}
-            <div class="flex items-start gap-2 
-                {% if file_info.pe_info.build_with and ('runtime' in note.lower() or file_info.pe_info.build_with in note.lower()) %}
-                    bg-{% if file_info.pe_info.build_with == 'go' %}blue{% elif file_info.pe_info.build_with == 'rust' %}purple{% endif %}-500/10 border border-{% if file_info.pe_info.build_with == 'go' %}blue{% elif file_info.pe_info.build_with == 'rust' %}purple{% endif %}-900/20
-                {% else %}
-                    bg-red-500/10 border border-red-900/20
-                {% endif %}
-                p-3 rounded-lg">
-                <svg class="w-5 h-5 
-                    {% if file_info.pe_info.build_with and ('runtime' in note.lower() or file_info.pe_info.build_with in note.lower()) %}
-                        text-{% if file_info.pe_info.build_with == 'go' %}blue{% elif file_info.pe_info.build_with == 'rust' %}purple{% endif %}-400
-                    {% else %}
-                        text-red-400
-                    {% endif %}
-                    mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-                <span class="text-gray-300">{{ note }}</span>
-            </div>
-            {% endfor %}
+        <div style="margin-bottom: 16px;">
+            <div class="lb-eyebrow" style="margin-bottom: 8px;">Detection Notes</div>
+            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;">
+                {% for note in file_info.pe_info.detection_notes %}
+                {% set is_runtime = file_info.pe_info.build_with and ('runtime' in note.lower() or file_info.pe_info.build_with in note.lower()) %}
+                <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid {% if is_runtime %}var(--lb-text-mute){% else %}var(--lb-accent){% endif %}; font-size: 12px;">
+                    <span style="color: {% if is_runtime %}var(--lb-text-mute){% else %}var(--lb-accent){% endif %};">!</span>
+                    <span class="lb-dim">{{ note }}</span>
+                </li>
+                {% endfor %}
+            </ul>
         </div>
         {% endif %}
 
         {% if file_info.pe_info.checksum_info and not file_info.pe_info.checksum_info.is_valid %}
-        <!-- Checksum Details -->
         {% set build_with = file_info.pe_info.checksum_info.build_with %}
-        {% if build_with == 'go' %}
-            <div class="bg-blue-500/10 p-4 rounded-lg border border-blue-900/20 mb-6">
-                <h3 class="text-sm font-medium text-blue-400 mb-2">Go Binary Checksum</h3>
-                <p class="text-sm text-gray-400 mb-3">Go binaries typically have non-standard PE checksums - This is normal behavior</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-sm text-gray-400">Stored Checksum</p>
-                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.stored_checksum }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-400">Calculated Checksum</p>
-                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.calculated_checksum }}</p>
-                    </div>
-                </div>
+        <div style="border: 1px solid {% if build_with %}var(--lb-text-mute){% else %}var(--lb-sev-medium){% endif %}; padding: 12px; margin-bottom: 16px;">
+            <div class="lb-eyebrow" style="margin-bottom: 6px; color: {% if build_with %}var(--lb-text-dim){% else %}var(--lb-sev-medium){% endif %};">
+                {% if build_with %}{{ build_with.upper() }} Binary Checksum{% else %}Checksum Mismatch{% endif %}
             </div>
-        {% elif build_with == 'rust' %}
-            <div class="bg-purple-500/10 p-4 rounded-lg border border-purple-900/20 mb-6">
-                <h3 class="text-sm font-medium text-purple-400 mb-2">Rust Binary Checksum</h3>
-                <p class="text-sm text-gray-400 mb-3">Rust binaries may have non-standard PE checksums - This is normal behavior</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-sm text-gray-400">Stored Checksum</p>
-                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.stored_checksum }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-400">Calculated Checksum</p>
-                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.calculated_checksum }}</p>
-                    </div>
+            {% if build_with %}
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 10px;">{{ build_with|capitalize }} binaries typically have non-standard PE checksums — this is normal behavior.</p>
+            {% endif %}
+            <div class="lb-grid-2">
+                <div>
+                    <div class="lb-muted" style="font-size: 11px;">Stored</div>
+                    <div class="lb-mono lb-strong" style="font-size: 12px;">{{ file_info.pe_info.checksum_info.stored_checksum }}</div>
                 </div>
-            </div>
-        {% else %}
-            <div class="bg-yellow-500/10 p-4 rounded-lg border border-yellow-900/20 mb-6">
-                <h3 class="text-sm font-medium text-yellow-400 mb-2">Checksum Mismatch</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-sm text-gray-400">Stored Checksum</p>
-                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.stored_checksum }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-400">Calculated Checksum</p>
-                        <p class="text-gray-200 font-mono">{{ file_info.pe_info.checksum_info.calculated_checksum }}</p>
-                    </div>
+                <div>
+                    <div class="lb-muted" style="font-size: 11px;">Calculated</div>
+                    <div class="lb-mono lb-strong" style="font-size: 12px;">{{ file_info.pe_info.checksum_info.calculated_checksum }}</div>
                 </div>
-            </div>
-        {% endif %}
-        {% endif %}
-
-        <!-- PE Sections -->
-        <div class="mb-6">
-            <h3 class="text-sm font-medium text-gray-400 mb-3">PE Sections</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b border-gray-800">
-                            <th class="text-left py-3 text-gray-400">Name</th>
-                            <th class="text-left py-3 text-gray-400">Size</th>
-                            <th class="text-left py-3 text-gray-400">Entropy</th>
-                            <th class="text-left py-3 text-gray-400">Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for section in file_info.pe_info.sections %}
-                        <tr class="border-b border-gray-800">
-                            <td class="py-3">
-                                <span class="font-mono {% if section.is_standard %}text-gray-300{% else %}text-yellow-500{% endif %}">
-                                    {{ section.name }}
-                                </span>
-                            </td>
-                            <td class="py-3 text-gray-300">{{ section.size|filesizeformat }}</td>
-                            <td class="py-3">
-                                <span class="{% if section.entropy > 7.2 %}text-red-500{% elif section.entropy > 6.8 %}text-yellow-500{% else %}text-gray-300{% endif %}">
-                                    {{ "%.2f"|format(section.entropy) }}
-                                </span>
-                            </td>
-                            <td class="py-3">
-                                <div class="space-y-1">
-                                {% for note in section.detection_notes %}
-                                    <div class="text-sm text-red-400">{{ note }}</div>
-                                {% endfor %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
+        {% endif %}
 
-        <!-- Suspicious Imports -->
+        <!-- PE sections -->
+        <div class="lb-eyebrow" style="margin-bottom: 8px;">PE Sections</div>
+        <table class="lb-table" style="margin-bottom: 16px;">
+            <thead>
+                <tr><th>Name</th><th>Size</th><th>Entropy</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+                {% for section in file_info.pe_info.sections %}
+                <tr>
+                    <td class="fn lb-mono" style="color: {% if section.is_standard %}var(--lb-text){% else %}var(--lb-sev-medium){% endif %};">{{ section.name }}</td>
+                    <td class="lb-mono">{{ section.size|filesizeformat }}</td>
+                    <td class="lb-mono" style="color: {% if section.entropy > 7.2 %}var(--lb-sev-critical){% elif section.entropy > 6.8 %}var(--lb-sev-medium){% else %}var(--lb-text-dim){% endif %};">{{ "%.2f"|format(section.entropy) }}</td>
+                    <td>
+                        {% for note in section.detection_notes %}
+                        <div class="lb-accent" style="font-size: 11px;">{{ note }}</div>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Suspicious imports -->
         {% if file_info.pe_info.suspicious_imports %}
         {% set runtime_imports = file_info.pe_info.suspicious_imports | selectattr('is_runtime_import') | list %}
         {% set suspicious_imports = file_info.pe_info.suspicious_imports | rejectattr('is_runtime_import') | list %}
         {% set build_with = file_info.pe_info.build_with %}
-        
-        <div>
-            <!-- Dynamic title and styling based on runtime type -->
-            {% if build_with == 'go' %}
-                {% if suspicious_imports %}
-                    <h3 class="text-sm font-medium text-gray-400 mb-3">API Imports Analysis</h3>
-                    <div class="mb-3 p-3 bg-blue-500/10 rounded-lg border border-blue-900/20">
-                        <div class="flex items-center space-x-2">
-                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="text-sm text-blue-300 font-medium">Go Binary Detected</span>
-                        </div>
-                        <p class="text-sm text-gray-400 mt-1 ml-6">
-                            Found {{ runtime_imports|length }} Go runtime imports (benign) and {{ suspicious_imports|length }} potentially suspicious imports.
-                        </p>
-                    </div>
-                {% else %}
-                    <h3 class="text-sm font-medium text-gray-400 mb-3">API Imports (Go Runtime)</h3>
-                    <div class="mb-3 p-3 bg-blue-500/10 rounded-lg border border-blue-900/20">
-                        <div class="flex items-center space-x-2">
-                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="text-sm text-blue-300 font-medium">Go Binary Detected</span>
-                        </div>
-                        <p class="text-sm text-gray-400 mt-1 ml-6">
-                            These {{ runtime_imports|length }} imports are typically part of the Go runtime and are not necessarily malicious.
-                        </p>
-                    </div>
-                {% endif %}
-            {% elif build_with == 'rust' %}
-                {% if suspicious_imports %}
-                    <h3 class="text-sm font-medium text-gray-400 mb-3">API Imports Analysis</h3>
-                    <div class="mb-3 p-3 bg-purple-500/10 rounded-lg border border-purple-900/20">
-                        <div class="flex items-center space-x-2">
-                            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="text-sm text-purple-300 font-medium">Rust Binary Detected</span>
-                        </div>
-                        <p class="text-sm text-gray-400 mt-1 ml-6">
-                            Found {{ runtime_imports|length }} Rust runtime imports (benign) and {{ suspicious_imports|length }} potentially suspicious imports.
-                        </p>
-                    </div>
-                {% else %}
-                    <h3 class="text-sm font-medium text-gray-400 mb-3">API Imports (Rust Runtime)</h3>
-                    <div class="mb-3 p-3 bg-purple-500/10 rounded-lg border border-purple-900/20">
-                        <div class="flex items-center space-x-2">
-                            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="text-sm text-purple-300 font-medium">Rust Binary Detected</span>
-                        </div>
-                        <p class="text-sm text-gray-400 mt-1 ml-6">
-                            These {{ runtime_imports|length }} imports are typically part of the Rust runtime and are not necessarily malicious.
-                        </p>
-                    </div>
-                {% endif %}
-            {% else %}
-                <h3 class="text-sm font-medium text-gray-400 mb-3">Suspicious Imports</h3>
-            {% endif %}
-            
-            <!-- Grouped imports display with runtime-aware styling -->
-            <div class="space-y-4">
-                {% for dll, imports in file_info.pe_info.grouped_suspicious_imports.items() %}
-                {% set dll_runtime_imports = imports | selectattr('is_runtime_import') | list %}
-                {% set dll_suspicious_imports = imports | rejectattr('is_runtime_import') | list %}
-                
-                <!-- Runtime imports section -->
-                {% if dll_runtime_imports %}
-                    {% if build_with == 'go' %}
-                        <div class="bg-blue-500/10 p-4 rounded-lg border border-blue-900/20">
-                            <h4 class="text-blue-400 font-mono mb-2">{{ dll }} <span class="ml-2 px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full">Go Runtime</span></h4>
-                    {% elif build_with == 'rust' %}
-                        <div class="bg-purple-500/10 p-4 rounded-lg border border-purple-900/20">
-                            <h4 class="text-purple-400 font-mono mb-2">{{ dll }} <span class="ml-2 px-2 py-0.5 text-xs bg-gray-500/20 text-gray-400 rounded-full">Rust Runtime</span></h4>
+
+        <div class="lb-eyebrow" style="margin-bottom: 8px;">
+            {% if build_with and not suspicious_imports %}API Imports ({{ build_with|capitalize }} Runtime){% else %}Suspicious Imports{% endif %}
+        </div>
+
+        {% if build_with %}
+        <div style="border: 1px solid var(--lb-border-hi); padding: 10px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 11px;">
+                <span class="lb-tag info">{{ build_with|upper }} Binary Detected</span>
+                <span class="lb-muted">
+                    {% if suspicious_imports %}
+                        Found {{ runtime_imports|length }} runtime imports (benign) and {{ suspicious_imports|length }} potentially suspicious imports.
+                    {% else %}
+                        These {{ runtime_imports|length }} imports are typically part of the {{ build_with|capitalize }} runtime.
                     {% endif %}
-                            <div class="space-y-2">
-                                {% for import in dll_runtime_imports %}
-                                <div class="pl-4 border-l-2 border-{% if build_with == 'go' %}blue{% elif build_with == 'rust' %}purple{% endif %}-900/20">
-                                    <p class="text-gray-300 font-mono">{{ import.function }} 
-                                        <span class="text-{% if build_with == 'go' %}blue{% elif build_with == 'rust' %}purple{% endif %}-300">[{{ import.category }}]</span>
-                                        {% if import.hint is not none %}
-                                            <span class="text-xs text-gray-500 ml-2" title="Import hint: suggested index in DLL export table">Hint: {{ import.hint }}</span>
-                                        {% endif %}
-                                    </p>
-                                    <p class="text-sm text-gray-400 mt-1">{{ import.note }}</p>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                {% endif %}
-                
-                <!-- Suspicious imports section -->
-                {% if dll_suspicious_imports %}
-                    <div class="bg-red-500/10 p-4 rounded-lg border border-red-900/20">
-                        <h4 class="text-red-400 font-mono mb-2">{{ dll }}</h4>
-                        <div class="space-y-2">
-                            {% for import in dll_suspicious_imports %}
-                            <div class="pl-4 border-l-2 border-red-900/20">
-                                <p class="text-gray-300 font-mono">{{ import.function }} <span class="text-red-300">[{{ import.category }}]</span>
-                                    {% if import.hint is not none %}
-                                        <span class="text-xs text-gray-500 ml-2" title="Import hint: suggested index in DLL export table">Hint: {{ import.hint }}</span>
-                                    {% endif %}
-                                </p>
-                                <p class="text-sm text-gray-400 mt-1">{{ import.note }}</p>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endif %}
-                {% endfor %}
+                </span>
             </div>
         </div>
         {% endif %}
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            {% for dll, imports in file_info.pe_info.grouped_suspicious_imports.items() %}
+            {% set dll_runtime_imports = imports | selectattr('is_runtime_import') | list %}
+            {% set dll_suspicious_imports = imports | rejectattr('is_runtime_import') | list %}
+
+            {% if dll_runtime_imports %}
+            <div style="border: 1px solid var(--lb-border-hi); padding: 10px;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                    <span class="lb-mono lb-strong" style="font-size: 12px;">{{ dll }}</span>
+                    <span class="lb-tag info">{{ build_with|upper if build_with else 'INFO' }} Runtime</span>
+                </div>
+                {% for import in dll_runtime_imports %}
+                <div style="padding-left: 10px; border-left: 1px solid var(--lb-border-hi); margin-bottom: 4px;">
+                    <div class="lb-mono lb-dim" style="font-size: 11px;">
+                        {{ import.function }} <span class="lb-muted">[{{ import.category }}]</span>
+                        {% if import.hint is not none %}<span class="lb-muted" style="font-size: 10px;" title="Import hint">Hint: {{ import.hint }}</span>{% endif %}
+                    </div>
+                    <div class="lb-muted" style="font-size: 11px;">{{ import.note }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if dll_suspicious_imports %}
+            <div style="border: 1px solid var(--lb-accent); padding: 10px;">
+                <div class="lb-mono lb-strong" style="font-size: 12px; color: var(--lb-accent); margin-bottom: 6px;">{{ dll }}</div>
+                {% for import in dll_suspicious_imports %}
+                <div style="padding-left: 10px; border-left: 1px solid var(--lb-accent); margin-bottom: 4px;">
+                    <div class="lb-mono" style="font-size: 11px;">
+                        {{ import.function }} <span class="lb-accent">[{{ import.category }}]</span>
+                        {% if import.hint is not none %}<span class="lb-muted" style="font-size: 10px;" title="Import hint">Hint: {{ import.hint }}</span>{% endif %}
+                    </div>
+                    <div class="lb-muted" style="font-size: 11px;">{{ import.note }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
     </div>
-    {% endif %}
 </div>
+{% endif %}
+
 {% endblock %}

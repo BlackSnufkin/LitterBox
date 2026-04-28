@@ -4,149 +4,47 @@
 // `function foo() {}` no longer auto-globalises; we explicitly attach every
 // name that templates reference via inline `onclick="..."` handlers to
 // `window` at the bottom of this file.
+//
+// The hybrid terminal layout has no collapse-sidebar control, so this file
+// is leaner than the previous version: only status checking, modals,
+// notifications, and the inline-handler shims.
 
-// Constants
 const CONFIG = {
     notificationDuration: 5000,
     fadeDelay: 300,
     modalFocusDelay: 100,
-    sidebar: {
-        storageKey: 'litterbox_sidebar_collapsed',
-        animationDuration: 300
-    }
 };
 
-// Sidebar Manager - Clean and Simple Approach
-class SidebarManager {
-    constructor() {
-        this.sidebar = document.getElementById('app-sidebar');
-        this.content = document.getElementById('app-content');
-        this.topbar = document.getElementById('app-topbar');
-        this.toggleBtn = document.getElementById('sidebar-toggle');
-        
-        this.isCollapsed = this.getStoredState();
-        
-        this.init();
-    }
-    
-    init() {
-        if (!this.sidebar || !this.toggleBtn) {
-            console.warn('Sidebar elements not found');
-            return;
-        }
-        
-        // Apply initial state without animation
-        this.applyState(false);
-        
-        // Add event listeners
-        this.toggleBtn.addEventListener('click', () => this.toggle());
-        
-        // Keyboard shortcut (Ctrl/Cmd + B)
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-                e.preventDefault();
-                this.toggle();
-            }
-        });
-        
-        console.log('Sidebar initialized, collapsed:', this.isCollapsed);
-    }
-    
-    toggle() {
-        this.isCollapsed = !this.isCollapsed;
-        this.applyState(true);
-        this.saveState();
-        console.log('Sidebar toggled, collapsed:', this.isCollapsed);
-    }
-    
-    applyState(withAnimation = true) {
-        if (!withAnimation) {
-            // Temporarily disable transitions
-            this.sidebar.style.transition = 'none';
-            this.content.style.transition = 'none';
-            this.topbar.style.transition = 'none';
-        }
-        
-        if (this.isCollapsed) {
-            this.sidebar.classList.add('collapsed');
-            this.content.classList.add('sidebar-collapsed');
-            this.topbar.classList.add('sidebar-collapsed');
-            this.toggleBtn.title = 'Expand Sidebar';
-        } else {
-            this.sidebar.classList.remove('collapsed');
-            this.content.classList.remove('sidebar-collapsed');
-            this.topbar.classList.remove('sidebar-collapsed');
-            this.toggleBtn.title = 'Collapse Sidebar';
-        }
-        
-        if (!withAnimation) {
-            // Re-enable transitions after next frame
-            requestAnimationFrame(() => {
-                this.sidebar.style.transition = '';
-                this.content.style.transition = '';
-                this.topbar.style.transition = '';
-            });
-        }
-    }
-    
-    getStoredState() {
-        const stored = localStorage.getItem(CONFIG.sidebar.storageKey);
-        return stored === 'true';
-    }
-    
-    saveState() {
-        localStorage.setItem(CONFIG.sidebar.storageKey, this.isCollapsed.toString());
-    }
-    
-    expand() {
-        if (this.isCollapsed) {
-            this.toggle();
-        }
-    }
-    
-    collapse() {
-        if (!this.isCollapsed) {
-            this.toggle();
-        }
-    }
-}
-
-// Status Manager Class
+// ----------------------------------------------------------------------
+// Status manager — drives the sidebar footer status dot + issues popover
+// ----------------------------------------------------------------------
 class StatusManager {
     constructor() {
         if (window._statusManagerInstance) {
             return window._statusManagerInstance;
         }
-
         window._statusManagerInstance = this;
+
         this.hasCheckedStatus = sessionStorage.getItem('statusChecked') === 'true';
 
         this.elements = {
             indicator: document.getElementById('status-indicator'),
-            text: document.getElementById('status-text'),
-            container: document.querySelector('.sidebar-footer'),
-            popover: document.getElementById('issues-popover'),
-            issuesList: document.getElementById('issues-list')
+            text:      document.getElementById('status-text'),
+            container: document.querySelector('.lb-sidebar-foot'),
+            popover:   document.getElementById('issues-popover'),
+            issuesList: document.getElementById('issues-list'),
         };
-        
+
         this.state = {
             isPopoverVisible: false,
-            currentIssues: []
+            currentIssues: [],
         };
 
         if (this.hasCheckedStatus) {
-            this.setInitialState();
+            this.setActiveState();
         }
 
         this.handleClickOutside = this.handleClickOutside.bind(this);
-    }
-
-    setInitialState() {
-        if (this.elements.indicator && this.elements.text) {
-            this.elements.indicator.className = 'status-indicator bg-green-500 animate-pulse transition-colors duration-200';
-            this.elements.text.className = 'font-medium transition-colors duration-200 text-green-500';
-            this.elements.text.textContent = 'Active';
-        }
     }
 
     init() {
@@ -166,43 +64,39 @@ class StatusManager {
             if (data.status === 'ok') {
                 this.setActiveState();
             } else {
-                const issues = data.issues || [];
-                this.setDegradedState(issues);
+                this.setDegradedState(data.issues || []);
             }
         } catch (error) {
             this.handleError(error);
         }
     }
 
-    resetClasses() {
-        const { indicator, text } = this.elements;
-        indicator.className = 'status-indicator transition-colors duration-200';
-        text.className = 'font-medium transition-colors duration-200';
+    setIndicatorClass(state) {
+        const { indicator } = this.elements;
+        if (!indicator) return;
+        indicator.classList.remove('ok', 'warn', 'fail');
+        if (state) indicator.classList.add(state);
     }
 
     setActiveState() {
-        const { indicator, text, container } = this.elements;
-        
-        this.resetClasses();
-        indicator.classList.add('bg-green-500', 'animate-pulse');
-        text.classList.add('text-green-500');
-        text.textContent = 'Active';
-        
-        if (container) {
-            container.style.cursor = 'default';
+        const { text, container } = this.elements;
+        this.setIndicatorClass('ok');
+        if (text) {
+            text.textContent = 'Active';
+            text.style.color = 'var(--lb-sev-low)';
         }
+        if (container) container.style.cursor = 'default';
         this.hidePopover();
         this.removeClickHandler();
     }
 
     setDegradedState(issues) {
-        const { indicator, text } = this.elements;
-        
-        this.resetClasses();
-        indicator.classList.add('bg-red-500', 'animate-pulse');
-        text.classList.add('text-red-500');
-        text.textContent = 'Degraded';
-
+        const { text } = this.elements;
+        this.setIndicatorClass('fail');
+        if (text) {
+            text.textContent = 'Degraded';
+            text.style.color = 'var(--lb-accent)';
+        }
         if (issues && issues.length > 0) {
             this.state.currentIssues = issues;
             this.updateIssuesDisplay(issues);
@@ -212,41 +106,33 @@ class StatusManager {
 
     updateIssuesDisplay(issues) {
         const { issuesList, container } = this.elements;
-        
         if (issuesList) {
             issuesList.innerHTML = '';
             issues.forEach(issue => {
                 const li = document.createElement('li');
                 li.textContent = issue;
-                li.className = 'text-red-300 mb-1 last:mb-0';
                 issuesList.appendChild(li);
             });
         }
-
-        if (container) {
-            container.style.cursor = 'pointer';
-        }
+        if (container) container.style.cursor = 'pointer';
     }
 
     handleError(error) {
-        const { indicator, text } = this.elements;
-        
-        this.resetClasses();
-        indicator.classList.add('bg-red-500');
-        text.classList.add('text-red-500');
-        text.textContent = 'Error';
-
-        const errorMessage = error.message.includes('Failed to fetch')
+        const { text } = this.elements;
+        this.setIndicatorClass('fail');
+        if (text) {
+            text.textContent = 'Error';
+            text.style.color = 'var(--lb-accent)';
+        }
+        const message = error.message.includes('Failed to fetch')
             ? 'Cannot connect to server. Please check your connection.'
             : error.message;
-
-        this.updateIssuesDisplay([errorMessage]);
+        this.updateIssuesDisplay([message]);
         this.setupClickHandler();
     }
 
     setupClickHandler() {
         const { container } = this.elements;
-        
         this.removeClickHandler();
         if (container) {
             container.onclick = (e) => {
@@ -258,9 +144,7 @@ class StatusManager {
 
     removeClickHandler() {
         const { container } = this.elements;
-        if (container) {
-            container.onclick = null;
-        }
+        if (container) container.onclick = null;
     }
 
     togglePopover() {
@@ -269,193 +153,152 @@ class StatusManager {
 
     showPopover() {
         const { popover } = this.elements;
-        
-        if (popover) {
-            popover.classList.remove('hidden');
-            requestAnimationFrame(() => {
-                popover.classList.add('fade-in');
-            });
-            
-            this.state.isPopoverVisible = true;
-        }
+        if (!popover) return;
+        popover.classList.remove('hidden');
+        this.state.isPopoverVisible = true;
     }
 
     hidePopover() {
         const { popover } = this.elements;
         if (!popover) return;
-        
-        popover.classList.remove('fade-in');
-        
-        setTimeout(() => {
-            popover.classList.add('hidden');
-        }, 200);
-        
+        popover.classList.add('hidden');
         this.state.isPopoverVisible = false;
     }
 
     handleClickOutside(event) {
         const { container } = this.elements;
-        
         if (this.state.isPopoverVisible && container && !container.contains(event.target)) {
             this.hidePopover();
         }
     }
-
-    destroy() {
-        document.removeEventListener('click', this.handleClickOutside);
-        this.removeClickHandler();
-    }
 }
 
-// Navigation Functions
-function showSummary() {
-    window.location.href = '/summary';
-}
+// ----------------------------------------------------------------------
+// Navigation helpers
+// ----------------------------------------------------------------------
+function showSummary()       { window.location.href = '/summary'; }
+function openDoppelganger()  { window.location.href = '/doppelganger'; }
 
-function openDoppelganger() {
-    window.location.href = '/doppelganger';
-}
-
-// Notification System
+// ----------------------------------------------------------------------
+// Notifications
+// ----------------------------------------------------------------------
 const NotificationSystem = {
-    show(message, className, duration = CONFIG.notificationDuration) {
-        const notification = document.createElement('div');
-        notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white ${className} shadow-lg z-50 transition-opacity duration-300`;
-        notification.style.maxWidth = '400px';
-        
-        const container = this.createContainer(message);
-        notification.appendChild(container);
-        document.body.appendChild(notification);
-        
-        this.setupAutoDismiss(notification, duration);
-    },
-
-    createContainer(message) {
-        const container = document.createElement('div');
-        container.className = 'flex justify-between items-start gap-2';
-        
-        const messageDiv = document.createElement('div');
-        messageDiv.style.whiteSpace = 'pre-line';
-        messageDiv.textContent = message;
-        
-        const closeButton = this.createCloseButton();
-        
-        container.appendChild(messageDiv);
-        container.appendChild(closeButton);
-        
-        return container;
-    },
-
-    createCloseButton() {
-        const closeButton = document.createElement('button');
-        closeButton.innerHTML = '×';
-        closeButton.className = 'text-white hover:text-gray-200 font-bold text-xl leading-none';
-        closeButton.onclick = (e) => {
-            const notification = e.target.closest('div.fixed');
-            this.dismiss(notification);
+    show(message, severity = 'info', duration = CONFIG.notificationDuration) {
+        const colorMap = {
+            success: 'var(--lb-sev-low)',
+            warn:    'var(--lb-sev-medium)',
+            error:   'var(--lb-accent)',
+            info:    'var(--lb-text-mute)',
         };
-        return closeButton;
-    },
+        // Back-compat: callers used to pass Tailwind class names like 'bg-red-500'.
+        if (severity.startsWith('bg-')) {
+            severity = severity.includes('green') ? 'success'
+                     : severity.includes('yellow') ? 'warn'
+                     : severity.includes('red')    ? 'error' : 'info';
+        }
+        const color = colorMap[severity] || colorMap.info;
 
-    dismiss(notification) {
-        notification.classList.add('opacity-0');
-        setTimeout(() => notification.remove(), CONFIG.fadeDelay);
-    },
+        const note = document.createElement('div');
+        note.style.cssText = `
+            position: fixed; top: 16px; right: 16px;
+            background: var(--lb-panel); color: var(--lb-text);
+            border: 1px solid ${color}; border-left: 3px solid ${color};
+            padding: 10px 14px; max-width: 400px; z-index: 200;
+            font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            transition: opacity ${CONFIG.fadeDelay}ms ease;
+        `;
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display: flex; gap: 12px; align-items: flex-start;';
 
-    setupAutoDismiss(notification, duration) {
+        const msg = document.createElement('div');
+        msg.style.whiteSpace = 'pre-line';
+        msg.style.flex = '1';
+        msg.textContent = message;
+
+        const close = document.createElement('button');
+        close.innerHTML = '&times;';
+        close.style.cssText = `
+            background: transparent; border: 0; color: var(--lb-text-mute);
+            cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px;
+        `;
+        close.onclick = () => this.dismiss(note);
+
+        wrap.appendChild(msg);
+        wrap.appendChild(close);
+        note.appendChild(wrap);
+        document.body.appendChild(note);
+
         setTimeout(() => {
-            if (document.body.contains(notification)) {
-                this.dismiss(notification);
-            }
+            if (document.body.contains(note)) this.dismiss(note);
         }, duration);
-    }
+    },
+
+    dismiss(note) {
+        note.style.opacity = '0';
+        setTimeout(() => note.remove(), CONFIG.fadeDelay);
+    },
 };
 
-// Modal Management
+// ----------------------------------------------------------------------
+// Modal management
+// ----------------------------------------------------------------------
 const ModalManager = {
     showProcessWarning() {
         const modal = document.getElementById('processWarningModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            this.focusPIDInput();
-        }
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        setTimeout(() => document.getElementById('processId')?.focus(), CONFIG.modalFocusDelay);
     },
-
     hideProcessWarning() {
-        const modal = document.getElementById('processWarningModal');
-        if (modal) {
-            modal.classList.add('hidden');
-        }
+        document.getElementById('processWarningModal')?.classList.add('hidden');
     },
-
     showCleanupWarning() {
-        const modal = document.getElementById('cleanupWarningModal');
-        modal?.classList.remove('hidden');
+        document.getElementById('cleanupWarningModal')?.classList.remove('hidden');
     },
-
     hideCleanupWarning() {
-        const modal = document.getElementById('cleanupWarningModal');
-        modal?.classList.add('hidden');
+        document.getElementById('cleanupWarningModal')?.classList.add('hidden');
     },
-
-    focusPIDInput() {
-        setTimeout(() => {
-            const pidInput = document.getElementById('processId');
-            pidInput?.focus();
-        }, CONFIG.modalFocusDelay);
-    }
 };
 
-// Process Manager
+// ----------------------------------------------------------------------
+// Process analysis trigger
+// ----------------------------------------------------------------------
 const ProcessManager = {
     validatePID(pid) {
-        if (!pid) {
-            return { isValid: false, error: 'Please enter a process ID' };
-        }
-        
-        if (!/^\d+$/.test(pid)) {
-            return { isValid: false, error: 'PID must be a positive number' };
-        }
-        
-        if (parseInt(pid) <= 0) {
-            return { isValid: false, error: 'PID must be greater than 0' };
-        }
-        
+        if (!pid) return { isValid: false, error: 'Please enter a process ID' };
+        if (!/^\d+$/.test(pid)) return { isValid: false, error: 'PID must be a positive number' };
+        if (parseInt(pid, 10) <= 0) return { isValid: false, error: 'PID must be greater than 0' };
         return { isValid: true };
     },
 
     async startAnalysis() {
         const pid = document.getElementById('processId')?.value;
         const validation = this.validatePID(pid);
-        
         if (!validation.isValid) {
-            NotificationSystem.show(validation.error, 'bg-red-500');
+            NotificationSystem.show(validation.error, 'error');
             return;
         }
-        
-        const submitButton = this.updateButtonState('Validating...');
-        
+
+        const button = this.updateButton('Validating…');
         try {
-            const validationResponse = await fetch(`/validate/${pid}`, {
+            const response = await fetch(`/validate/${pid}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
             });
-            
-            if (!validationResponse.ok) {
-                const data = await validationResponse.json();
-                throw new Error(this.getErrorMessage(validationResponse.status, pid, data));
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(this.getErrorMessage(response.status, pid, data));
             }
-            
+
             ModalManager.hideProcessWarning();
-            NotificationSystem.show(`Starting analysis of process ${pid}...`, 'bg-green-500');
-            
+            NotificationSystem.show(`Starting analysis of process ${pid}…`, 'success');
             window.location.href = `/analyze/dynamic/${pid}`;
-            
         } catch (error) {
             console.error('Process analysis error:', error);
-            NotificationSystem.show(`${error.message}`, 'bg-red-500');
+            NotificationSystem.show(error.message, 'error');
         } finally {
-            this.resetButtonState(submitButton);
+            this.resetButton(button);
         }
     },
 
@@ -463,120 +306,92 @@ const ProcessManager = {
         switch (status) {
             case 404: return `Process ID ${pid} not found. Please verify the PID and try again.`;
             case 403: return `Access denied to process ${pid}. Please check permissions.`;
-            default: return data.error || 'Unknown error occurred';
+            default:  return data.error || 'Unknown error occurred';
         }
     },
 
-    updateButtonState(text) {
-        const button = document.querySelector('[onclick="startProcessAnalysis()"]');
-        if (button) {
-            button.disabled = true;
-            button.textContent = text;
-        }
-        return button;
+    updateButton(text) {
+        const btn = document.querySelector('[onclick="startProcessAnalysis()"]');
+        if (btn) { btn.disabled = true; btn.textContent = text; }
+        return btn;
     },
 
-    resetButtonState(button) {
-        if (button) {
-            button.disabled = false;
-            button.textContent = 'Start Analysis';
-        }
-    }
+    resetButton(btn) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Start Analysis'; }
+    },
 };
 
-// Updated Cleanup System
+// ----------------------------------------------------------------------
+// Cleanup
+// ----------------------------------------------------------------------
 const CleanupSystem = {
     async execute() {
         ModalManager.hideCleanupWarning();
         try {
             const response = await fetch('/cleanup', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
             });
-            
             const data = await response.json();
-            const { message, className } = this.formatResponse(data);
-            NotificationSystem.show(message, className);
-            
+            const { message, severity } = this.formatResponse(data);
+            NotificationSystem.show(message, severity);
         } catch (error) {
-            NotificationSystem.show(`Error during cleanup: ${error.message}`, 'bg-red-500');
+            NotificationSystem.show(`Error during cleanup: ${error.message}`, 'error');
         }
     },
+
     formatResponse(data) {
         if (data.status === 'success') {
             return {
                 message: `Cleanup successful:\n- ${data.details.uploads_cleaned} uploaded files removed\n- ${data.details.analysis_cleaned} analysis results cleaned (PE-Sieve, HolyGrail)\n- ${data.details.result_cleaned} result folders cleaned\n- Doppelganger database cleaned`,
-                className: 'bg-green-500'
-            };
-        } else if (data.status === 'warning') {
-            return {
-                message: `Cleanup completed with warnings:\n- ${data.details.uploads_cleaned} uploaded files removed\n- ${data.details.analysis_cleaned} analysis results cleaned (PE-Sieve, HolyGrail)\n- ${data.details.result_cleaned} result folders cleaned\n- Doppelganger database cleaned\n\nErrors:\n${data.details.errors.join('\n')}`,
-                className: 'bg-yellow-500'
-            };
-        } else {
-            return {
-                message: `Cleanup failed: ${data.message || data.error}`,
-                className: 'bg-red-500'
+                severity: 'success',
             };
         }
-    }
+        if (data.status === 'warning') {
+            return {
+                message: `Cleanup completed with warnings:\n- ${data.details.uploads_cleaned} uploaded files removed\n- ${data.details.analysis_cleaned} analysis results cleaned\n- ${data.details.result_cleaned} result folders cleaned\n\nErrors:\n${data.details.errors.join('\n')}`,
+                severity: 'warn',
+            };
+        }
+        return {
+            message: `Cleanup failed: ${data.message || data.error}`,
+            severity: 'error',
+        };
+    },
 };
 
-// Initialize everything when DOM is loaded
+// ----------------------------------------------------------------------
+// Init
+// ----------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing LitterBox UI...');
-    
-    // Initialize Sidebar Manager
-    const sidebarManager = new SidebarManager();
-    window.sidebarManager = sidebarManager; // For debugging
-    
-    // Initialize Status Manager
     const statusManager = new StatusManager();
     statusManager.init();
 
-    // Setup Modal Event Listeners
-    const processModal = document.getElementById('processWarningModal');
-    if (processModal) {
-        processModal.addEventListener('click', (e) => {
-            if (e.target === processModal) ModalManager.hideProcessWarning();
-        });
-    }
+    document.getElementById('processWarningModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'processWarningModal') ModalManager.hideProcessWarning();
+    });
+    document.getElementById('cleanupWarningModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'cleanupWarningModal') ModalManager.hideCleanupWarning();
+    });
 
-    const cleanupModal = document.getElementById('cleanupWarningModal');
-    if (cleanupModal) {
-        cleanupModal.addEventListener('click', (e) => {
-            if (e.target === cleanupModal) ModalManager.hideCleanupWarning();
-        });
-    }
-
-    // Global ESC key handler
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             ModalManager.hideProcessWarning();
             ModalManager.hideCleanupWarning();
         }
     });
-    
-    console.log('LitterBox UI initialized successfully');
 });
 
-// Export functions for global access
-window.showProcessWarning = ModalManager.showProcessWarning.bind(ModalManager);
-window.hideProcessWarning = ModalManager.hideProcessWarning.bind(ModalManager);
+// ----------------------------------------------------------------------
+// Export to window — referenced by inline onclick handlers in templates
+// ----------------------------------------------------------------------
+window.showProcessWarning   = ModalManager.showProcessWarning.bind(ModalManager);
+window.hideProcessWarning   = ModalManager.hideProcessWarning.bind(ModalManager);
 window.startProcessAnalysis = ProcessManager.startAnalysis.bind(ProcessManager);
-window.showCleanupWarning = ModalManager.showCleanupWarning.bind(ModalManager);
-window.hideCleanupWarning = ModalManager.hideCleanupWarning.bind(ModalManager);
-window.executeCleanup = CleanupSystem.execute.bind(CleanupSystem);
-window.cleanupSystem = ModalManager.showCleanupWarning.bind(ModalManager);
-window.showNotification = NotificationSystem.show.bind(NotificationSystem);
-
-// Export sidebar controls
-window.toggleSidebar = () => window.sidebarManager?.toggle();
-window.collapseSidebar = () => window.sidebarManager?.collapse();
-window.expandSidebar = () => window.sidebarManager?.expand();
-
-// Top-level helpers referenced by base.html inline onclick handlers.
-// In module strict mode `function showSummary() {}` does NOT create
-// `window.showSummary`, so attach them explicitly.
-window.showSummary = showSummary;
-window.openDoppelganger = openDoppelganger;
+window.showCleanupWarning   = ModalManager.showCleanupWarning.bind(ModalManager);
+window.hideCleanupWarning   = ModalManager.hideCleanupWarning.bind(ModalManager);
+window.executeCleanup       = CleanupSystem.execute.bind(CleanupSystem);
+window.cleanupSystem        = ModalManager.showCleanupWarning.bind(ModalManager);
+window.showNotification     = NotificationSystem.show.bind(NotificationSystem);
+window.showSummary          = showSummary;
+window.openDoppelganger     = openDoppelganger;

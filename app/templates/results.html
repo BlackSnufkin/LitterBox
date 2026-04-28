@@ -1,392 +1,327 @@
-<!-- app/templates/results.html -->
-
 {% extends "base.html" %}
 
-{% block page_title %}Analysis Results{% endblock %}
+{% block breadcrumb %}
+    Results
+    <span class="lb-tb-sep">›</span> <span class="lb-mono">{{ file_hash[:12] if file_hash else '' }}</span>
+    <span class="lb-tb-sep">›</span> {{ analysis_type|title }}
+{% endblock %}
 
-{% block content %}
-<div class="max-w-6xl mx-auto px-4 py-6">
-    <!-- Analysis Stage Indicator -->
-    <div id="stageIndicator" class="flex items-center space-x-4 mb-8">
-        <!-- Upload Stage -->
-        <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>
-            <span class="text-gray-400 text-base">Upload</span>
-        </div>
-        <!-- Connecting Line -->
-        <div class="flex-1 h-0.5 bg-gray-800" id="stageLine"></div>
-        <!-- Analysis Stage -->
-        <div id="analysisStage" class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-full bg-red-500/10 border-2 border-red-500 flex items-center justify-center animate-pulse">
-                <span class="text-red-500 font-medium text-base">2</span>
-            </div>
-            <span class="text-gray-300 font-medium text-base">Analysis</span>
-        </div>
-    </div>
-
-
-
-    <!-- Status Card with Warning Modal -->
-    <div class="lb-card-elevated mb-8">
-        <div class="p-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <div id="statusIcon" class="p-3 bg-red-500/10 rounded-lg">
-                        <svg class="w-7 h-7 text-red-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="flex items-center space-x-3">
-                            <h3 class="text-lg font-medium text-gray-100">{{ analysis_type|title }} Analysis</h3>
-                            <span class="px-3 py-1 bg-red-500/10 rounded text-red-500 text-sm font-medium" id="analysisTimer" style="display: none;">00:00</span>
-                        </div>
-                        <div id="analysisStatus" class="text-base text-gray-500 mt-1"></div>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <!-- Conditional Analysis Buttons -->
-
-                    {# 
-                        Display "Run Dynamic Analysis" button only if:
-                        - analysis_type is 'static'
-                        - file_hash exists
-                    #}
-                    <!-- Conditional Analysis Buttons -->
-                    {% if analysis_type == 'static' %}
-                        <!-- This will be determined by JavaScript -->
-                        <button id="dynamicAnalysisButton" onclick="showDynamicWarning()" 
-                                class="px-5 py-2.5 text-base text-yellow-500 border border-yellow-900/20 rounded-lg hover:bg-yellow-500/10 transition-colors flex items-center space-x-2">
-                            <span>Run Dynamic Analysis</span>
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                            </svg>
-                        </button>
-                        
-                        <!-- HolyGrail button (initially hidden) -->
-                        <button id="holygrailAnalysisButton" onclick="startHolyGrailScan()" style="display: none;"
-                                class="px-5 py-2.5 text-base text-yellow-500 border border-yellow-900/20 rounded-lg hover:bg-yellow-500/10 transition-colors flex items-center space-x-2">
-                            <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h-1a1 1 0 000 2h1M18 9h1a1 1 0 010 2h-1"/>
-                            </svg>
-                            <span>HolyGrail BYOVD Scan</span>
-                        </button>
-                    {% endif %}
-                    {# 
-                        Display "Run Static Analysis" button only if:
-                        - analysis_type is NOT 'static' (i.e., 'dynamic')
-                        - file_hash exists
-                    #}
-                    {% if analysis_type != 'static' %}
-                        <button id="staticAnalysisButton" onclick="window.location.href='/analyze/static/{{ file_hash }}'" 
-                                class="px-5 py-2.5 text-base text-yellow-500 border border-yellow-900/20 rounded-lg hover:bg-yellow-500/10 transition-colors">
-                            Run Static Analysis
-                        </button>
-                    {% endif %}
-
-                    <!-- New Analysis Button (Always Visible) -->
-                    <button onclick="window.location.href='/'" 
-                            class="px-5 py-2.5 text-base text-red-500 border border-red-900/20 rounded-lg hover:bg-red-500/10 transition-colors">
-                        New Analysis
-                    </button>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- Dynamic Analysis Warning Modal -->
-    <div id="dynamicWarningModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div class="bg-gray-900 rounded-xl border border-yellow-900/20 p-6 max-w-lg w-full mx-4">
-            <!-- Header -->
-            <div class="flex items-center space-x-3 mb-4">
-                <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-100">Warning: Dynamic Analysis</h3>
-            </div>
-            
-            <!-- Content -->
-            <div class="text-gray-300 mb-6">
-                <p class="mb-4">About to execute the payload.</p>
-                <p class="text-yellow-500">Are you sure you want to proceed?</p>
-            </div>
-
-            <!-- Buttons -->
-            <div class="flex justify-end space-x-3">
-                <button onclick="hideDynamicWarning()" 
-                        class="px-4 py-2 text-gray-400 hover:text-white">
-                    Cancel
-                </button>
-                <button onclick="window.location.href='/analyze/dynamic/{{ file_hash }}'" 
-                        class="px-4 py-2 text-yellow-500 border border-yellow-900/20 rounded-lg hover:bg-yellow-500/10">
-                    Proceed
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Results Section -->
-    <div class="lb-card-elevated">
-        <div class="p-6">
-            <!-- Tabs -->
-            <div class="flex space-x-6 border-b border-gray-700 pb-3 mb-6">
-                {% if analysis_type == 'static' %}
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="summaryTab">
-                    Summary
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="yaraResultsTab">
-                    YARA
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="threatCheckResultsTab">
-                    CheckPlz
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="StringnalyzerResultsTab">
-                    Stringnalyzer
-                </button>
-                {% else %}
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="summaryTab">
-                    Summary
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="yaraMemoryTab">
-                    YARA Memory Scan
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="peSieveTab">
-                    PE-sieve
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="monetaTab">
-                    Moneta
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="patriotTab">
-                    Patriot
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="hsbTab">
-                    Hunt-SB
-                </button>
-                <button class="tab-button text-base px-4 py-2 text-gray-300 hover:text-white border-b-2" data-tab="redEdrTab">
-                    RedEdr
-                </button>
-                {% endif %}
-            </div>
-            <!-- Tab Content -->
-            {% if analysis_type == 'static' %}
-            <!-- Summary Tab -->
-            <div id="summaryTab" class="tab-content">
-                <h3 class="text-xl font-medium text-gray-100">Analysis Summary</h3>
-                <p class="text-base text-gray-500 mb-6">Comprehensive overview of all scan results.</p>
-                <div id="summaryWrapper" class="space-y-4">
-
-                        <!-- NEW: Container for file or process details -->
-                    <div id="targetDetails" class="mb-6">
-                        <!-- We'll populate this dynamically via JS -->
-                    </div>
-                    <!-- Overall Status Grid -->
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="lb-card">
-                            <div class="text-sm text-gray-500">Overall Status</div>
-                            <div id="overallStatus" class="text-2xl font-semibold text-gray-300">Analyzing...</div>
-                        </div>
-                        <div class="lb-card">
-                            <div class="text-sm text-gray-500">Total Detections</div>
-                            <div id="totalDetections" class="text-2xl font-semibold text-gray-300">0</div>
-                        </div>
-                        <div class="lb-card">
-                            <div class="text-sm text-gray-500">Scan Duration</div>
-                            <div id="scanDuration" class="text-2xl font-semibold text-gray-300">00:00</div>
-                        </div>
-                    </div>
-                    <!-- Scanner Results Table -->
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 overflow-hidden">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="border-b border-gray-800">
-                                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Scanner</th>
-                                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Status</th>
-                                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Detections</th>
-                                    <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="scannerResultsBody" class="divide-y divide-gray-800">
-                                <!-- Scanner results will be populated here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Other Static Tabs -->
-            <div id="yaraResultsTab" class="tab-content">
-                <h3 class="text-xl font-medium text-gray-100">YARA Scan Results</h3>
-                <p class="text-base text-gray-500 mb-6">Static pattern matching analysis results.</p>
-                <div id="yaraStats" class="flex space-x-4 mb-6"></div>
-                <div id="yaraResults" class="space-y-4"></div>
-            </div>
-            <div id="threatCheckResultsTab" class="tab-content">
-                <h3 class="text-xl font-medium text-gray-100">CheckPlz Scan Results</h3>
-                <p class="text-base text-gray-500 mb-6">Windows Defender signature detection results.</p>
-                <div id="threatCheckStats" class="flex space-x-4 mb-6"></div>
-                <div id="threatCheckResults" class="space-y-4"></div>
-            </div>
-            <div id="StringnalyzerResultsTab" class="tab-content">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-medium text-gray-100">Stringnalyzer Scan Results</h3>
-                    <button id="downloadResultsBtn" class="px-3 py-1 text-sm text-gray-300 hover:text-white border border-gray-700 rounded hover:border-gray-600 transition-colors flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                        </svg>
-                        <span>Download Results</span>
-                    </button>
-                </div>
-                <p class="text-base text-gray-500 mb-6">Payload String Analyzer</p>
-                <div id="StringnalyzerStats" class="flex space-x-4 mb-6"></div>
-                <div id="StringnalyzerResults" class="space-y-4"></div>
-            </div>
-            {% else %}
-            <!-- Summary Tab for Dynamic Analysis -->
-            <div id="summaryTab" class="tab-content">
-                <h3 class="text-xl font-medium text-gray-100">Analysis Summary</h3>
-                <p class="text-base text-gray-500 mb-6">Comprehensive overview of all scan results.</p>
-                <div id="summaryWrapper" class="space-y-4">
-
-                        <!-- NEW: Container for file or process details -->
-                    <div id="targetDetails" class="mb-6">
-                        <!-- We'll populate this dynamically via JS -->
-                    </div>
-                    <!-- Overall Status Grid -->
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="lb-card">
-                            <div class="text-sm text-gray-500">Overall Status</div>
-                            <div id="overallStatus" class="text-2xl font-semibold text-gray-300">Analyzing...</div>
-                        </div>
-                        <div class="lb-card">
-                            <div class="text-sm text-gray-500">Total Detections</div>
-                            <div id="totalDetections" class="text-2xl font-semibold text-gray-300">0</div>
-                        </div>
-                        <div class="lb-card">
-                            <div class="text-sm text-gray-500">Scan Duration</div>
-                            <div id="scanDuration" class="text-2xl font-semibold text-gray-300">00:00</div>
-                        </div>
-                    </div>
-                    <!-- Scanner Results Table -->
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 overflow-hidden">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="border-b border-gray-800">
-                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">Scanner</th>
-                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">Status</th>
-                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">Detections</th>
-                                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="scannerResultsBody" class="divide-y divide-gray-800">
-                                <!-- Scanner results will be populated here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- Payload Output Section -->
-                    <div class="bg-gray-900/30 rounded-lg border border-gray-800 overflow-hidden">
-                        <div class="p-4">
-                            <button id="togglePayloadOutput" 
-                                    class="w-full flex items-center justify-between text-left">
-                                <div class="flex items-center space-x-2">
-                                    <svg id="payloadChevron" 
-                                         class="w-5 h-5 text-gray-400 transform transition-transform duration-200" 
-                                         fill="none" 
-                                         stroke="currentColor" 
-                                         viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" 
-                                              stroke-linejoin="round" 
-                                              stroke-width="2" 
-                                              d="M9 5l7 7-7 7" />
-                                    </svg>
-                                    <h4 class="text-base font-medium text-gray-300">Process Output</h4>
-                                </div>
-                                <span id="payloadOutputStatus" 
-                                      class="text-sm px-2 py-1 rounded-full bg-gray-800 text-gray-400">
-                                    Waiting...
-                                </span>
-                            </button>
-                        </div>
-
-                        <!-- Collapsible Content -->
-                        <div id="payloadOutputContent" 
-                             class="hidden border-t border-gray-800">
-                            <div class="p-4 space-y-4">
-                                <!-- Output sections only shown when they have content -->
-                                <div id="stdoutSection" class="space-y-2 hidden">
-                                    <h5 class="text-sm font-medium text-gray-400">Standard Output</h5>
-                                    <div class="bg-black/30 rounded p-4 font-mono text-sm">
-                                        <pre id="payloadStdout" class="text-gray-300 whitespace-pre-wrap"></pre>
-                                    </div>
-                                </div>
-
-                                <div id="stderrSection" class="space-y-2 hidden">
-                                    <h5 class="text-sm font-medium text-gray-400">Standard Error</h5>
-                                    <div class="bg-black/30 rounded p-4 font-mono text-sm">
-                                        <pre id="payloadStderr" class="text-red-300 whitespace-pre-wrap"></pre>
-                                    </div>
-                                </div>
-
-                                <!-- Additional Info -->
-                                <div id="payloadOutputInfo" class="text-sm text-gray-500 italic"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-            <!-- Dynamic Analysis Tabs -->
-            <div id="yaraMemoryTab" class="tab-content hidden">
-                <h3 class="text-xl font-medium text-gray-100">YARA Memory Scan Results</h3>
-                <p class="text-base text-gray-500 mb-6">Runtime pattern analysis results.</p>
-                <div id="yaraStats" class="flex space-x-4 mb-6"></div>
-                <div id="yaraResults" class="space-y-4"></div>
-            </div>
-            <div id="peSieveTab" class="tab-content hidden">
-                <h3 class="text-xl font-medium text-gray-100">PE-sieve Scan Results</h3>
-                <p class="text-base text-gray-500 mb-6">Process memory analysis results.</p>
-                <div id="peSieveResults" class="space-y-4"></div>
-            </div>
-            <div id="monetaTab" class="tab-content hidden">
-                <h3 class="text-xl font-medium text-gray-100">Moneta Scan Results</h3>
-                <p class="text-base text-gray-500 mb-6">Memory anomaly detection results.</p>
-                <div id="monetaResults" class="space-y-4"></div>
-            </div>
-            <div id="patriotTab" class="tab-content hidden">
-                <h3 class="text-xl font-medium text-gray-100">Patriot Scan Results</h3>
-                <p class="text-base text-gray-500 mb-6">Process memory integrity analysis results.</p>
-                <div id="patriotStats" class="flex space-x-4 mb-6"></div>
-                <div id="patriotResults" class="space-y-4"></div>
-            </div>
-            <div id="hsbTab" class="tab-content hidden">
-                <h3 class="text-xl font-medium text-gray-100">Hunt-Sleeping-Beacons Scan Results</h3>
-                <p class="text-base text-gray-500 mb-6">Thread behavior and sleeping beacon analysis results.</p>
-                <div id="hsbStats" class="flex space-x-4 mb-6"></div>
-                <div id="hsbResults" class="space-y-4"></div>
-            </div>
-            <div id="redEdrTab" class="tab-content hidden">
-                <h3 class="text-xl font-medium text-gray-100">RedEdr Monitoring Results</h3>
-                <p class="text-base text-gray-500 mb-6">Collected Windows telemetry via ETW providers</p>
-                <div id="redEdrStats" class="flex space-x-4 mb-6"></div>
-                <div id="redEdrResults" class="space-y-4"></div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
+{% block tabs %}
+<div class="lb-tabs">
+    {% if analysis_type == 'static' %}
+    <button class="lb-tab tab-button active" data-tab="summaryTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Summary
+    </button>
+    <button class="lb-tab tab-button" data-tab="yaraResultsTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        YARA
+    </button>
+    <button class="lb-tab tab-button" data-tab="threatCheckResultsTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        CheckPlz
+    </button>
+    <button class="lb-tab tab-button" data-tab="StringnalyzerResultsTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>
+        Stringnalyzer
+    </button>
+    {% else %}
+    <button class="lb-tab tab-button active" data-tab="summaryTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Summary
+    </button>
+    <button class="lb-tab tab-button" data-tab="yaraMemoryTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        YARA Memory
+    </button>
+    <button class="lb-tab tab-button" data-tab="peSieveTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m-9-4h10M5 7h14"/></svg>
+        PE-sieve
+    </button>
+    <button class="lb-tab tab-button" data-tab="monetaTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m-6 5h6m-3-9a9 9 0 110 18 9 9 0 010-18z"/></svg>
+        Moneta
+    </button>
+    <button class="lb-tab tab-button" data-tab="patriotTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg>
+        Patriot
+    </button>
+    <button class="lb-tab tab-button" data-tab="hsbTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        Hunt-SB
+    </button>
+    <button class="lb-tab tab-button" data-tab="redEdrTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        RedEdr
+    </button>
+    {% endif %}
 </div>
 {% endblock %}
 
+{% block content %}
+
+<!-- Status panel -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>{{ analysis_type|title }} Analysis
+        <span id="analysisTimer" class="lb-tag muted lb-mono" style="margin-left: 12px; display: none;">00:00</span>
+        <div style="margin-left: auto; display: flex; gap: 8px;">
+            {% if analysis_type == 'static' %}
+                <button id="dynamicAnalysisButton" onclick="showDynamicWarning()" class="lb-btn" style="color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Run Dynamic
+                </button>
+                <button id="holygrailAnalysisButton" onclick="startHolyGrailScan()" style="display: none;" class="lb-btn" style="color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/></svg>
+                    HolyGrail BYOVD
+                </button>
+            {% endif %}
+            {% if analysis_type != 'static' %}
+                <button id="staticAnalysisButton" onclick="window.location.href='/analyze/static/{{ file_hash }}'" class="lb-btn" style="color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);">
+                    Run Static
+                </button>
+            {% endif %}
+            <button onclick="window.location.href='/'" class="lb-btn lb-btn-primary">New Analysis</button>
+        </div>
+    </div>
+    <div class="lb-panel-body">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div id="statusIcon" style="display: inline-flex; align-items: center;">
+                <svg class="w-5 h-5 text-red-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <div id="analysisStatus" class="lb-dim" style="font-size: 12px;">Initialising…</div>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Analysis Warning Modal -->
+<div id="dynamicWarningModal" class="hidden lb-modal-backdrop">
+    <div class="lb-modal lb-fade-in">
+        <div class="lb-modal-hdr">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--lb-sev-medium);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            Warning: Dynamic Analysis
+        </div>
+        <div class="lb-modal-body">
+            <p style="margin-bottom: 10px;">About to execute the payload.</p>
+            <p style="color: var(--lb-sev-medium);">Are you sure you want to proceed?</p>
+        </div>
+        <div class="lb-modal-foot">
+            <button onclick="hideDynamicWarning()" class="lb-btn lb-btn-ghost">Cancel</button>
+            <button onclick="window.location.href='/analyze/dynamic/{{ file_hash }}'" class="lb-btn" style="color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);">Proceed</button>
+        </div>
+    </div>
+</div>
+
+{% if analysis_type == 'static' %}
+
+<!-- Summary tab content -->
+<div id="summaryTab" class="tab-content">
+    <div id="targetDetails" style="margin-bottom: 12px;"></div>
+
+    <!-- Detection chip row -->
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Overall Status</div>
+        <div class="lb-chip-row">
+            <div class="lb-chip">
+                <div class="lb-chip-name">Status</div>
+                <div id="overallStatus" class="lb-chip-count" style="font-size: 14px;">Analysing…</div>
+            </div>
+            <div class="lb-chip">
+                <div class="lb-chip-name">Detections</div>
+                <div id="totalDetections" class="lb-chip-count">0</div>
+            </div>
+            <div class="lb-chip">
+                <div class="lb-chip-name">Duration</div>
+                <div id="scanDuration" class="lb-chip-count lb-mono" style="font-size: 14px;">00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scanner results table -->
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Scanner Results</div>
+        <table class="lb-table">
+            <thead>
+                <tr><th>Scanner</th><th>Status</th><th>Detections</th><th>Details</th></tr>
+            </thead>
+            <tbody id="scannerResultsBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="yaraResultsTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>YARA Scan Results</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Static pattern matching results.</p>
+            <div id="yaraStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+            <div id="yaraResults"></div>
+        </div>
+    </div>
+</div>
+
+<div id="threatCheckResultsTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>CheckPlz Scan Results</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Windows Defender signature detection results.</p>
+            <div id="threatCheckStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+            <div id="threatCheckResults"></div>
+        </div>
+    </div>
+</div>
+
+<div id="StringnalyzerResultsTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr">
+            <span class="lb-glyph">▸</span>Stringnalyzer Scan Results
+            <button id="downloadResultsBtn" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Download
+            </button>
+        </div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Payload string analysis.</p>
+            <div id="StringnalyzerStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+            <div id="StringnalyzerResults"></div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+
+<div id="summaryTab" class="tab-content">
+    <div id="targetDetails" style="margin-bottom: 12px;"></div>
+
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Overall Status</div>
+        <div class="lb-chip-row">
+            <div class="lb-chip">
+                <div class="lb-chip-name">Status</div>
+                <div id="overallStatus" class="lb-chip-count" style="font-size: 14px;">Analysing…</div>
+            </div>
+            <div class="lb-chip">
+                <div class="lb-chip-name">Detections</div>
+                <div id="totalDetections" class="lb-chip-count">0</div>
+            </div>
+            <div class="lb-chip">
+                <div class="lb-chip-name">Duration</div>
+                <div id="scanDuration" class="lb-chip-count lb-mono" style="font-size: 14px;">00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Scanner Results</div>
+        <table class="lb-table">
+            <thead>
+                <tr><th>Scanner</th><th>Status</th><th>Detections</th><th>Details</th></tr>
+            </thead>
+            <tbody id="scannerResultsBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Process output (collapsible) -->
+    <div class="lb-panel">
+        <button id="togglePayloadOutput" style="width: 100%; background: var(--lb-bg-soft); color: var(--lb-text); border: 0; border-bottom: 1px solid var(--lb-border); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-family: inherit; font-size: 12px; cursor: pointer;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+                <svg id="payloadChevron" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--lb-text-mute); transition: transform var(--lb-transition-fast);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="lb-glyph" style="color: var(--lb-accent);">▸</span>
+                Process Output
+            </span>
+            <span id="payloadOutputStatus" class="lb-tag muted">Waiting…</span>
+        </button>
+        <div id="payloadOutputContent" class="hidden">
+            <div class="lb-panel-body">
+                <div id="stdoutSection" class="hidden" style="margin-bottom: 12px;">
+                    <div class="lb-eyebrow" style="margin-bottom: 6px;">Standard Output</div>
+                    <pre id="payloadStdout" class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-border); padding: 10px; font-size: 11px; color: var(--lb-text-dim); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;"></pre>
+                </div>
+                <div id="stderrSection" class="hidden">
+                    <div class="lb-eyebrow" style="margin-bottom: 6px;">Standard Error</div>
+                    <pre id="payloadStderr" class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-accent); padding: 10px; font-size: 11px; color: var(--lb-accent-soft); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;"></pre>
+                </div>
+                <div id="payloadOutputInfo" class="lb-muted" style="font-size: 11px; font-style: italic;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="yaraMemoryTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>YARA Memory Scan Results</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Runtime pattern analysis.</p>
+            <div id="yaraStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+            <div id="yaraResults"></div>
+        </div>
+    </div>
+</div>
+
+<div id="peSieveTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>PE-sieve Scan Results</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Process memory analysis.</p>
+            <div id="peSieveResults"></div>
+        </div>
+    </div>
+</div>
+
+<div id="monetaTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Moneta Scan Results</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Memory anomaly detection.</p>
+            <div id="monetaResults"></div>
+        </div>
+    </div>
+</div>
+
+<div id="patriotTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Patriot Scan Results</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Process memory integrity analysis.</p>
+            <div id="patriotStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+            <div id="patriotResults"></div>
+        </div>
+    </div>
+</div>
+
+<div id="hsbTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Hunt-Sleeping-Beacons</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Thread behaviour and sleeping beacon analysis.</p>
+            <div id="hsbStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+            <div id="hsbResults"></div>
+        </div>
+    </div>
+</div>
+
+<div id="redEdrTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>RedEdr Monitoring Results</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Windows ETW telemetry.</p>
+            <div id="redEdrStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+            <div id="redEdrResults"></div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
 {% block scripts %}
-  <!-- Include scripts in the right order -->
-  <script type="module" src="{{ url_for('static', filename='js/results/core.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/results/core.js') }}"></script>
 {% endblock %}

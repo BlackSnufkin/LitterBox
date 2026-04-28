@@ -1,40 +1,32 @@
-<!-- app/templates/error.html -->
-
 {% extends "base.html" %}
 
+{% block breadcrumb %}
+    Error
+{% endblock %}
+
+{% block statusbar_left %}Error{% endblock %}
+
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-12 min-h-[80vh] flex items-center justify-center">
-    <div class="text-center">
-        <!-- Error Icon -->
-        <div class="mb-6">
-            <svg class="w-20 h-20 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
-        </div>
 
-        <!-- Error Message -->
-        <h1 class="text-2xl font-medium text-gray-100 mb-3">Something went wrong</h1>
-        <p class="text-gray-400 mb-6">{{ error }}</p>
-
-        <!-- Navigation Buttons -->
-        <div class="flex items-center justify-center gap-4">
-            <button onclick="history.back()" 
-                    class="px-4 py-2 bg-gray-500/10 text-gray-300 border border-gray-800 rounded-lg hover:bg-gray-500/20 transition-colors flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/>
-                </svg>
-                <span>Go Back</span>
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Error</div>
+    <div class="lb-panel-body" style="text-align: center; padding: 48px 16px;">
+        <svg width="48" height="48" fill="none" stroke="var(--lb-text-dim)" viewBox="0 0 24 24" style="margin: 0 auto 16px; display: block;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div class="lb-strong" style="font-size: 16px; margin-bottom: 8px;">Something went wrong</div>
+        <p class="lb-muted lb-mono" style="font-size: 12px; margin-bottom: 24px; word-break: break-word;">{{ error }}</p>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <button onclick="history.back()" class="lb-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
+                Go Back
             </button>
-            
-            <button onclick="window.location.href='/'" 
-                    class="lb-btn lb-btn-primary">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                </svg>
-                <span>Go Home</span>
+            <button onclick="window.location.href='/'" class="lb-btn lb-btn-primary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                Go Home
             </button>
         </div>
     </div>
 </div>
+
 {% endblock %}

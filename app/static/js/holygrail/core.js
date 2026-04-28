@@ -373,19 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderHolyGrailBanner() {
     return `
-      <div class="lb-card-high">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
-            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-          </div>
-          <div>
-            <h3 class="text-xl font-bold text-yellow-300 flex items-center gap-2">
-              The Holy Grail Found
-            </h3>
-            <p class="text-yellow-200/80 text-sm">Dangerous imports detected • Not on LOLDrivers • Not blocked</p>
-          </div>
+      <div style="border: 1px solid var(--lb-sev-medium); padding: 12px 14px; display: flex; align-items: center; gap: 10px; background: rgba(234, 179, 8, 0.04);">
+        <span class="lb-tag medium">⚑ HolyGrail</span>
+        <div style="flex: 1;">
+          <div class="lb-strong" style="font-size: 13px;">The Holy Grail Found</div>
+          <div class="lb-muted" style="font-size: 11px;">Dangerous imports detected · Not on LOLDrivers · Not blocked</div>
         </div>
       </div>
     `;
@@ -393,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderNeutralBanner(isLol, win10, win11, hasDanger) {
     let title, description;
-    
+
     if (isLol) {
       title = 'Known Vulnerable Driver';
       description = 'Listed in LOLDrivers database';
@@ -407,30 +399,23 @@ document.addEventListener('DOMContentLoaded', () => {
       title = 'Low Risk Driver';
       description = 'No obvious signs of exploitation potential detected';
     }
-    
-    const severity = (isLol || win10 || win11) ? 'warning' : 'info';
-    const colors = {
-      warning: 'border-yellow-500/30 bg-yellow-500/10',
-      info: 'border-blue-500/30 bg-blue-500/10'
-    };
 
-    const statusDetails = [];
-    if (isLol) statusDetails.push('LOLDrivers: LISTED');
-    else statusDetails.push('LOLDrivers: NOT LISTED');
-    
-    if (win10) statusDetails.push('Win10: BLOCKED');
-    else statusDetails.push('Win10: ALLOWED');
-    
-    if (win11) statusDetails.push('Win11: BLOCKED');  
-    else statusDetails.push('Win11: ALLOWED');
+    const severity = (isLol || win10 || win11) ? 'medium' : 'info';
+    const borderColor = severity === 'medium'
+        ? 'var(--lb-sev-medium)'
+        : 'var(--lb-border-hi)';
+
+    const statusDetails = [
+      `LOLDrivers: ${isLol ? 'LISTED' : 'NOT LISTED'}`,
+      `Win10: ${win10 ? 'BLOCKED' : 'ALLOWED'}`,
+      `Win11: ${win11 ? 'BLOCKED' : 'ALLOWED'}`,
+    ];
 
     return `
-      <div class="${colors[severity]} border rounded-xl p-4">
-        <h3 class="text-lg font-semibold text-white mb-1">${title}</h3>
-        <p class="text-sm text-gray-300 mb-2">${description}</p>
-        <div class="text-xs text-gray-400">
-          ${statusDetails.join(' • ')}
-        </div>
+      <div style="border: 1px solid ${borderColor}; padding: 12px 14px;">
+        <div class="lb-strong" style="font-size: 13px; margin-bottom: 4px;">${title}</div>
+        <div class="lb-dim" style="font-size: 11px; margin-bottom: 6px;">${description}</div>
+        <div class="lb-muted lb-mono" style="font-size: 10px;">${statusDetails.join(' · ')}</div>
       </div>
     `;
   }
@@ -472,9 +457,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const fragment = document.createDocumentFragment();
     imports.forEach(imp => {
       const hit = avKeys.has(imp);
-      const cls = hit ? 'lb-badge lb-badge-medium' : 'lb-badge lb-badge-info';
       const span = document.createElement('span');
-      span.className = cls;
+      span.className = hit ? 'lb-tag medium' : 'lb-tag info';
       span.textContent = imp;
       fragment.appendChild(span);
     });
@@ -504,32 +488,30 @@ document.addEventListener('DOMContentLoaded', () => {
       if (block.blocked && block.blockingDetails) {
         const bd = block.blockingDetails;
         detailsHtml = `
-          <div class="mt-3 p-3 bg-red-500/5 border border-red-500/20 rounded-lg">
-            <div class="text-xs space-y-2">
-              ${bd.blocked_signer_id ? `<div><strong>Rule ID:</strong> ${escapeHTML(bd.blocked_signer_id)}</div>` : ''}
-              ${bd.publisher_info ? `<div><strong>Publisher:</strong> ${escapeHTML(bd.publisher_info)}</div>` : ''}
-              ${bd.matched_certificate?.thumbprint ? `<div><strong>Cert Thumbprint:</strong> <code class="text-xs">${escapeHTML(bd.matched_certificate.thumbprint)}</code></div>` : ''}
-              ${bd.matched_certificate?.tbs_sha1 ? `<div><strong>TBS SHA1:</strong> <code class="text-xs">${escapeHTML(bd.matched_certificate.tbs_sha1)}</code></div>` : ''}
+          <div style="margin-top: 10px; padding: 10px; border: 1px solid rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.04);">
+            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
+              ${bd.blocked_signer_id ? `<div><span class="lb-eyebrow">Rule ID</span> <span class="lb-mono lb-strong">${escapeHTML(bd.blocked_signer_id)}</span></div>` : ''}
+              ${bd.publisher_info ? `<div><span class="lb-eyebrow">Publisher</span> <span class="lb-strong">${escapeHTML(bd.publisher_info)}</span></div>` : ''}
+              ${bd.matched_certificate?.thumbprint ? `<div><span class="lb-eyebrow">Cert Thumbprint</span> <code class="lb-mono lb-dim">${escapeHTML(bd.matched_certificate.thumbprint)}</code></div>` : ''}
+              ${bd.matched_certificate?.tbs_sha1 ? `<div><span class="lb-eyebrow">TBS SHA1</span> <code class="lb-mono lb-dim">${escapeHTML(bd.matched_certificate.tbs_sha1)}</code></div>` : ''}
               ${bd.detailed_explanation ? `
-                <details class="mt-2">
-                  <summary class="cursor-pointer text-red-300 hover:text-red-200">Show detailed explanation</summary>
-                  <pre class="mt-2 text-xs text-gray-300 whitespace-pre-wrap">${escapeHTML(bd.detailed_explanation)}</pre>
+                <details style="margin-top: 6px;">
+                  <summary class="lb-accent" style="cursor: pointer; font-size: 11px;">Show detailed explanation</summary>
+                  <pre class="lb-mono lb-dim" style="margin-top: 6px; font-size: 11px; white-space: pre-wrap; word-break: break-all;">${escapeHTML(bd.detailed_explanation)}</pre>
                 </details>
               ` : ''}
             </div>
           </div>
         `;
       }
-      
+
       return `
-        <div class="lb-card ${block.blocked ? 'border-red-500/30' : 'border-green-500/30'}">
-          <div class="flex items-center justify-between mb-2">
-            <h5 class="font-medium text-white">${block.name}</h5>
-            <span class="lb-badge lb-badge-${block.blocked ? 'critical' : 'clean'}">
-              ${block.blocked ? 'BLOCKED' : 'ALLOWED'}
-            </span>
+        <div style="border: 1px solid ${block.blocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}; padding: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span class="lb-strong" style="font-size: 13px;">${block.name}</span>
+            <span class="lb-tag ${block.blocked ? 'critical' : 'clean'}">${block.blocked ? 'Blocked' : 'Allowed'}</span>
           </div>
-          <p class="text-xs text-gray-400 mb-1">${escapeHTML(block.reason)}</p>
+          <div class="lb-muted" style="font-size: 11px;">${escapeHTML(block.reason)}</div>
           ${detailsHtml}
         </div>
       `;
@@ -560,36 +542,38 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 200);
 
-    let label, color;
+    let label, cssVar;
     if (score >= 70) {
       label = 'HIGH';
-      color = 'text-green-300';
+      cssVar = 'var(--lb-sev-low)';      // high BYOVD potential = green for the operator
     } else if (score >= 40) {
       label = 'MEDIUM';
-      color = 'text-yellow-300';
+      cssVar = 'var(--lb-sev-medium)';
     } else {
       label = 'LOW';
-      color = 'text-red-300';
+      cssVar = 'var(--lb-text-mute)';
     }
 
     const scoreLabel = ElementCache.get('scoreLabel');
     if (scoreLabel) {
       DOMUtils.setText(scoreLabel, `BYOVD Potential: ${label}`);
-      scoreLabel.className = `text-sm font-medium ${color}`;
+      scoreLabel.style.color = cssVar;
+      scoreLabel.style.fontSize = '11px';
     }
   }
 
   function updateBadge(element, text, type) {
     const colors = {
-      success: 'text-green-300',
-      danger: 'text-red-300',
-      warning: 'text-yellow-300',
-      info: 'text-blue-300'
+      success: 'var(--lb-sev-low)',
+      danger:  'var(--lb-accent)',
+      warning: 'var(--lb-sev-medium)',
+      info:    'var(--lb-text-dim)',
     };
     
     if (element) {
       DOMUtils.setText(element, text);
-      element.className = `text-sm font-medium ${colors[type] || 'text-gray-300'}`;
+      element.style.color = colors[type] || 'var(--lb-text)';
+      element.style.fontSize = '12px';
     }
   }
 
@@ -615,12 +599,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // ====== Optimized UI Functions ======
   function markStep(circle, state) {
     if (!circle) return;
-    
-    circle.className = `step-circle ${state}`;
-    
+
+    // Preserve the base hg-step-circle class from the template; just toggle
+    // active/done modifiers.
+    circle.classList.remove('active', 'done', 'idle');
+    if (state) circle.classList.add(state);
+
     if (state === 'done') {
       circle.innerHTML = `
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="20,6 9,17 4,12"/>
         </svg>
       `;
@@ -649,16 +636,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const consoleLog = ElementCache.get('consoleLog');
     if (!consoleLog) return;
     
-    // Use DocumentFragment for better performance
-    const fragment = document.createDocumentFragment();
+    // Single <li>; the .hg-console-log CSS prefixes each line with `>`.
     const line = document.createElement('li');
-    line.className = 'console-line';
-    line.innerHTML = `
-      <div class="dot"></div>
-      <span>${escapeHTML(message)}</span>
-    `;
-    fragment.appendChild(line);
-    consoleLog.appendChild(fragment);
+    line.textContent = message;
+    consoleLog.appendChild(line);
     
     // Smooth scroll to bottom using requestAnimationFrame
     requestAnimationFrame(() => {
@@ -784,34 +765,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ====== Optimized Toast System ======
   function toast(message, type = 'info') {
-    const colors = {
-      success: 'border-green-500/30 bg-green-500/10 text-green-300',
-      error: 'border-red-500/30 bg-red-500/10 text-red-300',
-      warning: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
-      info: 'border-blue-500/30 bg-blue-500/10 text-blue-300'
-    };
+    const accent = {
+      success: 'var(--lb-sev-low)',
+      error:   'var(--lb-accent)',
+      warning: 'var(--lb-sev-medium)',
+      info:    'var(--lb-text-mute)',
+    }[type] || 'var(--lb-text-mute)';
 
     const icons = {
       success: 'M20,6 9,17 4,12',
-      error: 'M18,6 6,18 M6,6 18,18',
+      error:   'M18,6 6,18 M6,6 18,18',
       warning: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12,9 12,13 M12,17 12.01,17',
-      info: 'M12,2 12,6 M12,10 12.01,10 M21,12 A9,9 0 1,1 3,12 A9,9 0 1,1 21,12'
+      info:    'M12,2 12,6 M12,10 12.01,10 M21,12 A9,9 0 1,1 3,12 A9,9 0 1,1 21,12',
     };
 
     const toast = document.createElement('div');
-    toast.className = `toast flex items-center gap-3 ${colors[type]}`;
+    toast.style.cssText = `
+      background: var(--lb-panel); color: var(--lb-text);
+      border: 1px solid ${accent}; border-left: 3px solid ${accent};
+      padding: 10px 14px; max-width: 360px; font-size: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      display: flex; align-items: center; gap: 10px;
+      transition: opacity 0.3s ease;
+    `;
     toast.innerHTML = `
-      <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="${icons[type]}"/>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="2" style="flex-shrink: 0;">
+        <path d="${icons[type] || icons.info}"/>
       </svg>
-      <span class="font-medium">${escapeHTML(message)}</span>
+      <span>${escapeHTML(message)}</span>
     `;
 
     ElementCache.get('toastContainer')?.appendChild(toast);
 
     setTimeout(() => {
       if (toast.parentElement) {
-        toast.style.transition = 'all 0.3s ease';
         toast.style.opacity = '0';
         AnimationUtils.translate3d(toast, 100, 0, 0);
         setTimeout(() => toast.remove(), 300);

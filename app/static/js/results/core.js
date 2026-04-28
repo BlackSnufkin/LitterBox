@@ -48,16 +48,22 @@ class AnalysisCore {
     }
 
     updateStageToComplete() {
-        this.elements.stageLine.classList.remove('bg-gray-800');
-        this.elements.stageLine.classList.add('bg-green-500/20');
-        
-        this.elements.analysisStage.innerHTML = `
-            <div class="w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>
-            <span class="text-gray-400">Analysis</span>`;
+        // The new shell shows progress through the breadcrumb + statusbar,
+        // so the standalone stage indicator was dropped. Keep this method
+        // as a no-op when the legacy elements aren't in the DOM.
+        if (this.elements.stageLine) {
+            this.elements.stageLine.classList.remove('bg-gray-800');
+            this.elements.stageLine.classList.add('bg-green-500/20');
+        }
+        if (this.elements.analysisStage) {
+            this.elements.analysisStage.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <span class="text-gray-400">Analysis</span>`;
+        }
     }
 
     async startAnalysis() {
@@ -113,13 +119,22 @@ class AnalysisCore {
 
             // First update the summary with all results
             if (tools.summary && data.results) {
-                tools.summary.render(data.results);
+                try {
+                    tools.summary.render(data.results);
+                } catch (err) {
+                    console.error('[results] summary render failed:', err);
+                }
             }
 
-            // Then process individual tool results
+            // Then process individual tool results — isolate each so a
+            // single broken renderer doesn't suppress the rest.
             Object.entries(data.results || {}).forEach(([toolKey, results]) => {
                 if (results && tools[toolKey] && toolKey !== 'summary') {
-                    tools[toolKey].render(results);
+                    try {
+                        tools[toolKey].render(results);
+                    } catch (err) {
+                        console.error(`[results] ${toolKey} render failed:`, err);
+                    }
                 }
             });
         } catch (error) {

@@ -1,466 +1,259 @@
-<!-- app/templates/holygrail.html -->
-
 {% extends "base.html" %}
-{% block page_title %}HolyGrail – BYOVD Analysis{% endblock %}
+
+{% block breadcrumb %}
+    HolyGrail
+    <span class="lb-tb-sep">›</span> BYOVD Hunter
+{% endblock %}
+
+{% set active_nav = 'holygrail' %}
 
 {% block content %}
+
 <style>
   /* Page-specific styles for the HolyGrail BYOVD page.
-   * Shared component classes (.lb-card, .lb-btn, .lb-badge) live in
-   * style.css — this block only defines what's truly unique to this page:
-   * the animated grid background, the upload-zone, the stepper, the
-   * progress bar, the console log, score display, and toast styling.
-   * All values reference --lb-* design tokens for consistency. */
-
-  /* Animated grid background (cyber accent — used only on this page) */
-  .bg-grid {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image:
-      linear-gradient(to right, rgba(239, 68, 68, 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(239, 68, 68, 0.04) 1px, transparent 1px);
-    background-size: 50px 50px;
-    animation: grid-move 30s linear infinite;
-  }
-
-  /* Stepper: Upload -> Analyze -> Review */
-  .stepper {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin: 0 auto 2rem;
-    flex-wrap: wrap;
-  }
-  .stepper.hidden { display: none; }
-  .step {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    color: var(--lb-text-muted);
-  }
-  .step-circle {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.875rem;
-    border: 2px solid var(--lb-border);
-    background: var(--lb-surface-2);
-    color: var(--lb-text-muted);
+   * Stepper, progress bar, console log, and score display.
+   * Everything references --lb-* tokens. */
+  .hg-stepper { display: flex; align-items: center; gap: 8px; }
+  .hg-step { display: flex; align-items: center; gap: 8px; color: var(--lb-text-mute); }
+  .hg-step-circle {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+    border: 1px solid var(--lb-border-hi);
+    color: var(--lb-text-mute);
     transition: all var(--lb-transition);
-    flex-shrink: 0;
   }
-  .step-circle.active {
+  .hg-step-circle.active {
     border-color: var(--lb-accent);
     color: var(--lb-accent);
-    background: rgb(239 68 68 / 0.1);
-    box-shadow: 0 0 0 4px rgb(239 68 68 / 0.1);
+    background: rgba(239, 68, 68, 0.1);
   }
-  .step-circle.done {
+  .hg-step-circle.done {
     border-color: var(--lb-sev-low);
     color: var(--lb-sev-low);
-    background: rgb(34 197 94 / 0.1);
   }
-  .step-connector {
-    width: 3rem;
-    height: 1px;
-    background: var(--lb-border);
-  }
+  .hg-step-connector { flex: 1; height: 1px; background: var(--lb-border); min-width: 24px; }
 
-  /* Upload zone (dashed-border drop target) */
-  .upload-zone {
-    position: relative;
-    padding: 3rem 2rem;
-    text-align: center;
-    border: 2px dashed var(--lb-border);
-    border-radius: var(--lb-radius-lg);
-    background: var(--lb-surface-2);
-    cursor: pointer;
-    transition: all var(--lb-transition);
-  }
-  .upload-zone:hover,
-  .upload-zone:focus {
-    border-color: var(--lb-accent);
-    background: rgb(239 68 68 / 0.05);
-    outline: none;
-  }
-  .upload-zone.drag-over {
-    border-color: var(--lb-accent);
-    background: rgb(239 68 68 / 0.08);
-  }
-  .upload-icon {
-    width: 4rem;
-    height: 4rem;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgb(239 68 68 / 0.2), rgb(239 68 68 / 0.05));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.25rem;
-  }
+  .hg-progress { height: 4px; background: var(--lb-bg); border: 1px solid var(--lb-border); position: relative; overflow: hidden; }
+  .hg-progress-bar { position: absolute; top: 0; left: 0; height: 100%; background: var(--lb-accent); transition: width var(--lb-transition); }
 
-  /* Progress bar */
-  .progress-container {
-    height: 0.5rem;
-    background: var(--lb-surface-3);
-    border-radius: var(--lb-radius-md);
-    overflow: hidden;
+  .hg-console-log {
+    background: var(--lb-bg); border: 1px solid var(--lb-border);
+    padding: 10px; max-height: 280px; overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--lb-text-dim);
   }
-  .progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--lb-accent-deep), var(--lb-accent));
-    transition: width var(--lb-transition-slow);
-  }
+  .hg-console-log ul { list-style: none; padding: 0; margin: 0; }
+  .hg-console-log li { padding: 2px 0; }
+  .hg-console-log li::before { content: '>'; color: var(--lb-accent); margin-right: 8px; }
 
-  /* Console log (terminal-style output) */
-  .console-log {
-    max-height: 16rem;
-    overflow-y: auto;
-    background: var(--lb-bg);
-    border: 1px solid var(--lb-border);
-    border-radius: var(--lb-radius-md);
-    padding: 0.75rem 1rem;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8125rem;
-  }
-  .console-line {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--lb-text-muted);
-    padding: 0.125rem 0;
-  }
-  .console-line .dot {
-    width: 0.375rem;
-    height: 0.375rem;
-    border-radius: 50%;
-    background: var(--lb-accent);
-    flex-shrink: 0;
-  }
-
-  /* Score display: gradient-text variant of an elevated card */
-  .score-display {
-    background: var(--lb-surface-1);
-    border: 1px solid var(--lb-border);
-    border-radius: var(--lb-radius-xl);
-    text-align: center;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .score-value {
-    background: linear-gradient(135deg, var(--lb-accent), var(--lb-accent-soft));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  /* Toast notifications */
-  .toast {
-    padding: 0.75rem 1rem;
-    border-radius: var(--lb-radius-md);
-    border: 1px solid transparent;
-    font-size: 0.9375rem;
-    animation: toast-in 0.25s ease-out;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  @keyframes toast-in {
-    from { transform: translateX(100%); opacity: 0; }
-    to   { transform: translateX(0);    opacity: 1; }
-  }
-
-  /* Slide-up entrance for results card */
-  .slide-up {
-    animation: slide-up 0.4s ease-out;
-  }
-  @keyframes slide-up {
-    from { transform: translateY(12px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
-  }
-
-  /* Verdict badges (LOL/Win10/Win11) - JS sets one of these classes */
-  .badge-success { color: var(--lb-sev-low); }
-  .badge-danger  { color: var(--lb-sev-critical); }
-  .badge-warning { color: var(--lb-sev-medium); }
-
-  /* AV-note callout above import chips when AV-killer pattern detected */
-  .av-note {
-    border: 1px solid rgb(239 68 68 / 0.3);
-    background: rgb(239 68 68 / 0.08);
-    border-radius: var(--lb-radius-md);
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-    color: #fca5a5;
+  .hg-score-value {
+    font-size: 36px; font-weight: 700; line-height: 1;
+    color: var(--lb-text); font-variant-numeric: tabular-nums;
   }
 </style>
 
-<div class="bg-grid"></div>
+<!-- Page header -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>HolyGrail BYOVD Hunter</div>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">
+            Driver Imports · LoLDrivers · Microsoft Driver Block Policy
+        </p>
 
-<div class="max-w-6xl mx-auto px-6 py-8">
-  <!-- Page Header -->
-  <div id="pageHeader" class="text-center mb-8 -ml-4">
-    <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
-      HolyGrail BYOVD Hunter
-    </h1>
-    <p class="text-gray-300">
-      Driver Imports &middot; LoLDrivers &middot; Microsoft Driver Block Policy
-    </p>
-  </div>
-
-  <!-- Enhanced Stepper -->
-  <div id="stepper" class="stepper" style="justify-content: center;">
-    <div class="step">
-      <div id="s1" class="step-circle idle">1</div>
-      <span class="hidden sm:inline font-medium">Upload Driver</span>
-    </div>
-    <div class="step-connector"></div>
-    <div class="step">
-      <div id="s2" class="step-circle idle">2</div>
-      <span class="hidden sm:inline font-medium">Analyze</span>
-    </div>
-    <div class="step-connector"></div>
-    <div class="step">
-      <div id="s3" class="step-circle idle">3</div>
-      <span class="hidden sm:inline font-medium">Review Results</span>
-    </div>
-  </div>
-  <!-- Enhanced Upload Section -->
-  <div id="uploadArea" class="transition-all duration-500">
-    <div id="uploadCard" class="lb-card-elevated">
-      <div class="upload-zone" id="dz" role="button" tabindex="0" aria-label="Upload driver file">
-        <input type="file" id="fileInput" class="hidden" accept=".sys">
-        
-        <label for="fileInput" class="upload-content cursor-pointer block">
-          <div class="upload-icon">
-            <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7,10 12,15 17,10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          </div>
-          
-          <h3 class="text-2xl font-bold text-white mb-2">Drop Driver Here</h3>
-          <p class="text-lg text-gray-300 mb-6">or click to browse files</p>
-          
-          <div class="flex flex-wrap justify-center gap-3 mb-6">
-            <span class="lb-badge lb-badge-info">.SYS</span>
-          </div>
-          
-          <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <span class="text-sm text-gray-400">
-              Max {{ (config.utils.max_file_size / 1024 / 1024) | round(1) }} MB
-            </span>
-          </div>
-        </label>
-      </div>
-      
-      <div id="uploadStatus" class="hidden p-6"></div>
-    </div>
-  </div>
-
-  <!-- Enhanced Console -->
-  <div id="consoleCard" class="hidden lb-card-elevated mt-6 fade-in">
-    <div class="p-6 border-b border-white/10">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
-            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
-            </svg>
-          </div>
-          <div>
-            <p class="text-sm text-gray-400 uppercase tracking-wide">Analyzing</p>
-            <h3 id="consoleTitle" class="text-lg font-semibold text-white">Driver Analysis</h3>
-          </div>
+        <!-- Stepper -->
+        <div id="stepper" class="hg-stepper">
+            <div class="hg-step">
+                <div id="s1" class="hg-step-circle active">1</div>
+                <span style="font-size: 11px;">Upload Driver</span>
+            </div>
+            <div class="hg-step-connector"></div>
+            <div class="hg-step">
+                <div id="s2" class="hg-step-circle">2</div>
+                <span style="font-size: 11px;">Analyze</span>
+            </div>
+            <div class="hg-step-connector"></div>
+            <div class="hg-step">
+                <div id="s3" class="hg-step-circle">3</div>
+                <span style="font-size: 11px;">Review Results</span>
+            </div>
         </div>
-        <button id="cancelBtn" class="lb-btn lb-btn-ghost">Cancel</button>
-      </div>
     </div>
-    
-    <div class="p-6">
-      <div class="progress-container mb-4">
-        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
-      </div>
-      <div class="console-log">
-        <ul id="consoleLog" class="space-y-1"></ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- Enhanced Results -->
-  <div id="resultsCard" class="hidden slide-up">
-    <!-- Header Card -->
-    <div class="lb-card-elevated mb-6">
-      <div class="flex items-start justify-between gap-6">
-        <div class="flex-1 min-w-0">
-          <p class="text-sm text-gray-400 uppercase tracking-wide">Analysis Complete</p>
-          <h1 id="summaryName" class="text-2xl font-bold text-white mt-1 truncate">No file</h1>
-          <div class="flex flex-wrap items-center gap-3 mt-3">
-            <span class="lb-badge lb-badge-info">
-              <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-              </svg>
-              <span id="summaryType">—</span>
-            </span>
-            <span class="lb-badge lb-badge-info">
-              <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12,6 12,12 16,14"/>
-              </svg>
-              <span id="summaryTime">—</span>
-            </span>
-          </div>
-        </div>
-        
-        <div class="flex items-center gap-3">
-          <button id="resetBtn" class="lb-btn lb-btn-ghost">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="1,4 1,10 7,10"/>
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
-            </svg>
-            Reset
-          </button>
-          <button id="staticScanBtn" onclick="runStaticScan()" class="lb-btn lb-btn-secondary">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-            Run Static Scan
-          </button>
-          <label class="lb-btn lb-btn-primary cursor-pointer">
-            <input type="file" id="fileInputSmall" class="hidden" accept=".sys">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17,8 12,3 7,8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            Upload Another
-          </label>
-        </div>
-      </div>
-
-      <!-- Verdict Banner -->
-      <div id="verdictBanner" class="mt-6"></div>
-
-      <!-- Status Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        <div class="lb-card text-center">
-          <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">LOLDrivers</p>
-          <div id="lolBadge" class="text-sm font-medium">Checking...</div>
-        </div>
-        <div class="lb-card text-center">
-          <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Windows 10</p>
-          <div id="w10Badge" class="text-sm font-medium">Checking...</div>
-        </div>
-        <div class="lb-card text-center">
-          <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Windows 11</p>
-          <div id="w11Badge" class="text-sm font-medium">Checking...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Score and Details Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-      <!-- Score Display -->
-      <div class="score-display p-5">
-        <p class="text-sm text-gray-400 uppercase tracking-wide mb-3">BYOVD Score</p>
-
-        <div class="score-value text-4xl font-bold mb-4" id="scoreValue">0</div>
-
-        <div class="progress-container mb-4">
-          <div id="scoreBar" class="progress-bar" style="width: 0%"></div>
-        </div>
-
-        <p id="scoreLabel" class="text-sm text-gray-300">Calculating...</p>
-      </div>
-
-
-      <!-- File Hash -->
-      <div class="lg:col-span-2">
-        <div class="lb-card">
-          <p class="text-xs text-gray-400 uppercase tracking-wide mb-3">SHA256 Hash</p>
-          <div class="flex items-center gap-3">
-            <code id="sha256Full" class="flex-1 text-sm font-mono text-gray-100 break-all bg-black/30 p-3 rounded-lg">Unknown</code>
-            <button id="copyShaBtn" class="lb-btn lb-btn-ghost">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-              Copy
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Metadata Row -->
-    <div class="grid grid-cols-5 gap-2 mb-6">
-      <div class="lb-card text-center">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">File Version</p>
-        <p id="fileVersion" class="text-sm font-mono text-white">Unknown</p>
-      </div>
-      <div class="lb-card text-center">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">File Size</p>
-        <p id="fileSizePretty" class="text-sm text-white">Unknown</p>
-      </div>
-      <div class="lb-card text-center">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Architecture</p>
-        <p id="arch" class="text-sm font-mono text-white">Unknown</p>
-      </div>
-      <div class="lb-card text-center">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Original Filename</p>
-        <p id="originalFilename" class="text-sm font-mono text-white">Unknown</p>
-      </div>
-      <div class="lb-card text-center">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Compile Time</p>
-        <p id="compileTime" class="text-sm font-mono text-white">Unknown</p>
-      </div>
-    </div>
-
-
-    <!-- Dangerous Imports -->
-    <div class="lb-card-elevated mb-6" id="importsCard">
-      <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <svg class="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-        </svg>
-        Dangerous Imports
-      </h4>
-      <div id="importsWrap" class="flex flex-wrap gap-2 mb-4"></div>
-      <p class="text-xs text-gray-500">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</p>
-    </div>
-
-    <!-- Windows Block Status -->
-    <div class="lb-card-elevated">
-      <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <circle cx="12" cy="16" r="1"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-        Windows Block Status
-      </h4>
-      <div id="blockRows" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-    </div>
-
-    <!-- Hidden elements for JS -->
-    <div class="hidden">
-      <span id="summarySize">—</span>
-      <code id="summaryMd5">—</code>
-      <code id="summarySha">—</code>
-    </div>
-  </div>
 </div>
 
-<!-- Enhanced Toast Container -->
-<div id="toastContainer" class="fixed bottom-6 right-6 space-y-3 z-50" aria-live="polite"></div>
+<!-- Upload section -->
+<div id="uploadArea">
+    <div id="uploadCard" class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Drop Driver</div>
+        <div class="lb-panel-body">
+            <div id="dz" role="button" tabindex="0" aria-label="Upload driver file">
+                <input type="file" id="fileInput" class="hidden" accept=".sys"/>
+                <label for="fileInput" class="lb-upload-zone" style="display: block; cursor: pointer;">
+                    <svg class="lb-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7,10 12,15 17,10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/>
+                        <line x1="12" y1="15" x2="12" y2="3" stroke-linecap="round" stroke-width="1.5"/>
+                    </svg>
+                    <div class="lb-upload-title">Drop Driver Here</div>
+                    <div class="lb-upload-hint">
+                        <span class="lb-tag info">.SYS</span> ·
+                        Max {{ (config.utils.max_file_size / 1024 / 1024) | round(1) }} MB
+                    </div>
+                </label>
+            </div>
+            <div id="uploadStatus" class="hidden" style="margin-top: 12px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Console -->
+<div id="consoleCard" class="hidden lb-panel lb-fade-in">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span><span id="consoleTitle">Driver Analysis</span>
+        <button id="cancelBtn" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;">Cancel</button>
+    </div>
+    <div class="lb-panel-body">
+        <div class="hg-progress" style="margin-bottom: 10px;">
+            <div id="progressBar" class="hg-progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="hg-console-log">
+            <ul id="consoleLog"></ul>
+        </div>
+    </div>
+</div>
+
+<!-- Results -->
+<div id="resultsCard" class="hidden">
+
+    <!-- Header -->
+    <div class="lb-panel">
+        <div class="lb-panel-hdr">
+            <span class="lb-glyph">▸</span>Analysis Complete
+            <div style="margin-left: auto; display: flex; gap: 8px;">
+                <button id="resetBtn" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 11px;">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="1,4 1,10 7,10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Reset
+                </button>
+                <button id="staticScanBtn" onclick="runStaticScan()" class="lb-btn" style="padding: 2px 10px; font-size: 11px;">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    Run Static Scan
+                </button>
+                <label class="lb-btn lb-btn-primary" style="padding: 2px 10px; font-size: 11px; cursor: pointer;">
+                    <input type="file" id="fileInputSmall" class="hidden" accept=".sys"/>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/><line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round" stroke-width="1.5"/></svg>
+                    Upload Another
+                </label>
+            </div>
+        </div>
+        <div class="lb-panel-body">
+            <div id="summaryName" class="lb-strong" style="font-size: 16px; word-break: break-all; margin-bottom: 6px;">No file</div>
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                <span class="lb-tag info"><span id="summaryType">—</span></span>
+                <span class="lb-tag info"><span id="summaryTime">—</span></span>
+            </div>
+
+            <!-- Verdict banner -->
+            <div id="verdictBanner"></div>
+
+            <!-- Block status quick chips -->
+            <div class="lb-chip-row" style="margin-top: 12px;">
+                <div class="lb-chip">
+                    <div class="lb-chip-name">LOLDrivers</div>
+                    <div id="lolBadge" class="lb-chip-count" style="font-size: 13px;">Checking…</div>
+                </div>
+                <div class="lb-chip">
+                    <div class="lb-chip-name">Windows 10</div>
+                    <div id="w10Badge" class="lb-chip-count" style="font-size: 13px;">Checking…</div>
+                </div>
+                <div class="lb-chip">
+                    <div class="lb-chip-name">Windows 11</div>
+                    <div id="w11Badge" class="lb-chip-count" style="font-size: 13px;">Checking…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score + Hash -->
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>BYOVD Score</div>
+        <div class="lb-panel-split">
+            <div class="lb-col">
+                <div class="lb-hero-label">Score</div>
+                <div id="scoreValue" class="hg-score-value">0</div>
+                <div class="hg-progress" style="margin-top: 10px; margin-bottom: 8px;">
+                    <div id="scoreBar" class="hg-progress-bar" style="width: 0%"></div>
+                </div>
+                <div id="scoreLabel" class="lb-muted" style="font-size: 11px;">Calculating…</div>
+            </div>
+            <div class="lb-col" style="flex: 2;">
+                <div class="lb-hero-label">SHA256</div>
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-top: 6px;">
+                    <code id="sha256Full" class="lb-mono lb-strong" style="flex: 1; font-size: 11px; word-break: break-all; padding: 6px 8px; background: var(--lb-bg); border: 1px solid var(--lb-border);">Unknown</code>
+                    <button id="copyShaBtn" class="lb-btn lb-btn-ghost" style="padding: 4px 8px; font-size: 11px;">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="1.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metadata -->
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Metadata</div>
+        <div class="lb-panel-body">
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                <div>
+                    <div class="lb-eyebrow">File Version</div>
+                    <div id="fileVersion" class="lb-strong lb-mono" style="font-size: 12px;">Unknown</div>
+                </div>
+                <div>
+                    <div class="lb-eyebrow">File Size</div>
+                    <div id="fileSizePretty" class="lb-strong" style="font-size: 12px;">Unknown</div>
+                </div>
+                <div>
+                    <div class="lb-eyebrow">Architecture</div>
+                    <div id="arch" class="lb-strong lb-mono" style="font-size: 12px;">Unknown</div>
+                </div>
+                <div>
+                    <div class="lb-eyebrow">Original Filename</div>
+                    <div id="originalFilename" class="lb-strong lb-mono" style="font-size: 12px; word-break: break-all;">Unknown</div>
+                </div>
+                <div>
+                    <div class="lb-eyebrow">Compile Time</div>
+                    <div id="compileTime" class="lb-strong lb-mono" style="font-size: 12px;">Unknown</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dangerous imports -->
+    <div class="lb-panel" id="importsCard">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Dangerous Imports</div>
+        <div class="lb-panel-body">
+            <div id="importsWrap" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;"></div>
+            <div class="lb-muted" style="font-size: 10px;">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</div>
+        </div>
+    </div>
+
+    <!-- Windows block status -->
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Windows Block Status</div>
+        <div class="lb-panel-body">
+            <div id="blockRows" class="lb-grid-2"></div>
+        </div>
+    </div>
+
+    <!-- Hidden helpers for JS -->
+    <div class="hidden">
+        <span id="summarySize">—</span>
+        <code id="summaryMd5">—</code>
+        <code id="summarySha">—</code>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer" style="position: fixed; bottom: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 200;" aria-live="polite"></div>
 
 {% endblock %}
 

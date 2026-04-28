@@ -1,0 +1,21 @@
+/*
+ * Tailwind v4 input file.
+ *
+ * Maintainer regen step (only when utility usage changes):
+ *
+ *   <path-to>\tailwindcss.exe \
+ *       -i app/static/css/tailwind.input.css \
+ *       -o app/static/css/tailwind.min.css \
+ *       --minify
+ *
+ * The binary lives outside the repo. End users never run it — they load
+ * the committed `tailwind.min.css` produced by this regen step.
+ *
+ * @source paths are resolved relative to THIS file. Tailwind scans them
+ * for class names and only ships utilities that are actually used.
+ */
+
+@import "tailwindcss";
+
+@source "../../templates";
+@source "../../static/js";

@@ -1,114 +1,107 @@
-<!-- app/templates/static_results.html -->
-
 {% extends "base.html" %}
 {% from 'partials/_macros.html' import scanner_table_header, scanner_yara_row, scanner_status_cell, scanner_count_cell, status_grid_3 %}
 
+{% block breadcrumb %}
+    Files
+    <span class="lb-tb-sep">›</span> <span class="lb-mono">{{ file_info.original_name if file_info else file_info.md5[:12] }}</span>
+    <span class="lb-tb-sep">›</span> Static Summary
+{% endblock %}
+
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-xl font-medium text-gray-100">Analysis Summary</h1>
-            <p class="text-base text-gray-500 mb-6">Comprehensive overview of all scan results.</p>
-        </div>
-        <button onclick="window.location.href='/results/{{ file_info.md5 }}/info'" 
-                class="lb-btn lb-btn-secondary"
-                aria-label="Navigate back to file information">
+
+<!-- Header -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>Static Analysis Summary
+        <button onclick="window.location.href='/results/{{ file_info.md5 }}/info'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;" aria-label="Navigate back to file information">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
             Back to File Info
         </button>
     </div>
-
-    <!-- Target Details -->
-    <div id="targetDetails" class="mb-6">
-        <div class="lb-card mb-4">
-            <h4 class="text-base font-medium text-gray-100 mb-2">Target File</h4>
-            <p class="text-gray-300">
-                <span class="font-semibold">File Path:</span> 
-                {{ analysis_results.checkplz.findings.scan_results.file_path if analysis_results.checkplz else file_info.original_name }}
-            </p>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 11px; margin-bottom: 8px;">Comprehensive overview of all scan results.</p>
+        <div class="lb-hash-row">
+            <div class="lb-hash-label">Path</div>
+            <div class="lb-hash-value lb-mono">{{ analysis_results.checkplz.findings.scan_results.file_path if analysis_results.checkplz else file_info.original_name }}</div>
         </div>
     </div>
+</div>
 
-    <!-- Overall Status Grid -->
-    {{ status_grid_3(yara_detections + checkplz_detections, 'Scan Duration', scan_duration) }}
+<!-- Status grid -->
+{{ status_grid_3(yara_detections + checkplz_detections, 'Scan Duration', scan_duration) }}
 
-    <!-- Scanner Results Table -->
-    <div class="bg-gray-900/30 rounded-lg border border-gray-800 overflow-hidden mb-6">
-        <table class="w-full">
-            {{ scanner_table_header() }}
-            <tbody id="scannerResultsBody" class="divide-y divide-gray-800">
-                {{ scanner_yara_row(yara_detections, analysis_results.yara.matches) }}
-                <!-- CheckPlz Results Row -->
-                <tr>
-                    <td class="px-6 py-4 text-base text-gray-300">CheckPlz</td>
-                    {{ scanner_status_cell(checkplz_detections) }}
-                    {{ scanner_count_cell(checkplz_detections) }}
-                    <td class="px-6 py-4 text-base text-gray-400">
-                        {{ analysis_results.checkplz.findings.initial_threat if checkplz_detections else 'No threats detected' }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+<!-- Scanner Results -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Scanner Results</div>
+    <table class="lb-table">
+        {{ scanner_table_header() }}
+        <tbody id="scannerResultsBody">
+            {{ scanner_yara_row(yara_detections, analysis_results.yara.matches) }}
+            <tr>
+                <td>CheckPlz</td>
+                {{ scanner_status_cell(checkplz_detections) }}
+                {{ scanner_count_cell(checkplz_detections) }}
+                <td class="lb-muted" style="font-size: 11px;">
+                    {{ analysis_results.checkplz.findings.initial_threat if checkplz_detections else 'No threats detected' }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- String Analysis -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>String Analysis Results
+        <span class="lb-panel-badge">{{ stringnalyzer_results.findings.total_strings if stringnalyzer_results.findings is defined else 0 }} STRINGS</span>
     </div>
+    <div class="lb-panel-body">
 
-    <!-- String Analysis Results -->
-    <div class="lb-card">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-100">String Analysis Results</h2>
-            <div class="text-sm text-gray-400">
-                Total Strings: {{ stringnalyzer_results.findings.total_strings if stringnalyzer_results.findings is defined else 0 }}
-            </div>
-        </div>
-
-        <!-- Findings Table -->
-        <div class="space-y-4">
-            {% macro render_findings_row(title, items) %}
-                {% if items and items|length > 0 %}
-                    <div class="border-t border-gray-800 py-4 first:border-0 first:pt-0">
-                        <h3 class="text-base font-medium text-gray-300 mb-2">{{ title }} <span class="text-sm text-gray-500">({{ items|length }})</span></h3>
-                        <div class="grid grid-cols-1 gap-2">
-                            {% for item in items[:5] %}
-                                <div class="text-sm text-gray-400 bg-gray-900/30 p-2 rounded">{{ item }}</div>
-                            {% endfor %}
-                            {% if items|length > 5 %}
-                                <div class="text-sm text-gray-500">... and {{ items|length - 5 }} more items</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endif %}
-            {% endmacro %}
-
-            {% set findings = stringnalyzer_results.findings if stringnalyzer_results.findings is defined else {} %}
-
-            <!-- Suspicious strings get special treatment -->
-            {% if findings.found_suspicious_strings and findings.found_suspicious_strings|length > 0 %}
-                <div class="bg-red-500/5 border border-red-900/20 rounded-lg p-4 mb-4">
-                    <h3 class="text-base font-medium text-red-400 mb-2">
-                        Suspicious Strings <span class="text-sm text-red-500/70">({{ findings.found_suspicious_strings|length }})</span>
-                    </h3>
-                    <div class="grid grid-cols-1 gap-2">
-                        {% for item in findings.found_suspicious_strings[:5] %}
-                            <div class="text-sm text-red-300 bg-red-500/10 p-2 rounded">{{ item }}</div>
+        {% macro render_findings_row(title, items) %}
+            {% if items and items|length > 0 %}
+                <div style="border-top: 1px solid var(--lb-border); padding-top: 10px; margin-top: 10px;">
+                    <div class="lb-eyebrow" style="margin-bottom: 6px;">{{ title }} <span class="lb-muted">({{ items|length }})</span></div>
+                    <div style="display: flex; flex-direction: column; gap: 3px;">
+                        {% for item in items[:5] %}
+                            <div class="lb-mono lb-dim" style="font-size: 11px; padding: 4px 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); word-break: break-all;">{{ item }}</div>
                         {% endfor %}
-                        {% if findings.found_suspicious_strings|length > 5 %}
-                            <div class="text-sm text-red-400/70">... and {{ findings.found_suspicious_strings|length - 5 }} more suspicious items</div>
+                        {% if items|length > 5 %}
+                            <div class="lb-muted" style="font-size: 11px; font-style: italic;">… and {{ items|length - 5 }} more</div>
                         {% endif %}
                     </div>
                 </div>
             {% endif %}
+        {% endmacro %}
 
-            <!-- Regular findings -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    {{ render_findings_row('URLs Found', findings.found_url) }}
-                    {{ render_findings_row('Paths Found', findings.found_path) }}
+        {% set findings = stringnalyzer_results.findings if stringnalyzer_results.findings is defined else {} %}
+
+        {% if findings.found_suspicious_strings and findings.found_suspicious_strings|length > 0 %}
+            <div style="border: 1px solid var(--lb-accent); padding: 10px; margin-bottom: 10px;">
+                <div class="lb-eyebrow" style="color: var(--lb-accent); margin-bottom: 6px;">
+                    Suspicious Strings <span class="lb-muted">({{ findings.found_suspicious_strings|length }})</span>
                 </div>
-                <div>
-                    {{ render_findings_row('IP Addresses', findings.found_ip) }}
-                    {{ render_findings_row('Files Referenced', findings.found_file) }}
+                <div style="display: flex; flex-direction: column; gap: 3px;">
+                    {% for item in findings.found_suspicious_strings[:5] %}
+                        <div class="lb-mono" style="font-size: 11px; padding: 4px 8px; background: rgba(239, 68, 68, 0.04); border-left: 2px solid var(--lb-accent); color: var(--lb-accent-soft); word-break: break-all;">{{ item }}</div>
+                    {% endfor %}
+                    {% if findings.found_suspicious_strings|length > 5 %}
+                        <div class="lb-muted" style="font-size: 11px; font-style: italic;">… and {{ findings.found_suspicious_strings|length - 5 }} more</div>
+                    {% endif %}
                 </div>
+            </div>
+        {% endif %}
+
+        <div class="lb-grid-2">
+            <div>
+                {{ render_findings_row('URLs Found', findings.found_url) }}
+                {{ render_findings_row('Paths Found', findings.found_path) }}
+            </div>
+            <div>
+                {{ render_findings_row('IP Addresses', findings.found_ip) }}
+                {{ render_findings_row('Files Referenced', findings.found_file) }}
             </div>
         </div>
     </div>
 </div>
+
 {% endblock %}

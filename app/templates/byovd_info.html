@@ -1,250 +1,66 @@
-<!-- app/templates/byovd_info.html - Ultra-Performance Optimized -->
 {% extends "base.html" %}
-{% block page_title %}Driver Analysis Results{% endblock %}
+
+{% block breadcrumb %}
+    HolyGrail
+    <span class="lb-tb-sep">›</span> {% if file_info %}<span class="lb-mono">{{ file_info.original_name }}</span>{% else %}Driver{% endif %}
+    <span class="lb-tb-sep">›</span> Results
+{% endblock %}
 
 {% block head %}
-<!-- Critical performance hints -->
 <link rel="modulepreload" href="{{ url_for('static', filename='js/byovd/core.js') }}">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 {% endblock %}
 
 {% block content %}
 <style>
-  /* Page-specific styles for the BYOVD result page.
-   * Shared component classes (.lb-card, .lb-btn, .lb-badge) live in
-   * style.css. This block only defines what's truly unique to this page:
-   * the animated grid background, the loading state, and skeleton
-   * placeholders shown while the BYOVD analysis API call is in flight. */
-
-  /* Animated grid background (cyber accent — page-only) */
-  .bg-grid {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image:
-      linear-gradient(to right, rgba(239, 68, 68, 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(239, 68, 68, 0.04) 1px, transparent 1px);
-    background-size: 50px 50px;
-    animation: grid-move 30s linear infinite;
+  .holygrail-loading {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 48px 16px;
+    color: var(--lb-text-mute); font-size: 12px;
   }
-
-  /* Initial loading container (centered spinner + text) */
-  .loading-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 3rem 1rem;
-    color: var(--lb-text-muted);
-    font-size: 0.9375rem;
-  }
-
-  /* Skeleton placeholder boxes shown during initial fetch */
-  .skeleton {
-    background: linear-gradient(
-      90deg,
-      var(--lb-surface-3) 0%,
-      var(--lb-surface-2) 40%,
-      var(--lb-surface-3) 80%
-    );
-    background-size: 200% 100%;
-    border-radius: var(--lb-radius-md);
-  }
-  .skeleton.animate {
-    animation: skeleton-shimmer 1.4s linear infinite;
-  }
-  @keyframes skeleton-shimmer {
-    0%   { background-position: 100% 0; }
-    100% { background-position: -100% 0; }
-  }
-
-  /* Wrap result content; constrains min-height to reduce layout shift */
-  .results-container {
-    min-height: 500px;
-  }
-
-  /* Honour reduced-motion preference */
-  @media (prefers-reduced-motion: reduce) {
-    .bg-grid,
-    .skeleton.animate {
-      animation: none;
-    }
-  }
-
-  /* Print: drop background ornaments and force light theme */
   @media print {
-    .bg-grid { display: none; }
     body { background: white; color: black; }
+    .lb-titlebar, .lb-sidebar, .lb-statusbar { display: none; }
   }
 </style>
 
-<div class="bg-grid" aria-hidden="true"></div>
-<div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-  <!-- Optimized header with reduced DOM complexity -->
-  <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-    <div class="min-w-0 flex-1">
-      <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-1 sm:mb-2">
-        HolyGrail BYOVD Results
-      </h1>
-      <p class="text-sm sm:text-base text-gray-300 truncate">
-        Driver Imports · LoLDrivers · Microsoft Block Policy
-      </p>
-    </div>
-    <nav class="flex-shrink-0">
-      <a href="/summary" class="lb-badge lb-badge-info" rel="noopener">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-        </svg>
-        Back to Summary
-      </a>
-    </nav>
-    <nav class="flex-shrink-0">
-      <a href="/results/{{ file_info.md5 }}/static" class="lb-badge lb-badge-medium" rel="noopener">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-        Static Analysis Results
-      </a>
-    </nav>
-  </header>
-  
-  <!-- Optimized main container -->
-  <main role="main">
-    <div class="lb-card-elevated">
-      <div class="p-4 sm:p-6 results-container" id="holygrailResults">
-        <!-- Optimized loading state -->
-        <div class="loading-state">
-          <div class="w-5 h-5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" aria-hidden="true"></div>
-          <span>Loading BYOVD analysis results…</span>
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>HolyGrail BYOVD Results
+        <div style="margin-left: auto; display: flex; gap: 8px;">
+            <a href="/summary" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 11px;" rel="noopener">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Back to Summary
+            </a>
+            {% if file_info %}
+            <a href="/results/{{ file_info.md5 }}/static" class="lb-btn" style="padding: 2px 10px; font-size: 11px;" rel="noopener">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Static Analysis
+            </a>
+            {% endif %}
         </div>
-      </div>
     </div>
-  </main>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 11px;">Driver Imports · LoLDrivers · Microsoft Block Policy</p>
+    </div>
 </div>
 
-<!-- Inline critical JavaScript for immediate execution -->
-<script>
-// Immediate performance optimizations
-(function() {
-  'use strict';
-  
-  // Prevent layout shifts by setting initial state
-  const results = document.getElementById('holygrailResults');
-  if (results) {
-    results.style.minHeight = '500px';
-  }
-  
-  // Optimize font loading
-  if ('fonts' in document) {
-    document.fonts.ready.then(function() {
-      document.body.classList.add('fonts-loaded');
-    });
-  }
-  
-  // Reduce motion if requested
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    document.documentElement.style.setProperty('--animation-duration', '0.01ms');
-  }
-  
-  // Optimize scroll behavior
-  if ('scrollBehavior' in document.documentElement.style) {
-    document.documentElement.style.scrollBehavior = 'smooth';
-  }
-  
-  // Connection-aware loading
-  if ('connection' in navigator) {
-    const connection = navigator.connection;
-    if (connection && (connection.effectiveType === '2g' || connection.effectiveType === 'slow-2g')) {
-      document.body.classList.add('slow-connection');
-      // Disable animations on slow connections
-      document.documentElement.style.setProperty('--animation-duration', '0ms');
-    }
-  }
-  
-  // Passive event listeners for better scroll performance
-  document.addEventListener('touchstart', function(){}, {passive: true});
-  document.addEventListener('touchmove', function(){}, {passive: true});
-  
-  // Preload critical resources (modulepreload for ES modules)
-  const criticalResources = [
-    '{{ url_for("static", filename="js/byovd/core.js") }}'
-  ];
+<main role="main">
+    <div id="holygrailResults" style="min-height: 500px;">
+        <div class="holygrail-loading">
+            <div class="lb-spinner" aria-hidden="true"></div>
+            <span>Loading BYOVD analysis results…</span>
+        </div>
+    </div>
+</main>
 
-  criticalResources.forEach(function(resource) {
-    const link = document.createElement('link');
-    link.rel = 'modulepreload';
-    link.href = resource;
-    document.head.appendChild(link);
-  });
-  
-  // Performance monitoring
-  if ('performance' in window && 'mark' in performance) {
-    performance.mark('byovd-template-loaded');
-  }
-})();
-</script>
 {% endblock %}
 
 {% block scripts %}
-<!-- Optimized script loading with performance hints -->
 {% if holygrail_results %}
 <script>
-// Pass server data to avoid redundant API calls
 window.holygrailResults = {{ holygrail_results | tojson }};
-if ('performance' in window && 'mark' in performance) {
-  performance.mark('byovd-data-available');
-}
 </script>
 {% endif %}
-
-<!-- Deferred loading with error handling -->
-<script>
-(function() {
-  function loadMainScript() {
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = '{{ url_for("static", filename="js/byovd/core.js") }}';
-    script.onerror = function() {
-      console.error('[BYOVD] Failed to load main script');
-      const container = document.getElementById('holygrailResults');
-      if (container) {
-        container.innerHTML = '<div class="text-center py-8 text-red-400">Failed to load analysis interface. Please refresh the page.</div>';
-      }
-    };
-    document.head.appendChild(script);
-  }
-  
-  // Load script when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadMainScript);
-  } else {
-    loadMainScript();
-  }
-})();
-</script>
-
-<!-- Performance monitoring -->
-<script>
-if ('performance' in window && 'getEntriesByType' in performance) {
-  window.addEventListener('load', function() {
-    setTimeout(function() {
-      const navigation = performance.getEntriesByType('navigation')[0];
-      const loadTime = navigation.loadEventEnd - navigation.fetchStart;
-      
-      if (loadTime > 3000) {
-        console.warn('[BYOVD] Slow page load detected:', loadTime + 'ms');
-      }
-      
-      // Report Core Web Vitals if available
-      if ('web-vitals' in window) {
-        getCLS(console.log);
-        getFID(console.log);
-        getLCP(console.log);
-      }
-    }, 0);
-  });
-}
-</script>
+<script type="module" src="{{ url_for('static', filename='js/byovd/core.js') }}"></script>
 {% endblock %}

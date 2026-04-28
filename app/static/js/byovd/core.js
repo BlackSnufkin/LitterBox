@@ -374,24 +374,24 @@ class ByovdApp {
 
   // ===== SECTION BUILDERS =====
   buildStatusSection(data) {
-    const statusMap = {
-      completed: ['bg-green-600', 'COMPLETED'],
-      error: ['bg-red-600', 'ERROR'], 
-      pending: ['bg-yellow-600', 'PENDING'],
-      unknown: ['bg-gray-600', 'UNKNOWN']
+    const sevMap = {
+      completed: 'clean',
+      error:     'critical',
+      pending:   'medium',
+      unknown:   'muted',
     };
-    
-    const [statusClass, statusText] = statusMap[data.status] || statusMap.unknown;
+    const sev = sevMap[data.status] || 'muted';
+    const statusText = (data.status || 'UNKNOWN').toUpperCase();
     const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleString() : '—';
 
     return `
-      <div class="lb-card">
-        <div class="flex items-center justify-between flex-col sm:flex-row gap-3">
-          <div class="flex items-center gap-3">
-            <span class="px-2 py-1 text-sm rounded-lg ${statusClass} text-white">${statusText}</span>
-            <h3 class="text-xl font-medium text-gray-100">${this.escapeHtml(data.driverName)}</h3>
-          </div>
-          <div class="text-base text-gray-400">Analyzed: ${this.escapeHtml(timestamp)}</div>
+      <div class="lb-panel">
+        <div class="lb-panel-hdr">
+          <span class="lb-glyph">▸</span>${this.escapeHtml(data.driverName)}
+          <span style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+            <span class="lb-tag ${sev}">${statusText}</span>
+            <span class="lb-muted lb-mono" style="font-size: 11px;">${this.escapeHtml(timestamp)}</span>
+          </span>
         </div>
       </div>
     `;
@@ -400,17 +400,11 @@ class ByovdApp {
   buildVerdictSection(data) {
     if (data.isHolyGrail) {
       return `
-        <div class="lb-card-high">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
-              <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-2xl font-bold text-yellow-300">The Holy Grail Found</h3>
-              <p class="text-yellow-200/80 text-base">Dangerous imports detected • Not on LOLDrivers • Not blocked</p>
-            </div>
+        <div style="border: 1px solid var(--lb-sev-medium); padding: 12px 14px; display: flex; align-items: center; gap: 12px; background: rgba(234, 179, 8, 0.04);">
+          <span class="lb-tag medium">⚑ HolyGrail</span>
+          <div style="flex: 1;">
+            <div class="lb-strong" style="font-size: 14px;">The Holy Grail Found</div>
+            <div class="lb-muted" style="font-size: 11px;">Dangerous imports detected · Not on LOLDrivers · Not blocked</div>
           </div>
         </div>
       `;
@@ -420,11 +414,11 @@ class ByovdApp {
     if (data.isLol) {
       title = 'Known Vulnerable Driver';
       description = 'Listed in LOLDrivers database';
-      severity = 'warning';
+      severity = 'medium';
     } else if (data.isWin10Blocked || data.isWin11Blocked) {
       title = 'Blocked Driver';
       description = 'Listed on Microsoft recommended driver block rules';
-      severity = 'warning';
+      severity = 'medium';
     } else if (data.hasDanger) {
       title = 'Potentially Interesting';
       description = 'Contains suspicious imports but may have limited exploitation potential';
@@ -435,58 +429,50 @@ class ByovdApp {
       severity = 'info';
     }
 
-    const colors = severity === 'warning' ? 'border-yellow-500/30 bg-yellow-500/10' : 'border-blue-500/30 bg-blue-500/10';
+    const borderColor = severity === 'medium' ? 'var(--lb-sev-medium)' : 'var(--lb-border-hi)';
     const statusDetails = [
-      data.isLol ? 'LOLDrivers: LISTED' : 'LOLDrivers: NOT LISTED',
-      data.isWin10Blocked ? 'Win10: BLOCKED' : 'Win10: ALLOWED',
-      data.isWin11Blocked ? 'Win11: BLOCKED' : 'Win11: ALLOWED'
+      data.isLol           ? 'LOLDrivers: LISTED'  : 'LOLDrivers: NOT LISTED',
+      data.isWin10Blocked  ? 'Win10: BLOCKED'      : 'Win10: ALLOWED',
+      data.isWin11Blocked  ? 'Win11: BLOCKED'      : 'Win11: ALLOWED',
     ];
 
     return `
-      <div class="${colors} border rounded-xl p-4">
-        <h3 class="text-xl font-semibold text-white mb-1">${title}</h3>
-        <p class="text-base text-gray-300 mb-2">${description}</p>
-        <div class="text-sm text-gray-400">${statusDetails.join(' • ')}</div>
+      <div style="border: 1px solid ${borderColor}; padding: 12px 14px;">
+        <div class="lb-strong" style="font-size: 13px; margin-bottom: 4px;">${title}</div>
+        <div class="lb-dim" style="font-size: 11px; margin-bottom: 6px;">${description}</div>
+        <div class="lb-muted lb-mono" style="font-size: 10px;">${statusDetails.join(' · ')}</div>
       </div>
     `;
   }
 
   buildBadgesSection(data) {
-    const chipClass = (condition) => 
-      `px-2 py-1 text-sm rounded-lg ${condition ? 'bg-red-600' : 'bg-green-600'} text-white`;
+    let label, scoreColor;
+    if      (data.score >= 70) { label = 'HIGH';   scoreColor = 'var(--lb-sev-low)'; }
+    else if (data.score >= 40) { label = 'MEDIUM'; scoreColor = 'var(--lb-sev-medium)'; }
+    else                       { label = 'LOW';    scoreColor = 'var(--lb-text-mute)'; }
 
-    let label, color;
-    if (data.score >= 70) { label = 'HIGH'; color = 'text-green-300'; }
-    else if (data.score >= 40) { label = 'MEDIUM'; color = 'text-yellow-300'; }
-    else { label = 'LOW'; color = 'text-red-300'; }
+    const chip = (condition, hitText, okText) =>
+      `<span class="lb-tag ${condition ? 'critical' : 'clean'}">${condition ? hitText : okText}</span>`;
 
     return `
-      <div class="lb-card">
-        <h3 class="text-xl font-medium text-gray-100 mb-3">Reputation & Policy</h3>
-        <div class="mb-6 p-4 bg-black/20 rounded-lg">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-base text-gray-400 uppercase tracking-wide">BYOVD Score</span>
-            <span class="${color} text-base font-medium">BYOVD Potential: ${label}</span>
+      <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Reputation &amp; Policy</div>
+        <div class="lb-panel-body">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <span class="lb-eyebrow">BYOVD Score</span>
+            <span style="font-size: 11px; color: ${scoreColor};">Potential: ${label}</span>
           </div>
-          <div class="flex items-center gap-4">
-            <div class="score-value text-3xl font-bold ${color}" id="scoreValue">0</div>
-            <div class="flex-1">
-              <div class="progress-container">
-                <div id="scoreBar" class="progress-bar" style="width: 0%"></div>
-              </div>
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div id="scoreValue" class="lb-mono lb-strong" style="font-size: 28px; line-height: 1; color: ${scoreColor};">0</div>
+            <div style="flex: 1; height: 4px; background: var(--lb-bg); border: 1px solid var(--lb-border); position: relative; overflow: hidden;">
+              <div id="scoreBar" style="position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: ${scoreColor}; transition: width var(--lb-transition);"></div>
             </div>
           </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <span class="${chipClass(data.isLol)}">
-            ${data.isLol ? 'LoLDrivers: LISTED' : 'LoLDrivers: Not listed'}
-          </span>
-          <span class="${chipClass(data.isWin10Blocked)}">
-            ${data.isWin10Blocked ? 'Windows 10: BLOCKED' : 'Windows 10: Not blocked'}
-          </span>
-          <span class="${chipClass(data.isWin11Blocked)}">
-            ${data.isWin11Blocked ? 'Windows 11: BLOCKED' : 'Windows 11: Not blocked'}
-          </span>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            ${chip(data.isLol,           'LOLDrivers: Listed',     'LOLDrivers: Not Listed')}
+            ${chip(data.isWin10Blocked,  'Windows 10: Blocked',    'Windows 10: Allowed')}
+            ${chip(data.isWin11Blocked,  'Windows 11: Blocked',    'Windows 11: Allowed')}
+          </div>
         </div>
       </div>
     `;
@@ -507,44 +493,35 @@ class ByovdApp {
       compileTime: this.escapeHtml(detailed.compile_time || 'Unknown')
     };
     
-    const copyButton = sha !== 'Unknown' 
-      ? `<button class="ml-2 text-sm px-2 py-0.5 border border-gray-700 rounded hover:bg-gray-800 transition-colors" data-copy="${sha}">copy</button>`
+    const copyButton = sha !== 'Unknown'
+      ? `<button class="lb-btn lb-btn-ghost" style="padding: 2px 8px; font-size: 10px;" data-copy="${sha}">Copy</button>`
       : '';
 
+    const field = (label, value, mono = true, span = false) => `
+      <div${span ? ' style="grid-column: span 2;"' : ''}>
+        <div class="lb-eyebrow" style="margin-bottom: 2px;">${label}</div>
+        <div class="lb-strong${mono ? ' lb-mono' : ''}" style="font-size: 12px; word-break: break-all;">${value}</div>
+      </div>
+    `;
+
     return `
-      <div class="lb-card">
-        <h3 class="text-xl font-medium text-gray-100 mb-3">Metadata</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <span class="text-base text-gray-500">File Version:</span>
-            <p class="text-gray-200 font-mono text-base break-all">${escapedData.fileVersion}</p>
-          </div>
-          <div>
-            <span class="text-base text-gray-500">Architecture:</span>
-            <p class="text-gray-200 font-mono text-base break-all">${escapedData.architecture}</p>
-          </div>
-          <div>
-            <span class="text-base text-gray-500">File Size:</span>
-            <p class="text-gray-200">${escapedData.size}</p>
-          </div>
-          <div>
-            <span class="text-base text-gray-500">Compile Time:</span>
-            <p class="text-gray-200 font-mono text-base break-all">${escapedData.compileTime}</p>
-          </div>
-          <div class="sm:col-span-2">
-            <span class="text-base text-gray-500">Original Filename:</span>
-            <p class="text-gray-200 font-mono text-base break-all">${escapedData.originalFilename}</p>
-          </div>
-          <div class="sm:col-span-2">
-            <span class="text-base text-gray-500">SHA-256:</span>
-            <div class="mt-1 flex items-center">
-              <code class="text-gray-200 font-mono text-base break-all bg-black/30 p-3 rounded-lg flex-1">${escapedData.sha}</code>
-              ${copyButton}
+      <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Metadata</div>
+        <div class="lb-panel-body">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            ${field('File Version',      escapedData.fileVersion)}
+            ${field('Architecture',      escapedData.architecture)}
+            ${field('File Size',         escapedData.size, false)}
+            ${field('Compile Time',      escapedData.compileTime)}
+            ${field('Original Filename', escapedData.originalFilename, true, true)}
+            <div style="grid-column: span 2;">
+              <div class="lb-eyebrow" style="margin-bottom: 2px;">SHA-256</div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <code class="lb-mono lb-strong" style="flex: 1; padding: 6px 8px; background: var(--lb-bg); border: 1px solid var(--lb-border); font-size: 11px; word-break: break-all;">${escapedData.sha}</code>
+                ${copyButton}
+              </div>
             </div>
-          </div>
-          <div class="sm:col-span-2">
-            <span class="text-base text-gray-500">Path:</span>
-            <p class="text-gray-200 font-mono text-base break-all">${escapedData.path}</p>
+            ${field('Path', escapedData.path, true, true)}
           </div>
         </div>
       </div>
@@ -555,93 +532,82 @@ class ByovdApp {
     const chips = [];
 
     if (data.avKiller) {
-      chips.push(`
-        <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-sm border border-yellow-500/30 bg-yellow-500/10 text-yellow-200">
-          <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
-          <span class="font-medium">AV-killer primitive</span>
-        </span>
-      `);
+      chips.push('<span class="lb-tag critical">AV-Killer Primitive</span>');
     } else if (data.hasTerminate) {
-      chips.push(`
-        <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-sm border border-purple-500/30 bg-purple-500/10 text-purple-200">
-          <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-          <span class="font-medium">Terminate arbitrary process</span>
-        </span>
-      `);
+      chips.push('<span class="lb-tag medium">Terminate Arbitrary Process</span>');
     }
-
     if (data.hasComms) {
-      chips.push(`
-        <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-sm border border-cyan-500/30 bg-cyan-500/10 text-cyan-200">
-          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-          <span class="font-medium">User-mode IOCTL comms</span>
-        </span>
-      `);
+      chips.push('<span class="lb-tag info">User-Mode IOCTL Comms</span>');
     }
 
-    const content = chips.length 
-      ? `<div class="flex flex-wrap gap-2">${chips.join('')}</div>`
-      : '<p class="text-base text-gray-500">No offensive primitives observed.</p>';
+    const content = chips.length
+      ? `<div style="display: flex; flex-wrap: wrap; gap: 6px;">${chips.join('')}</div>`
+      : '<div class="lb-muted" style="font-size: 11px;">No offensive primitives observed.</div>';
 
     return `
-      <div class="lb-card">
-        <h3 class="text-xl font-medium text-gray-100 mb-3">User Mode Capabilities</h3>
-        ${content}
+      <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>User Mode Capabilities</div>
+        <div class="lb-panel-body">${content}</div>
       </div>
     `;
   }
 
   buildImportsSection(data) {
     const chips = data.imports.length
-      ? data.imports.map(imp => 
-          `<span class="px-2 py-1 rounded-md border border-gray-700 text-sm text-gray-200 bg-black/40 font-mono">${this.escapeHtml(imp)}</span>`
+      ? data.imports.map(imp =>
+          `<span class="lb-tag muted lb-mono">${this.escapeHtml(imp)}</span>`
         ).join(' ')
-      : '<span class="text-base text-gray-500">No critical imports reported.</span>';
+      : '<span class="lb-muted" style="font-size: 11px;">No critical imports reported.</span>';
 
     return `
-      <div class="lb-card">
-        <h3 class="text-xl font-medium text-gray-100 mb-3">Critical Imports</h3>
-        <div class="flex flex-wrap gap-2 mb-4">${chips}</div>
-        <p class="text-sm text-gray-500">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</p>
+      <div class="lb-panel">
+        <div class="lb-panel-hdr">
+          <span class="lb-glyph">▸</span>Critical Imports
+          <span class="lb-panel-badge">${data.imports.length}</span>
+        </div>
+        <div class="lb-panel-body">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">${chips}</div>
+          <div class="lb-muted" style="font-size: 10px;">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</div>
+        </div>
       </div>
     `;
   }
 
   buildBlocksSection(data) {
-    const buildCard = (name, blocked, reason, details) => {
+    const buildBlock = (name, blocked, reason, details) => {
       const detailsHtml = blocked && details ? `
-        <details class="mt-2">
-          <summary class="cursor-pointer text-red-300 hover:text-red-200 text-base">Show rule details</summary>
-          <div class="mt-2 text-sm text-gray-300 space-y-1">
-            ${details.matched_rule?.id ? `<div><strong>Rule ID:</strong> ${this.escapeHtml(details.matched_rule.id)}</div>` : ''}
-            ${details.matched_rule?.friendly_name ? `<div><strong>Rule:</strong> ${this.escapeHtml(details.matched_rule.friendly_name)}</div>` : ''}
-            ${details.matched_rule?.file_name ? `<div><strong>File:</strong> ${this.escapeHtml(details.matched_rule.file_name)}</div>` : ''}
-            ${details.matched_rule?.maximum_file_version ? `<div><strong>Max Version:</strong> ${this.escapeHtml(details.matched_rule.maximum_file_version)}</div>` : ''}
-            ${details.detailed_explanation ? `<pre class="whitespace-pre-wrap bg-black/20 p-2 rounded mt-2">${this.escapeHtml(details.detailed_explanation)}</pre>` : ''}
+        <details style="margin-top: 8px;">
+          <summary class="lb-accent" style="cursor: pointer; font-size: 11px;">Show rule details</summary>
+          <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
+            ${details.matched_rule?.id ? `<div><span class="lb-eyebrow">Rule ID</span> <span class="lb-mono lb-strong">${this.escapeHtml(details.matched_rule.id)}</span></div>` : ''}
+            ${details.matched_rule?.friendly_name ? `<div><span class="lb-eyebrow">Rule</span> <span class="lb-strong">${this.escapeHtml(details.matched_rule.friendly_name)}</span></div>` : ''}
+            ${details.matched_rule?.file_name ? `<div><span class="lb-eyebrow">File</span> <span class="lb-mono lb-strong">${this.escapeHtml(details.matched_rule.file_name)}</span></div>` : ''}
+            ${details.matched_rule?.maximum_file_version ? `<div><span class="lb-eyebrow">Max Version</span> <span class="lb-mono lb-strong">${this.escapeHtml(details.matched_rule.maximum_file_version)}</span></div>` : ''}
+            ${details.detailed_explanation ? `<pre class="lb-mono lb-dim" style="margin-top: 6px; padding: 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); font-size: 11px; white-space: pre-wrap; word-break: break-all;">${this.escapeHtml(details.detailed_explanation)}</pre>` : ''}
           </div>
         </details>
       ` : '';
 
       return `
-        <div class="border ${blocked ? 'border-red-500/30' : 'border-green-500/30'} rounded-lg p-3 bg-black/30">
-          <div class="flex items-center justify-between mb-1">
-            <h4 class="font-medium text-gray-100 text-lg">${this.escapeHtml(name)}</h4>
-            <span class="px-2 py-0.5 text-sm rounded ${blocked ? 'bg-red-600' : 'bg-green-600'} text-white">
-              ${blocked ? 'BLOCKED' : 'ALLOWED'}
-            </span>
+        <div style="border: 1px solid ${blocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}; padding: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span class="lb-strong" style="font-size: 13px;">${this.escapeHtml(name)}</span>
+            <span class="lb-tag ${blocked ? 'critical' : 'clean'}">${blocked ? 'Blocked' : 'Allowed'}</span>
           </div>
-          <p class="text-sm text-gray-400">${this.escapeHtml(reason || 'Status unknown')}</p>
+          <div class="lb-muted" style="font-size: 11px;">${this.escapeHtml(reason || 'Status unknown')}</div>
           ${detailsHtml}
         </div>
       `;
     };
 
     return `
-      <div class="lb-card">
-        <h3 class="text-xl font-medium text-gray-100 mb-3">Windows Block Status</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          ${buildCard('Windows 10', data.isWin10Blocked, data.detailed.win10_block_reason, data.detailed.win10_blocking_details)}
-          ${buildCard('Windows 11', data.isWin11Blocked, data.detailed.win11_block_reason, data.detailed.win11_blocking_details)}
+      <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Windows Block Status</div>
+        <div class="lb-panel-body">
+          <div class="lb-grid-2">
+            ${buildBlock('Windows 10', data.isWin10Blocked, data.detailed.win10_block_reason, data.detailed.win10_blocking_details)}
+            ${buildBlock('Windows 11', data.isWin11Blocked, data.detailed.win11_block_reason, data.detailed.win11_blocking_details)}
+          </div>
         </div>
       </div>
     `;
@@ -649,10 +615,9 @@ class ByovdApp {
 
   buildRunSection() {
     return `
-      <div class="text-center py-6">
-        <p class="text-gray-400 text-base">Need to (re)run HolyGrail on this driver?</p>
-        <a href="/holygrail?hash=${encodeURIComponent(this.driverHash)}"
-           class="inline-block mt-3 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-base">
+      <div style="text-align: center; padding: 16px;">
+        <div class="lb-muted" style="font-size: 11px; margin-bottom: 10px;">Need to (re)run HolyGrail on this driver?</div>
+        <a href="/holygrail?hash=${encodeURIComponent(this.driverHash)}" class="lb-btn lb-btn-primary">
           Run HolyGrail Analysis
         </a>
       </div>
@@ -662,25 +627,22 @@ class ByovdApp {
   // ===== UI HELPERS =====
   showSkeleton() {
     DOMUtils.setHTML(this.container, `
-      <div class="space-y-4">
-        <div class="lb-card"><div class="skeleton animate h-16"></div></div>
-        <div class="lb-card"><div class="skeleton animate h-24"></div></div>
-        <div class="lb-card"><div class="skeleton animate h-32"></div></div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="lb-panel"><div class="lb-panel-body" style="height: 60px; background: linear-gradient(90deg, var(--lb-bg-soft), var(--lb-panel-hi), var(--lb-bg-soft)); animation: lb-pulse 1.6s ease-in-out infinite;"></div></div>
+        <div class="lb-panel"><div class="lb-panel-body" style="height: 90px; background: linear-gradient(90deg, var(--lb-bg-soft), var(--lb-panel-hi), var(--lb-bg-soft)); animation: lb-pulse 1.6s ease-in-out infinite;"></div></div>
+        <div class="lb-panel"><div class="lb-panel-body" style="height: 120px; background: linear-gradient(90deg, var(--lb-bg-soft), var(--lb-panel-hi), var(--lb-bg-soft)); animation: lb-pulse 1.6s ease-in-out infinite;"></div></div>
       </div>
     `);
   }
 
   showError(message) {
     DOMUtils.setHTML(this.container, `
-      <div class="text-center py-8">
-        <div class="text-red-500 mb-4">
-          <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-        </div>
-        <h3 class="text-xl font-medium text-gray-300 mb-2">Error Loading Results</h3>
-        <p class="text-gray-500 text-base">${this.escapeHtml(message)}</p>
+      <div class="lb-empty threats" style="flex-direction: column; padding: 32px 16px;">
+        <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 10px;">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="lb-strong" style="margin-bottom: 4px;">Error Loading Results</div>
+        <div class="lb-muted" style="font-size: 11px;">${this.escapeHtml(message)}</div>
       </div>
     `);
   }

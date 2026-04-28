@@ -15,79 +15,74 @@
 {# Renders the <thead> of a scanner-results table. #}
 {% macro scanner_table_header() -%}
 <thead>
-    <tr class="border-b border-gray-800">
-        <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Scanner</th>
-        <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Status</th>
-        <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Detections</th>
-        <th class="px-6 py-3 text-left text-base font-medium text-gray-300">Details</th>
+    <tr>
+        <th>Scanner</th>
+        <th>Status</th>
+        <th>Detections</th>
+        <th>Details</th>
     </tr>
 </thead>
 {%- endmacro %}
 
 
-{# Renders the colored Suspicious / Clean status badge cell. #}
+{# Renders the Suspicious / Clean status badge cell. #}
 {% macro scanner_status_cell(detections) -%}
-<td class="px-6 py-4">
-    <span class="lb-badge {{ 'lb-badge-critical' if detections else 'lb-badge-clean' }}">
+<td>
+    <span class="lb-tag {{ 'critical' if detections else 'clean' }}">
         {{ 'Suspicious' if detections else 'Clean' }}
     </span>
 </td>
 {%- endmacro %}
 
 
-{# Renders the detection-count cell (red if any, gray if zero). #}
+{# Renders the detection-count cell (red if any, mute if zero). #}
 {% macro scanner_count_cell(detections) -%}
-<td class="px-6 py-4 text-base {{ 'text-red-500' if detections else 'text-gray-400' }}">{{ detections }}</td>
+<td class="lb-mono" style="color: {{ 'var(--lb-accent)' if detections else 'var(--lb-text-mute)' }};">{{ detections }}</td>
 {%- endmacro %}
 
 
-{# Renders the 3-card "Overall Status / Total Detections / <Duration>" grid.
-   Used identically (with different data) on the static and dynamic result pages.
-   `total` is the sum of all detections; `duration_label` and `duration_value`
-   keep flexibility for "Scan Duration" vs "Total Analysis Duration" wording.
-#}
+{# Renders the 3-chip "Overall Status / Total Detections / Duration" panel. #}
 {% macro status_grid_3(total, duration_label, duration_value) -%}
-<div class="grid grid-cols-3 gap-4 mb-6">
-    <div class="lb-card">
-        <div class="text-sm text-gray-500">Overall Status</div>
-        <div id="overallStatus" class="text-2xl font-semibold {{ 'text-red-500' if total > 0 else 'text-green-500' }}">
-            {{ 'Threats Detected' if total > 0 else 'Clean' }}
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Overall Status</div>
+    <div class="lb-chip-row">
+        <div class="lb-chip{% if total > 0 %} hit{% endif %}">
+            <div class="lb-chip-name">Status</div>
+            <div id="overallStatus" class="lb-chip-count" style="font-size: 14px; color: {{ 'var(--lb-accent)' if total > 0 else 'var(--lb-sev-low)' }};">
+                {{ 'Threats Detected' if total > 0 else 'Clean' }}
+            </div>
         </div>
-    </div>
-    <div class="lb-card">
-        <div class="text-sm text-gray-500">Total Detections</div>
-        <div id="totalDetections" class="text-2xl font-semibold text-gray-300">{{ total }}</div>
-    </div>
-    <div class="lb-card">
-        <div class="text-sm text-gray-500">{{ duration_label }}</div>
-        <div class="text-2xl font-semibold text-gray-300">{{ duration_value }}</div>
+        <div class="lb-chip{% if total > 0 %} hit{% endif %}">
+            <div class="lb-chip-name">Detections</div>
+            <div id="totalDetections" class="lb-chip-count">{{ total }}</div>
+        </div>
+        <div class="lb-chip">
+            <div class="lb-chip-name">{{ duration_label }}</div>
+            <div class="lb-chip-count lb-mono" style="font-size: 14px;">{{ duration_value }}</div>
+        </div>
     </div>
 </div>
 {%- endmacro %}
 
 
-{# Full YARA scanner row — identical between static and dynamic result pages.
-   `matches` is analysis_results.yara.matches (a list of {rule, metadata} dicts).
-#}
+{# Full YARA scanner row — identical between static and dynamic result pages. #}
 {% macro scanner_yara_row(detections, matches) -%}
 <tr>
-    <td class="px-6 py-4 text-base text-gray-300">YARA</td>
+    <td>YARA</td>
     {{ scanner_status_cell(detections) }}
     {{ scanner_count_cell(detections) }}
-    <td class="px-6 py-4">
+    <td>
         {% if detections %}
-            <div class="text-base text-gray-400">
+            <div style="font-size: 11px;">
                 {% for match in matches %}
-                <div class="mb-1">
-                    Rule: <span class="text-red-400">{{ match.rule }}</span>
-                    {% if match.metadata %}
-                        (Severity: {{ match.metadata.severity }})
-                    {% endif %}
+                <div style="margin-bottom: 2px;">
+                    Rule: <span class="lb-accent lb-mono">{{ match.rule }}</span>
+                    {% if match.metadata %}<span class="lb-muted">(Severity: {{ match.metadata.severity }})</span>{% endif %}
                 </div>
                 {% endfor %}
             </div>
         {% else %}
-            <span class="text-base text-gray-400">No threats detected</span>
+            <span class="lb-muted">No threats detected</span>
         {% endif %}
     </td>
 </tr>

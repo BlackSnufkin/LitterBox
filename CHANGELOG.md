@@ -2,130 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v4.2.0] - 2026-04-27
+## [v5.0.0] - 2026-04-28
 ### Changed
-- **Backend modularised.**
-  - `app/routes.py` (1,389 lines) split into 6 Flask blueprints under
-    `app/blueprints/` (upload, analysis, results, doppelganger, management,
-    api), plus service modules under `app/services/` (rendering, summary,
-    tool_check, error_handling) and shared `RouteHelpers` in `app/helpers.py`.
-  - `app/__init__.py` now wires `AnalysisManager` and `RouteHelpers` into
-    `app.extensions['litterbox']` for blueprint use.
-  - `app/utils.py` (1,400 lines) split into the `app/utils/` package with
-    single-concern modules: `file_io`, `validators`, `path_manager`,
-    `risk_analyzer`, `forensics`, `json_helpers`, `reporting`. Every caller
-    migrated; no shim/facade.
-  - Extracted `BaseSubprocessAnalyzer` template-method base class in
-    `app/analyzers/base.py`. The 9 subprocess-based analyzers (yara/checkplz/
-    stringnalyzer static; yara/pe_sieve/moneta/patriot/hsb/hollows_hunter
-    dynamic) are now thin subclasses that declare config + implement
-    `_parse_output`, eliminating ~40% of duplicated boilerplate.
-
-- **Frontend modularised (no build step added).**
-  - The four large monolithic JS files split into per-concern ES6 modules:
-    - `results.js` (2,060) → `app/static/js/results/{core,managers,tools,renderers}.js`
-    - `holygrail.js` (1,025) → `app/static/js/holygrail/{core,utils}.js`
-    - `byovd_info.js` (1,069) → `app/static/js/byovd/{core,api,utils}.js`
-    - `upload.js` (974) → `app/static/js/upload/{core,lnk}.js`
-  - New `app/static/js/utils/` package with shared helpers: `escape`,
-    `formatters`, `severity`, `fetch`, `modals`, `dom`. Single source of
-    truth for `escapeHtml`, `formatBytes`, severity-color mapping, etc.
-  - Every JS file now loads as `<script type="module">`. `window.X = ...`
-    assignments preserved at the bottom of each module so inline
-    `onclick="..."` handlers in templates keep resolving.
-
-- **Templates de-duplicated.**
-  - New `app/templates/partials/_macros.html` with reusable Jinja macros:
-    `scanner_table_header`, `scanner_yara_row`, `scanner_status_cell`,
-    `scanner_count_cell`, `status_grid_3`. `static_info.html` and
-    `dynamic_info.html` migrated.
-
-- **UI design system & visual unification.** The app previously had two
-  disjoint visual identities (purple/cyan cyber-themed `holygrail.html`
-  and `byovd_info.html` vs the calmer red-on-dark utilitarian look used
-  everywhere else). Pulled everything onto a single design language:
-  - New `:root` design tokens in `app/static/css/style.css`: brand
-    accents, semantic severity colors (critical/high/medium/low/clean),
-    surfaces, borders, text shades, radii, shadows, and severe-state
-    glow shadows. Plus a curated `.lb-*` component class catalog
-    (cards, buttons, badges, section headers, hash display, empty
-    state, animated grid backdrop, critical-state pulse) used as the
-    shared vocabulary by every page.
-  - `holygrail.html` lost ~437 lines of inline `<style>` (567 → 130);
-    `byovd_info.html` lost ~95 lines (164 → 70). The remaining
-    page-specific blocks (stepper, upload-zone, console-log, score
-    display, loading skeleton) were rewritten using design tokens.
-    The `cyber-card` / `cyber-chip` / `cyber-button` / `verdict-holy`
-    / `verdict-neutral` classes are gone — every site now uses
-    `lb-card{,-elevated,-critical,-high}`, `lb-btn-{primary,secondary,ghost}`,
-    `lb-badge-{critical,high,medium,low,clean,info}`. The cyber-glow
-    accent is retained but applied only on critical/severe states
-    (verdicts, high-severity badges) instead of as page-wide noise.
-  - `file_info.html`, `summary.html`, `results.html`, `dynamic_info.html`,
-    `static_info.html`, `doppelganger.html`, `error.html`, `upload.html`
-    swept to use the component classes; the 4-way Jinja risk-level
-    conditional in `file_info.html` collapsed into a single
-    `lb-badge-{{ risk_level|lower }}` lookup.
-  - Bug fix: duplicate `.logo-wrapper` definition in `style.css` (the
-    selector was defined twice with overlapping properties) merged
-    into a single rule.
-
-- **Fully self-contained downloadable report.** `report.html` was
-  rewritten by hand. Previously the report depended on
-  `https://cdn.tailwindcss.com` for runtime utility compilation,
-  which left the file partially-broken when downloaded and opened
-  from disk without internet. The new template:
-  - Drops the CDN dependency. All CSS is inlined in a single
-    `<style>` block in `<head>` — design tokens, component classes,
-    and only the layout rules the report itself needs.
-  - Drops the inline `tailwind.config` script.
-  - No `<script>` tags anywhere in the document.
-  - Restyled with deliberate typography (system font stack with
-    JetBrains Mono for monospace data), tabular-numeric scores,
-    restrained pill badges, generous whitespace, severity-coded
-    detection chips, per-scanner blocks with locked-size status
-    icons (the previous version had a broken-CSS path that rendered
-    a giant green checkmark on clean scans), and a dedicated print
-    media query.
-  - The LitterBox logo is now embedded as a base64 data URI in the
-    brand strip (matching the original behaviour), so the
-    downloaded file shows the logo offline without an external image
-    fetch.
-  - Output is ~21 KB for a clean-scan report (no logo) / ~87 KB with
-    logo embedded — small enough to email or attach.
+- Backend split into 6 Flask blueprints + services + helpers under `app/blueprints/`, `app/services/`, `app/helpers.py`
+- `app/utils.py` (1,400 lines) split into the `app/utils/` package with single-concern modules
+- Extracted `BaseSubprocessAnalyzer` template-method base — 9 subprocess analyzers reduced to thin subclasses
+- Frontend split into per-concern ES6 modules under `results/`, `holygrail/`, `byovd/`, `upload/`
+- Shared JS utils package `app/static/js/utils/` (escape, formatters, severity, fetch, modals, dom)
+- Per-tool scanner modules under `app/static/js/results/tools/` — one file per scanner, `tools.js` is now a 66-line registry
+- Reusable Jinja macros in `app/templates/partials/_macros.html` consumed by static/dynamic info pages
+- Full UI redesign on a terminal/IDE shell — breadcrumb titlebar, iconed sidebar, optional tab row, IDE-style status bar
+- New `:root` design tokens and `.lb-*` component vocabulary (panels, tags, buttons, chips, tables, hash rows, empty states)
+- JetBrains Mono throughout
+- Calm-red rule — bright red reserved for severity tags, destructive buttons, brand dot, and the critical-state statusbar
+- Self-contained downloadable report — Tailwind CDN dependency dropped, all CSS inlined, logo embedded as base64
+- `CLAUDE.md` primer with an end-to-end "Adding a new scanner tool" recipe (backend + frontend)
 
 ### Fixed
-- **XSS hardening** at user-data interpolation sites in the results-page
-  renderers. `str.data` (binary string content from analysed files),
-  `scanResults.hex_dump`, `scan_info.target`, YARA `match.rule`, and the
-  shared `renderSection` list-item renderer (which feeds Stringnalyzer
-  outputs — URLs, paths, IPs, suspicious strings) now all run through
-  `escapeHtml` before insertion via `innerHTML`. Previously these were
-  template-literal interpolations that would have rendered any HTML
-  content from analysed binaries directly into the operator's DOM.
-- **Drag-and-drop upload visual feedback.** `.drag-over` in `style.css`
-  used `@apply border-red-500 bg-red-500/5`, but the project uses a
-  precompiled Tailwind build with no `@apply` processor — those two
-  utilities were silently ignored, leaving only the slight scale-up.
-  Replaced with raw CSS equivalent so the red border and tinted
-  background actually appear when dragging files over the drop zone.
-- **Latent reference bugs in `/files` and `/results/<hash>/info`** that
-  passed a removed `utils` parameter through helper chains. Surfaced
-  during the routes split; cleaned in `app/services/{rendering,summary}.py`.
-- `.gitignore` `Results/` pattern was unanchored and shadowed the new
-  `app/static/js/results/` module directory + `app/blueprints/results.py`.
-  All path patterns are now anchored to the repo root with leading `/`.
-  Also added `/Scanners/PE-Sieve/process_*/` to ignore runtime scan
-  artifacts.
+- XSS hardening at user-data interpolation sites in results-page renderers
+- `ModalHandler` crash on dynamic results pages (null-deref against removed `.bg-gray-900` selector)
+- `AnalysisCore.updateStageToComplete` null-deref against removed stage-indicator markup
+- Per-tool render failures no longer suppress the rest of the rendering
+- Drag-and-drop highlight no longer null-derefs against the removed `.upload-icon` selector
+- Upload "Unsupported file type" false positive — extensions now sourced from `window.serverConfig`
+- Status-icon styling clash on initial render
+- Latent `utils` parameter bugs in `/files` and `/results/<hash>/info` helper chains
+- `.gitignore` `Results/` pattern was unanchored and shadowed `app/static/js/results/` and `app/blueprints/results.py`
+- Duplicate `.logo-wrapper` definition in `style.css` merged
+
+### Removed
+- Pre-redesign Tailwind utility chains across all templates
+- Inline cyber-themed `<style>` blocks in `holygrail.html` and `byovd_info.html`
+- `_design_previews/` iteration HTML files
+- Tailwind CDN runtime dependency from `report.html`
 
 ### Notes
-- No new dependencies. Setup story is unchanged:
-  `pip install -r requirements.txt && py litterbox.py --debug` (admin).
-- No public API or endpoint URL changes — every previously-working
-  request and JSON response shape is preserved.
-- Tailwind stays at the precompiled v2.2.19 build. Tailwind purging /
-  config / v3 features remain out of scope to keep the deploy
-  Python-only. See `CLAUDE.md` for the full rationale.
+- No new dependencies; setup unchanged: `pip install -r requirements.txt && py litterbox.py --debug` (admin)
+- Tailwind stays at the precompiled v2.2.19 build
+- No public API / endpoint changes; existing JS DOM-ID contracts preserved
 
 
 ## [v4.1.0] - 2025-09-01

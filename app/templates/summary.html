@@ -1,302 +1,229 @@
-<!-- app/templates/summary.html -->
-
 {% extends "base.html" %}
 
-{% block page_title %}Results Summary{% endblock %}
+{% block breadcrumb %}
+    Summary
+{% endblock %}
+
+{% set active_nav = 'summary' %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-6">
-    <!-- Header Section -->
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <p class="text-base text-gray-400 mt-1">Manage Analysis results</p>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="flex items-center space-x-3">
-            <button onclick="window.location.href='/'" 
-                    class="px-4 py-2 text-base text-white bg-red-500/10 border border-red-500/30 rounded-lg hover:bg-red-500/20 transition-colors flex items-center space-x-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                <span>Upload New File</span>
+
+<!-- Header / Actions -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>Results Summary
+        <div style="margin-left: auto; display: flex; gap: 8px;">
+            <button onclick="window.location.href='/'" class="lb-btn lb-btn-primary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                Upload New
             </button>
-            <button onclick="showSummaryCleanupWarning()" 
-                    class="px-4 py-2 text-base text-red-500 border border-red-900/20 rounded-lg hover:bg-red-500/10 transition-colors flex items-center space-x-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-                <span>Clean All</span>
+            <button onclick="showSummaryCleanupWarning()" class="lb-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Clean All
             </button>
-            
-            <!-- Driver Toggle Button -->
-            <button onclick="toggleDriverAnalysis()" 
-                    aria-controls="driverAnalysisCard" 
-                    aria-expanded="false"
-                    class="px-4 py-2 text-green-500 border border-green-500/30 rounded-lg hover:bg-green-500/10 transition-colors flex items-center space-x-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg>
-                <span>Show Driver Analysis</span>
+            <button onclick="toggleDriverAnalysis()" aria-controls="driverAnalysisCard" aria-expanded="false" class="lb-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                Drivers
             </button>
-            
-            <!-- Process Toggle Button -->
-            <button onclick="toggleProcessAnalysis()" 
-                    aria-controls="processAnalysisCard" 
-                    aria-expanded="false"
-                    class="px-4 py-2 text-purple-500 border border-purple-500/30 rounded-lg hover:bg-purple-500/10 transition-colors flex items-center space-x-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>Show Process Analysis</span>
+            <button onclick="toggleProcessAnalysis()" aria-controls="processAnalysisCard" aria-expanded="false" class="lb-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Processes
             </button>
-
-            <button onclick="loadFiles()" class="p-2 text-blue-500 border border-blue-900/20 rounded-lg hover:bg-blue-500/10 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
+            <button onclick="loadFiles()" class="lb-btn lb-btn-ghost" title="Refresh">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             </button>
-        </div>
-    </div>
-
-    <!-- Main File Analysis Results (Payloads Only) -->
-    <div class="lb-card-elevated mb-6">
-        <div class="p-6">
-            <h2 class="text-xl font-medium text-gray-100 mb-4">File Analysis Results</h2>
-
-            <!-- Stats Overview -->
-            <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">Total Files</div>
-                    <div class="text-2xl font-semibold text-gray-300" id="totalFiles">0</div>
-                </div>
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">Storage Used</div>
-                    <div class="text-2xl font-semibold text-gray-300" id="storageUsed">0 MB</div>
-                </div>
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">Average Risk</div>
-                    <div class="flex flex-col items-start mt-1">
-                        <span id="averageRisk" class="px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium">-</span>
-                        <span id="averageEntropy" class="text-xs text-gray-400 mt-1">Entropy: -</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Search and Filter -->
-            <div class="flex items-center justify-between mb-6">
-                <div class="relative flex-1 max-w-md">
-                    <input type="text" 
-                           id="searchFiles" 
-                           placeholder="Search files..." 
-                           class="w-full bg-gray-900/30 border border-gray-800 rounded-lg px-4 py-2 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50">
-                    <svg class="w-5 h-5 text-gray-500 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <select id="filterType" 
-                            class="bg-gray-900/30 border border-gray-800 rounded-lg px-3 py-2 text-gray-300 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50">
-                        <option value="all">All Types</option>
-                        <option value="exe">.exe</option>
-                        <option value="bin">.bin</option>
-                        <option value="docx">.docx</option>
-                        <option value="xlsx">.xlsx</option>
-                        <option value="lnk">.lnk</option>
-                    </select>
-                    <select id="filterRisk" class="bg-gray-900/30 border border-gray-800 rounded-lg px-3 py-2 text-gray-300 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50">
-                        <option value="all">All Risks</option>
-                        <option value="critical">Critical Risk</option>
-                        <option value="high">High Risk</option>
-                        <option value="medium">Medium Risk</option>
-                        <option value="low">Low Risk</option>
-                    </select>
-                    <select id="sortBy" class="bg-gray-900/30 border border-gray-800 rounded-lg px-3 py-2 text-gray-300 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50">
-                        <option value="newest">Newest First</option>
-                        <option value="oldest">Oldest First</option>
-                        <option value="name">Name</option>
-                        <option value="size">Size</option>
-                        <option value="risk">Risk Score</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- File Table -->
-            <div class="relative overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="border-b border-gray-800">
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">File Name</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Risk</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Size</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Upload Date</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Analysis Status</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="fileList" class="divide-y divide-gray-800">
-                        <!-- File rows will be populated via JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="hidden text-center py-12">
-                <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-300 mb-2">No files uploaded</h3>
-                <p class="text-gray-500">Upload a file to get started with analysis</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Driver Analysis Results (Hidden) -->
-    <div id="driverAnalysisCard" class="hidden bg-black/60 backdrop-blur-sm rounded-xl border border-green-800 shadow-lg mb-6">
-        <div class="p-6">
-            <h2 class="text-xl font-medium text-gray-100 mb-4">Driver Analysis Results</h2>
-            
-            <!-- Driver Stats Overview -->
-            <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">Total Drivers</div>
-                    <div class="text-2xl font-semibold text-gray-300" id="totalDrivers">0</div>
-                </div>
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">Storage Used</div>
-                    <div class="text-2xl font-semibold text-gray-300" id="driverStorageUsed">0 MB</div>
-                </div>
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">Average Risk</div>
-                    <div class="flex flex-col items-start mt-1">
-                        <span id="driverAverageRisk" class="px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Driver Table -->
-            <div class="relative overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="border-b border-gray-800">
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Driver Name</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">BYOVD Score</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Size</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Upload Date</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Analysis Status</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="driverList" class="divide-y divide-gray-800">
-                        <!-- Driver rows will be populated via JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Empty State for Drivers -->
-            <div id="driverEmptyState" class="hidden text-center py-12">
-                <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-300 mb-2">No drivers uploaded</h3>
-                <p class="text-gray-500">Upload a driver via HolyGrail to get started</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Process Analysis Results (Hidden) -->
-    <div id="processAnalysisCard" class="hidden bg-black/60 backdrop-blur-sm rounded-xl border border-purple-800 shadow-lg">
-        <div class="p-6">
-            <h2 class="text-xl font-medium text-gray-100 mb-4">Process Analysis Results</h2>
-            
-            <!-- Process Stats Overview -->
-            <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">Total Processes</div>
-                    <div class="text-2xl font-semibold text-gray-300" id="totalProcesses">0</div>
-                </div>
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">High Risk Processes</div>
-                    <div class="text-2xl font-semibold text-gray-300" id="highRiskProcesses">0</div>
-                </div>
-                <div class="lb-card">
-                    <div class="text-sm text-gray-500">Average Risk</div>
-                    <div class="flex flex-col items-start mt-1">
-                        <span id="processAverageRisk" class="px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Process Table -->
-            <div class="relative overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="border-b border-gray-800">
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Process Name</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">PID</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Arch</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Risk</th>
-                            <th class="px-6 py-3 text-base font-medium text-gray-300">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="processList" class="divide-y divide-gray-800">
-                        <!-- Process rows will be populated via JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Empty State for Processes -->
-            <div id="processEmptyState" class="hidden text-center py-12">
-                <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-300 mb-2">No process analysis results</h3>
-                <p class="text-gray-500">No processes have been analyzed yet</p>
-            </div>
         </div>
     </div>
 </div>
 
-<!-- File Row Template (for Payloads) -->
+<!-- File Analysis -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>File Analysis Results</div>
+
+    <!-- Stats -->
+    <div class="lb-chip-row">
+        <div class="lb-chip">
+            <div class="lb-chip-name">Total Files</div>
+            <div class="lb-chip-count" id="totalFiles">0</div>
+        </div>
+        <div class="lb-chip">
+            <div class="lb-chip-name">Storage Used</div>
+            <div class="lb-chip-count lb-mono" id="storageUsed" style="font-size: 14px;">0 MB</div>
+        </div>
+        <div class="lb-chip">
+            <div class="lb-chip-name">Average Risk</div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                <span id="averageRisk" class="lb-tag muted">-</span>
+                <span id="averageEntropy" class="lb-muted" style="font-size: 10px;">Entropy: -</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="lb-panel-body">
+        <!-- Search & filters -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+            <div style="position: relative; flex: 1; min-width: 200px;">
+                <input type="text" id="searchFiles" placeholder="Search files..." class="lb-input lb-mono" style="padding-right: 30px;"/>
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--lb-text-mute); pointer-events: none;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+            <select id="filterType" class="lb-select" style="width: auto; min-width: 120px;">
+                <option value="all">All Types</option>
+                <option value="exe">.exe</option>
+                <option value="bin">.bin</option>
+                <option value="docx">.docx</option>
+                <option value="xlsx">.xlsx</option>
+                <option value="lnk">.lnk</option>
+            </select>
+            <select id="filterRisk" class="lb-select" style="width: auto; min-width: 130px;">
+                <option value="all">All Risks</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            <select id="sortBy" class="lb-select" style="width: auto; min-width: 130px;">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="name">Name</option>
+                <option value="size">Size</option>
+                <option value="risk">Risk Score</option>
+            </select>
+        </div>
+
+        <!-- Files table -->
+        <div style="overflow-x: auto;">
+            <table class="lb-table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Risk</th>
+                        <th>Size</th>
+                        <th>Upload Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="fileList"></tbody>
+            </table>
+        </div>
+
+        <div id="emptyState" class="hidden" style="text-align: center; padding: 32px 16px;">
+            <svg width="36" height="36" fill="none" stroke="var(--lb-text-mute)" viewBox="0 0 24 24" style="margin: 0 auto 12px; display: block;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <div class="lb-strong" style="font-size: 13px; margin-bottom: 4px;">No files uploaded</div>
+            <div class="lb-muted" style="font-size: 11px;">Upload a file to get started with analysis.</div>
+        </div>
+    </div>
+</div>
+
+<!-- Driver Analysis (toggle) -->
+<div id="driverAnalysisCard" class="hidden lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Driver Analysis Results</div>
+    <div class="lb-chip-row">
+        <div class="lb-chip">
+            <div class="lb-chip-name">Total Drivers</div>
+            <div class="lb-chip-count" id="totalDrivers">0</div>
+        </div>
+        <div class="lb-chip">
+            <div class="lb-chip-name">Storage Used</div>
+            <div class="lb-chip-count lb-mono" id="driverStorageUsed" style="font-size: 14px;">0 MB</div>
+        </div>
+        <div class="lb-chip">
+            <div class="lb-chip-name">Average Risk</div>
+            <span id="driverAverageRisk" class="lb-tag muted">-</span>
+        </div>
+    </div>
+    <div class="lb-panel-body">
+        <div style="overflow-x: auto;">
+            <table class="lb-table">
+                <thead>
+                    <tr>
+                        <th>Driver Name</th>
+                        <th>BYOVD Score</th>
+                        <th>Size</th>
+                        <th>Upload Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="driverList"></tbody>
+            </table>
+        </div>
+        <div id="driverEmptyState" class="hidden" style="text-align: center; padding: 32px 16px;">
+            <div class="lb-strong" style="font-size: 13px; margin-bottom: 4px;">No drivers uploaded</div>
+            <div class="lb-muted" style="font-size: 11px;">Upload a driver via HolyGrail to get started.</div>
+        </div>
+    </div>
+</div>
+
+<!-- Process Analysis (toggle) -->
+<div id="processAnalysisCard" class="hidden lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Process Analysis Results</div>
+    <div class="lb-chip-row">
+        <div class="lb-chip">
+            <div class="lb-chip-name">Total Processes</div>
+            <div class="lb-chip-count" id="totalProcesses">0</div>
+        </div>
+        <div class="lb-chip">
+            <div class="lb-chip-name">High Risk</div>
+            <div class="lb-chip-count" id="highRiskProcesses">0</div>
+        </div>
+        <div class="lb-chip">
+            <div class="lb-chip-name">Average Risk</div>
+            <span id="processAverageRisk" class="lb-tag muted">-</span>
+        </div>
+    </div>
+    <div class="lb-panel-body">
+        <div style="overflow-x: auto;">
+            <table class="lb-table">
+                <thead>
+                    <tr>
+                        <th>Process Name</th>
+                        <th>PID</th>
+                        <th>Arch</th>
+                        <th>Risk</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="processList"></tbody>
+            </table>
+        </div>
+        <div id="processEmptyState" class="hidden" style="text-align: center; padding: 32px 16px;">
+            <div class="lb-strong" style="font-size: 13px; margin-bottom: 4px;">No process analysis results</div>
+            <div class="lb-muted" style="font-size: 11px;">No processes have been analyzed yet.</div>
+        </div>
+    </div>
+</div>
+
+<!-- File Row Template -->
 <template id="fileRowTemplate">
-    <tr class="border-b border-gray-800">
-        <td class="py-4">
-            <div class="flex flex-col">
-                <span data-field="fileName" class="text-gray-200"></span>
-                <span data-field="fileHash" class="text-sm text-gray-500 font-mono"></span>
+    <tr>
+        <td>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span data-field="fileName" class="lb-strong"></span>
+                <span data-field="fileHash" class="lb-mono lb-muted" style="font-size: 11px;"></span>
             </div>
         </td>
-        <td class="text-left px-6">
-            <span data-field="fileRisk" class="inline-block min-w-[70px]"></span>
-            <br/>
-            <span data-field="fileEntropy" class="text-xs text-gray-400"></span>
-        </td>
-        <td class="text-center">
-            <span data-field="fileSize" class="text-gray-400"></span>
-        </td>
-        <td class="text-center">
-            <span data-field="fileUploadDate" class="text-gray-400"></span>
-        </td>
-        <td class="text-center">
-            <span data-field="fileAnalysisStatus"></span>
-        </td>
         <td>
-            <div class="flex justify-end space-x-2">
-                <button data-action="view" class="p-2 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
+            <span data-field="fileRisk" style="display: inline-block; min-width: 70px;"></span>
+            <div data-field="fileEntropy" class="lb-muted" style="font-size: 10px; margin-top: 2px;"></div>
+        </td>
+        <td><span data-field="fileSize" class="lb-mono lb-dim" style="font-size: 11px;"></span></td>
+        <td><span data-field="fileUploadDate" class="lb-mono lb-dim" style="font-size: 11px;"></span></td>
+        <td><span data-field="fileAnalysisStatus"></span></td>
+        <td>
+            <div style="display: flex; gap: 4px;">
+                <button data-action="view" class="lb-btn lb-btn-ghost" style="padding: 4px 8px;" title="View">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                 </button>
-                <button data-action="report" class="p-2 text-gray-400 hover:text-purple-500 rounded-lg hover:bg-purple-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
+                <button data-action="report" class="lb-btn lb-btn-ghost" style="padding: 4px 8px;" title="Report">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </button>
-                <button data-action="delete" class="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
+                <button data-action="delete" class="lb-btn lb-btn-ghost" style="padding: 4px 8px; color: var(--lb-accent);" title="Delete">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
             </div>
         </td>
@@ -305,42 +232,27 @@
 
 <!-- Driver Row Template -->
 <template id="driverRowTemplate">
-    <tr class="border-b border-gray-800">
-        <td class="py-4">
-            <div class="flex flex-col">
-                <span data-field="driverName" class="text-gray-200"></span>
-                <span data-field="driverHash" class="text-sm text-gray-500 font-mono"></span>
+    <tr>
+        <td>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span data-field="driverName" class="lb-strong"></span>
+                <span data-field="driverHash" class="lb-mono lb-muted" style="font-size: 11px;"></span>
             </div>
         </td>
-        <td class="text-left px-6">
-            <span data-field="driverRisk" class="inline-block min-w-[70px]"></span>
-        </td>
-        <td class="text-center">
-            <span data-field="driverSize" class="text-gray-400"></span>
-        </td>
-        <td class="text-center">
-            <span data-field="driverUploadDate" class="text-gray-400"></span>
-        </td>
-        <td class="text-center">
-            <span data-field="driverAnalysisStatus"></span>
-        </td>
+        <td><span data-field="driverRisk" style="display: inline-block; min-width: 70px;"></span></td>
+        <td><span data-field="driverSize" class="lb-mono lb-dim" style="font-size: 11px;"></span></td>
+        <td><span data-field="driverUploadDate" class="lb-mono lb-dim" style="font-size: 11px;"></span></td>
+        <td><span data-field="driverAnalysisStatus"></span></td>
         <td>
-            <div class="flex justify-end space-x-2">
-                <button data-action="view" class="p-2 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
+            <div style="display: flex; gap: 4px;">
+                <button data-action="view" class="lb-btn lb-btn-ghost" style="padding: 4px 8px;" title="View">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                 </button>
-                <button data-action="report" class="p-2 text-gray-400 hover:text-purple-500 rounded-lg hover:bg-purple-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
+                <button data-action="report" class="lb-btn lb-btn-ghost" style="padding: 4px 8px;" title="Report">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </button>
-                <button data-action="delete" class="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
+                <button data-action="delete" class="lb-btn lb-btn-ghost" style="padding: 4px 8px; color: var(--lb-accent);" title="Delete">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
             </div>
         </td>
@@ -349,39 +261,26 @@
 
 <!-- Process Row Template -->
 <template id="processRowTemplate">
-    <tr class="border-b border-gray-800">
-        <td class="py-4 px-6">
-            <div class="flex flex-col">
-                <span data-field="processName" class="text-gray-200"></span>
-                <span data-field="processPath" class="text-sm text-gray-500"></span>
+    <tr>
+        <td>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span data-field="processName" class="lb-strong"></span>
+                <span data-field="processPath" class="lb-mono lb-muted" style="font-size: 11px;"></span>
             </div>
         </td>
-        <td class="text-left px-6">
-            <span data-field="pid" class="text-gray-200 font-mono"></span>
-        </td>
-        <td class="text-center px-6">
-            <span data-field="processArch" class="text-gray-400"></span>
-        </td>
-        <td class="text-left px-6">
-            <span data-field="processRisk" class="inline-block min-w-[70px]"></span>
-        </td>
+        <td><span data-field="pid" class="lb-mono"></span></td>
+        <td><span data-field="processArch" class="lb-dim"></span></td>
+        <td><span data-field="processRisk" style="display: inline-block; min-width: 70px;"></span></td>
         <td>
-            <div class="flex justify-end space-x-2">
-                <button data-action="view" class="p-2 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
+            <div style="display: flex; gap: 4px;">
+                <button data-action="view" class="lb-btn lb-btn-ghost" style="padding: 4px 8px;" title="View">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                 </button>
-                <button data-action="report" class="p-2 text-gray-400 hover:text-purple-500 rounded-lg hover:bg-purple-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
+                <button data-action="report" class="lb-btn lb-btn-ghost" style="padding: 4px 8px;" title="Report">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </button>
-                <button data-action="delete" class="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
+                <button data-action="delete" class="lb-btn lb-btn-ghost" style="padding: 4px 8px; color: var(--lb-accent);" title="Delete">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
             </div>
         </td>
@@ -389,56 +288,41 @@
 </template>
 
 <!-- Cleanup Warning Modal -->
-<div id="summaryCleanupWarningModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-    <div class="bg-gray-900 rounded-xl border border-red-900/20 p-6 max-w-lg w-full mx-4">
-        <div class="flex items-center space-x-3 mb-4">
-            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-100">Warning: System Cleanup</h3>
+<div id="summaryCleanupWarningModal" class="hidden lb-modal-backdrop">
+    <div class="lb-modal lb-fade-in">
+        <div class="lb-modal-hdr">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            System Cleanup
         </div>
-        <div class="text-gray-300 mb-6">
-            <p class="mb-4">This will permanently remove all uploaded files and analysis data.</p>
-            <p class="text-red-500">Are you sure you want to proceed?</p>
+        <div class="lb-modal-body">
+            <p style="margin-bottom: 10px;">This will permanently remove all uploaded files and analysis data.</p>
+            <p style="color: var(--lb-accent);">Are you sure you want to proceed?</p>
         </div>
-        <div class="flex justify-end space-x-3">
-            <button onclick="hideSummaryCleanupWarning()" 
-                    class="px-4 py-2 text-gray-400 hover:text-white">
-                Cancel
-            </button>
-            <button onclick="cleanupFiles()" 
-                    class="px-4 py-2 text-red-500 border border-red-900/20 rounded-lg hover:bg-red-500/10">
-                Proceed
-            </button>
+        <div class="lb-modal-foot">
+            <button onclick="hideSummaryCleanupWarning()" class="lb-btn lb-btn-ghost">Cancel</button>
+            <button onclick="cleanupFiles()" class="lb-btn lb-btn-danger">Proceed</button>
         </div>
     </div>
 </div>
 
 <!-- File Delete Warning Modal -->
-<div id="fileDeleteWarningModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-    <div class="bg-gray-900 rounded-xl border border-red-900/20 p-6 max-w-lg w-full mx-4">
-        <div class="flex items-center space-x-3 mb-4">
-            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-100">Warning: Delete File</h3>
+<div id="fileDeleteWarningModal" class="hidden lb-modal-backdrop">
+    <div class="lb-modal lb-fade-in">
+        <div class="lb-modal-hdr">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            Delete File
         </div>
-        <div class="text-gray-300 mb-6">
-            <p class="mb-4">This will permanently remove the selected file and its analysis data.</p>
-            <p class="text-red-500">Are you sure you want to proceed?</p>
+        <div class="lb-modal-body">
+            <p style="margin-bottom: 10px;">This will permanently remove the selected file and its analysis data.</p>
+            <p style="color: var(--lb-accent);">Are you sure you want to proceed?</p>
         </div>
-        <div class="flex justify-end space-x-3">
-            <button onclick="hideFileDeleteWarning()" 
-                    class="px-4 py-2 text-gray-400 hover:text-white">
-                Cancel
-            </button>
-            <button id="confirmDeleteButton"
-                    class="px-4 py-2 text-red-500 border border-red-900/20 rounded-lg hover:bg-red-500/10">
-                Delete
-            </button>
+        <div class="lb-modal-foot">
+            <button onclick="hideFileDeleteWarning()" class="lb-btn lb-btn-ghost">Cancel</button>
+            <button id="confirmDeleteButton" class="lb-btn lb-btn-danger">Delete</button>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}

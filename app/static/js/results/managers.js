@@ -22,14 +22,14 @@ export class TabManager {
 
     switchTab(selectedTab) {
         const target = selectedTab.dataset.tab;
-        
+
         // Hide all tab content and deactivate tabs
         this.tabContents.forEach(content => content.classList.add('hidden'));
-        this.tabs.forEach(tab => tab.classList.remove('border-red-500', 'text-white'));
-        
+        this.tabs.forEach(tab => tab.classList.remove('active'));
+
         // Show target content and activate tab
         document.getElementById(target).classList.remove('hidden');
-        selectedTab.classList.add('border-red-500', 'text-white');
+        selectedTab.classList.add('active');
     }
 }
 
@@ -78,8 +78,8 @@ export class PayloadManager {
         // Update status badge
         if (stdout || stderr) {
             this.status.textContent = 'Output Available';
-            this.status.classList.add('bg-green-500/10', 'text-green-500');
-            this.status.classList.remove('bg-gray-800', 'text-gray-400');
+            this.status.classList.remove('muted');
+            this.status.classList.add('clean');
         } else {
             this.status.textContent = 'No Process Output';
         }
@@ -122,33 +122,30 @@ export class AnalysisTypeHandler {
     }
 }
 
-// Modal Handler
+// Modal Handler — used on the static results page to confirm jumping to
+// dynamic analysis. The dynamic results page doesn't render this modal at
+// all, so every member is null-guarded.
 export class ModalHandler {
     constructor() {
         this.modal = document.getElementById('dynamicWarningModal');
-        this.dialog = this.modal.querySelector('.bg-gray-900');
+        this.dialog = this.modal ? this.modal.querySelector('.lb-modal') : null;
         this.setupListeners();
     }
 
     setupListeners() {
+        if (!this.modal) return;
         this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.hide();
-            }
+            if (e.target === this.modal) this.hide();
         });
     }
 
     show() {
+        if (!this.modal) return;
         this.modal.classList.remove('hidden');
-        setTimeout(() => {
-            this.dialog.classList.remove('scale-95', 'opacity-0');
-        }, 50);
     }
 
     hide() {
-        this.dialog.classList.add('scale-95', 'opacity-0');
-        setTimeout(() => {
-            this.modal.classList.add('hidden');
-        }, 300);
+        if (!this.modal) return;
+        this.modal.classList.add('hidden');
     }
 }

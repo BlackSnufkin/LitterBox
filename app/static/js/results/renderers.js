@@ -36,24 +36,22 @@ export function getEventTypeColor(type) {
 
 export function renderSection(title, items) {
     if (!items || items.length === 0) return '';
-    
+
     const displayItems = items.slice(0, 25);
     const remainingCount = items.length - 25;
-    
+
     return `
-    <div class="lb-card">
-        <div class="text-sm font-medium text-gray-300 mb-3">
-            ${escapeHtml(title)} (${items.length})
-        </div>
-        <div class="space-y-2">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>${escapeHtml(title)} <span class="lb-panel-badge">${items.length}</span></div>
+        <div class="lb-panel-body" style="display: flex; flex-direction: column; gap: 4px;">
             ${displayItems.map(item => `
-                <div class="text-sm text-gray-400 font-mono break-all bg-gray-900/50 p-2 rounded">
+                <div class="lb-mono lb-dim" style="font-size: 11px; padding: 4px 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); word-break: break-all;">
                     ${escapeHtml(item)}
                 </div>
             `).join('')}
             ${remainingCount > 0 ? `
-                <div class="text-sm text-gray-500 mt-2 p-2">
-                    ... and ${remainingCount} more items
+                <div class="lb-muted" style="font-size: 11px; font-style: italic; padding: 4px 8px;">
+                    … and ${remainingCount} more
                 </div>
             ` : ''}
         </div>

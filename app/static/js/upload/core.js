@@ -112,19 +112,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function highlight() {
-        const label = elements.dropZone.querySelector('label');
-        const icon = elements.dropZone.querySelector('.upload-icon');
-
-        label.classList.add('scale-[1.02]', 'border-red-500/50');
-        icon.classList.add('scale-110');
+        const label = elements.dropZone.querySelector('.lb-upload-zone');
+        if (label) label.classList.add('lb-drag-over');
     }
 
     function unhighlight() {
-        const label = elements.dropZone.querySelector('label');
-        const icon = elements.dropZone.querySelector('.upload-icon');
-
-        label.classList.remove('scale-[1.02]', 'border-red-500/50');
-        icon.classList.remove('scale-110');
+        const label = elements.dropZone.querySelector('.lb-upload-zone');
+        if (label) label.classList.remove('lb-drag-over');
     }
 
     function showToast(message, type = 'success') {
@@ -555,11 +549,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!file) return;
 
         const extension = file.name.split('.').pop().toLowerCase();
-        const allowedExtensions = Array.from(document.querySelectorAll('#dropZone .font-mono'))
-            .map(el => el.textContent.trim().substring(1));
+        const allowedExtensions = (window.serverConfig && window.serverConfig.allowedExtensions) || [];
 
         if (!allowedExtensions.includes(extension)) {
-            showToast(`Unsupported file type. Allowed types: ${allowedExtensions.join(', ')}`, 'error');
+            showToast(`Unsupported file type. Allowed types: ${allowedExtensions.map(e => '.' + e).join(', ')}`, 'error');
             return;
         }
 
