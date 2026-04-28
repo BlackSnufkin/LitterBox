@@ -39,14 +39,14 @@ export default {
         }
 
         const sections = [
-            ['Suspicious Strings',     findings.found_suspicious_strings],
-            ['Functions Referenced',   findings.found_suspicious_functions],
-            ['URLs Found',             findings.found_url],
+            ['Notable Strings',        findings.found_suspicious_strings],
+            ['Notable Functions',      findings.found_suspicious_functions],
+            ['URLs',                   findings.found_url],
             ['DLLs Referenced',        findings.found_dll],
             ['IP Addresses',           findings.found_ip],
-            ['Paths Found',            findings.found_path],
+            ['Paths',                  findings.found_path],
             ['Files Referenced',       findings.found_file],
-            ['Commands Found',         findings.found_commands],
+            ['Commands',               findings.found_commands],
             ['Functions',              findings.found_functions],
             ['Error Messages',         findings.found_error_messages],
             ['Network Indicators',     findings.found_network_indicators],

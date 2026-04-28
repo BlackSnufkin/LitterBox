@@ -30,7 +30,7 @@ class LitterBoxAPIError(LitterBoxError):
 
 
 class LitterBoxClient:
-    """Optimized Python client for LitterBox malware analysis sandbox API."""
+    """Optimized Python client for LitterBox payload-analysis sandbox API."""
     
     def __init__(self, 
                  base_url: str = "http://127.0.0.1:1337",
@@ -340,7 +340,7 @@ class LitterBoxClient:
         return response.json()
 
     def get_risk_assessment(self, target: str) -> Dict:
-        """Get the computed risk assessment (score, level, factors) for a target."""
+        """Get the computed detection assessment (score, level, triggering indicators) for a target."""
         response = self._make_request('GET', f'/api/results/{target}/risk')
         return response.json()
 
@@ -525,7 +525,7 @@ class LitterBoxClient:
 def create_enhanced_parser():
     """Create enhanced argument parser with all available operations."""
     parser = argparse.ArgumentParser(
-        description="Enhanced LitterBox Malware Analysis Client",
+        description="Enhanced LitterBox Payload-Analysis Client",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

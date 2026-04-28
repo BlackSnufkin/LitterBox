@@ -133,7 +133,7 @@ def render_analysis_info(data, analysis_type, route_helpers):
     # route_helpers.get_detection_counts(data) returns dynamic counts whenever
     # a dynamic scan exists, which is wrong on the /static page (the row's
     # match list is static but the count is dynamic, so YARA can read
-    # "Suspicious / 3" with "No threats detected" right next to it).
+    # "Detected / 3" with "No rules matched" right next to it).
     detections = json_helpers.extract_detection_counts(analysis_results)
 
     if analysis_type == 'static':

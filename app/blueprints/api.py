@@ -104,7 +104,7 @@ def api_byovd_info(target):
 @api_bp.route('/api/results/<target>/risk', methods=['GET'])
 @error_handler
 def api_risk_assessment(target):
-    """Return the computed risk assessment (score, level, factors) for a target."""
+    """Return the computed detection assessment (score, level, triggering indicators) for a target."""
     app = current_app
     deps = _deps()
     app.logger.debug(f"Fetching risk assessment for target: {target}")

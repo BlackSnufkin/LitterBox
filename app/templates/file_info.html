@@ -34,7 +34,7 @@
             <div class="lb-hero-meta lb-mono">MD5: {{ file_info.md5 }}</div>
         </div>
         <div class="lb-col">
-            <div class="lb-hero-label">Risk</div>
+            <div class="lb-hero-label">Detection</div>
             <div class="lb-hero-score">{{ file_info.risk_assessment.score }}<span class="unit">/100</span></div>
             <div class="lb-hero-meta {% if file_info.risk_assessment.level == 'Critical' or file_info.risk_assessment.level == 'High' %}crit{% elif file_info.risk_assessment.level == 'Medium' %}medium{% else %}low{% endif %}">
                 {{ file_info.risk_assessment.level }}
@@ -50,9 +50,9 @@
     </div>
 </div>
 
-<!-- Risk score bar -->
+<!-- Detection score bar -->
 <div class="lb-panel">
-    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Risk Assessment</div>
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Detection Assessment</div>
     <div class="lb-panel-body">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
             <span class="lb-tag {{ file_info.risk_assessment.level|lower }}">{{ file_info.risk_assessment.level }}</span>
@@ -63,7 +63,7 @@
         </div>
 
         {% if file_info.risk_assessment.factors %}
-        <div class="lb-eyebrow" style="margin-bottom: 8px;">Risk Factors</div>
+        <div class="lb-eyebrow" style="margin-bottom: 8px;">Triggering Indicators</div>
         <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;">
             {% for factor in file_info.risk_assessment.factors %}
             <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid var(--lb-accent); font-size: 12px;">
@@ -227,14 +227,14 @@
             </tbody>
         </table>
 
-        <!-- Suspicious imports -->
+        <!-- Sensitive imports -->
         {% if file_info.pe_info.suspicious_imports %}
         {% set runtime_imports = file_info.pe_info.suspicious_imports | selectattr('is_runtime_import') | list %}
         {% set suspicious_imports = file_info.pe_info.suspicious_imports | rejectattr('is_runtime_import') | list %}
         {% set build_with = file_info.pe_info.build_with %}
 
         <div class="lb-eyebrow" style="margin-bottom: 8px;">
-            {% if build_with and not suspicious_imports %}API Imports ({{ build_with|capitalize }} Runtime){% else %}Suspicious Imports{% endif %}
+            {% if build_with and not suspicious_imports %}API Imports ({{ build_with|capitalize }} Runtime){% else %}Sensitive Imports{% endif %}
         </div>
 
         {% if build_with %}
@@ -243,7 +243,7 @@
                 <span class="lb-tag info">{{ build_with|upper }} Binary Detected</span>
                 <span class="lb-muted">
                     {% if suspicious_imports %}
-                        Found {{ runtime_imports|length }} runtime imports (benign) and {{ suspicious_imports|length }} potentially suspicious imports.
+                        {{ runtime_imports|length }} standard runtime imports and {{ suspicious_imports|length }} sensitive imports observed.
                     {% else %}
                         These {{ runtime_imports|length }} imports are typically part of the {{ build_with|capitalize }} runtime.
                     {% endif %}

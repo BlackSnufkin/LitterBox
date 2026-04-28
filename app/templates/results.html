@@ -108,11 +108,16 @@
         </div>
         <div class="lb-modal-body">
             <p style="margin-bottom: 10px;">About to execute the payload.</p>
+            <div style="margin: 12px 0;">
+                <label for="dynamicAnalysisArgs" class="lb-eyebrow" style="display: block; margin-bottom: 6px;">Command-line Arguments (optional)</label>
+                <input type="text" id="dynamicAnalysisArgs" placeholder="Enter arguments separated by spaces" class="lb-input lb-mono"/>
+                <p class="lb-muted" style="margin-top: 6px; font-size: 11px;">Arguments passed to the payload at execution time.</p>
+            </div>
             <p style="color: var(--lb-sev-medium);">Are you sure you want to proceed?</p>
         </div>
         <div class="lb-modal-foot">
             <button onclick="hideDynamicWarning()" class="lb-btn lb-btn-ghost">Cancel</button>
-            <button onclick="window.location.href='/analyze/dynamic/{{ file_hash }}'" class="lb-btn" style="color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);">Proceed</button>
+            <button onclick="proceedWithDynamicAnalysis('{{ file_hash }}')" class="lb-btn" style="color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);">Proceed</button>
         </div>
     </div>
 </div>

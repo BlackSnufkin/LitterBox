@@ -20,7 +20,7 @@ export default {
         const isClean = findings.length === 0;
 
         ctx.statsElement.innerHTML = statRow([
-            { label: 'Status',         value: isClean ? 'Clean' : 'Suspicious', severity: isClean ? 'clean' : 'critical' },
+            { label: 'Status',         value: isClean ? 'Clean' : 'Detected', severity: isClean ? 'clean' : 'critical' },
             { label: 'Memory Regions', value: mem.total_regions || 0,           severity: 'info' },
             { label: 'Total Findings', value: sum.total_findings || 0,          severity: isClean ? 'info' : 'critical' },
         ]);
@@ -33,11 +33,11 @@ export default {
         ], 2));
 
         if (isClean) {
-            html += cleanState('No threats detected', `Scan completed in ${sum.duration || 0}s.`);
+            html += cleanState('No indicators observed', `Scan completed in ${sum.duration || 0}s.`);
         } else {
             const findingsByType = sum.findings_by_type || {};
             if (Object.keys(findingsByType).length > 0) {
-                html += panel('Findings By Type', `
+                html += panel('Indicators By Type', `
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                         ${Object.entries(findingsByType).map(([type, count]) => `
                             <div style="padding: 10px; border: 1px solid rgba(239, 68, 68, 0.3);">

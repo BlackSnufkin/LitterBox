@@ -17,7 +17,7 @@ export default {
         const isClean = !findings.initial_threat && !scan.detection_offset;
 
         ctx.statsElement.innerHTML = statRow([
-            { label: 'Status', value: isClean ? 'Clean' : (findings.initial_threat || 'Threat'),
+            { label: 'Status', value: isClean ? 'Clean' : (findings.initial_threat || 'Triggered'),
                                severity: isClean ? 'clean' : 'critical' },
             { label: 'Scan Duration', value: typeof scan.scan_duration === 'number' ? scan.scan_duration.toFixed(3) + 's' : 'N/A',
                                       severity: 'info' },
@@ -32,16 +32,16 @@ export default {
         ], 2));
 
         if (isClean) {
-            html += cleanState('No threats detected', 'Security scan completed successfully.');
+            html += cleanState('No signatures triggered', 'AV signature scan completed without matches.');
         } else {
-            html += panel('Threat Detection', kvGrid([
-                ['Detection Offset',       scan.detection_offset || '—'],
+            html += panel('Signature Trigger', kvGrid([
+                ['Trigger Offset',         scan.detection_offset || '—'],
                 ['Relative Location',      scan.relative_location || '—', false],
-                ['Final Threat Detection', scan.final_threat_detection || '—', false],
+                ['Final Trigger Location', scan.final_threat_detection || '—', false],
             ], 2), 'CRITICAL');
 
             if (scan.hex_dump) {
-                html += panel('Hex Dump (±128 bytes around detection)', codeBlock(scan.hex_dump, { label: 'Bytes' }));
+                html += panel('Hex Dump (±128 bytes around trigger)', codeBlock(scan.hex_dump, { label: 'Bytes' }));
             }
         }
 

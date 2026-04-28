@@ -25,7 +25,7 @@ export default {
             ctx.statsElement.innerHTML = '';
             ctx.element.innerHTML = isPidScan
                 ? cleanState('RedEdr Not Initialised', 'No data available — RedEdr did not initialise for this PID-based scan.')
-                : threatState('No Analysis Data Available', 'Refresh the page to initiate a new scan.');
+                : threatState('No telemetry available', 'Refresh the page to initiate a new scan.');
             return;
         }
 

@@ -31,16 +31,16 @@ export default {
         }
 
         html += statRow([
-            { label: 'Status',        value: isClean ? 'Clean' : 'Suspicious', severity: isClean ? 'clean' : 'critical' },
+            { label: 'Status',        value: isClean ? 'Clean' : 'Detected', severity: isClean ? 'clean' : 'critical' },
             { label: 'Total Regions', value: f.total_regions || 0,             severity: 'info' },
             { label: 'Threads',       value: (f.threads || []).length,         severity: 'info' },
         ]);
 
         if (isClean) {
             const note = f.total_unsigned_modules > 0
-                ? `Note: ${f.total_unsigned_modules} unsigned module(s) found, but no suspicious behaviour detected.`
-                : 'Memory analysis completed successfully.';
-            html += cleanState('No suspicious activities detected', note);
+                ? `Note: ${f.total_unsigned_modules} unsigned module(s) observed, but no anomalies in memory layout.`
+                : 'Memory analysis completed without anomalies.';
+            html += cleanState('No anomalies observed', note);
             ctx.element.innerHTML = html;
             return;
         }
@@ -70,19 +70,19 @@ export default {
         `);
 
         const warnings = [
-            { cond: f.total_private_rwx > 0,        msg: `Critical: Found ${f.total_private_rwx} private RWX region(s)`,           sev: 'critical' },
-            { cond: f.total_heap_executable > 0,    msg: `Critical: Found ${f.total_heap_executable} executable heap region(s)`,    sev: 'critical' },
-            { cond: f.total_modified_code > 0,      msg: `Critical: Detected ${f.total_modified_code} modified code region(s)`,     sev: 'critical' },
-            { cond: f.total_modified_pe_header > 0, msg: `Critical: Found ${f.total_modified_pe_header} modified PE header(s)`,     sev: 'critical' },
-            { cond: f.total_threads_non_image > 0,  msg: `Critical: Found ${f.total_threads_non_image} thread(s) in non-image memory`, sev: 'critical' },
-            { cond: f.total_private_rx > 0,         msg: `Warning: Found ${f.total_private_rx} private RX region(s)`,                sev: 'medium' },
-            { cond: f.total_inconsistent_x > 0,     msg: `Warning: ${f.total_inconsistent_x} region(s) with inconsistent X perms`,    sev: 'medium' },
-            { cond: f.total_missing_peb > 0,        msg: `Warning: ${f.total_missing_peb} missing PEB module(s)`,                    sev: 'medium' },
-            { cond: f.total_mismatching_peb > 0,    msg: `Warning: ${f.total_mismatching_peb} mismatching PEB module(s)`,             sev: 'medium' },
+            { cond: f.total_private_rwx > 0,        msg: `Critical: ${f.total_private_rwx} private RWX region(s) observed`,           sev: 'critical' },
+            { cond: f.total_heap_executable > 0,    msg: `Critical: ${f.total_heap_executable} executable heap region(s) observed`,    sev: 'critical' },
+            { cond: f.total_modified_code > 0,      msg: `Critical: ${f.total_modified_code} modified code region(s) observed`,        sev: 'critical' },
+            { cond: f.total_modified_pe_header > 0, msg: `Critical: ${f.total_modified_pe_header} modified PE header(s) observed`,     sev: 'critical' },
+            { cond: f.total_threads_non_image > 0,  msg: `Critical: ${f.total_threads_non_image} thread(s) in non-image memory`,       sev: 'critical' },
+            { cond: f.total_private_rx > 0,         msg: `Warning: ${f.total_private_rx} private RX region(s) observed`,               sev: 'medium' },
+            { cond: f.total_inconsistent_x > 0,     msg: `Warning: ${f.total_inconsistent_x} region(s) with inconsistent X perms`,     sev: 'medium' },
+            { cond: f.total_missing_peb > 0,        msg: `Warning: ${f.total_missing_peb} missing PEB module(s)`,                      sev: 'medium' },
+            { cond: f.total_mismatching_peb > 0,    msg: `Warning: ${f.total_mismatching_peb} mismatching PEB module(s)`,              sev: 'medium' },
         ].filter(w => w.cond);
 
         if (warnings.length) {
-            html += panel('Suspicious Activity', `
+            html += panel('Triggering Indicators', `
                 <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px;">
                     ${warnings.map(w => `
                         <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid ${w.sev === 'critical' ? 'var(--lb-accent)' : 'var(--lb-sev-medium)'}; font-size: 12px;">

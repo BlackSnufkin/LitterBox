@@ -25,11 +25,11 @@
 {%- endmacro %}
 
 
-{# Renders the Suspicious / Clean status badge cell. #}
+{# Renders the Detected / Clean status badge cell. #}
 {% macro scanner_status_cell(detections) -%}
 <td>
     <span class="lb-tag {{ 'critical' if detections else 'clean' }}">
-        {{ 'Suspicious' if detections else 'Clean' }}
+        {{ 'Detected' if detections else 'Clean' }}
     </span>
 </td>
 {%- endmacro %}
@@ -49,7 +49,7 @@
         <div class="lb-chip{% if total > 0 %} hit{% endif %}">
             <div class="lb-chip-name">Status</div>
             <div id="overallStatus" class="lb-chip-count" style="font-size: 14px; color: {{ 'var(--lb-accent)' if total > 0 else 'var(--lb-sev-low)' }};">
-                {{ 'Threats Detected' if total > 0 else 'Clean' }}
+                {{ 'Detections' if total > 0 else 'Clean' }}
             </div>
         </div>
         <div class="lb-chip{% if total > 0 %} hit{% endif %}">
@@ -82,7 +82,7 @@
                 {% endfor %}
             </div>
         {% else %}
-            <span class="lb-muted">No threats detected</span>
+            <span class="lb-muted">No rules matched</span>
         {% endif %}
     </td>
 </tr>

@@ -55,7 +55,7 @@ class RiskCalculator:
                     total_score += severity_score
 
                 risk_factors.append(
-                    f"Found {count} {severity.lower()} severity YARA match"
+                    f"{count} {severity.lower()} severity YARA match"
                     f"{'es' if count > 1 else ''}"
                 )
 
@@ -107,8 +107,8 @@ class RiskCalculator:
             pe_risk += min(critical_imports * 15 + high_risk_imports * 8, 30)
             if critical_imports > 0 or high_risk_imports > 0:
                 risk_factors.append(
-                    f"Found {critical_imports} critical process manipulation and "
-                    f"{high_risk_imports} high-risk dynamic loading imports"
+                    f"{critical_imports} critical process manipulation and "
+                    f"{high_risk_imports} sensitive dynamic loading imports observed"
                 )
 
         if pe_info.get('checksum_info'):
@@ -117,7 +117,7 @@ class RiskCalculator:
                 build_with = checksum.get('build_with')
                 if build_with not in ['go', 'rust']:
                     pe_risk += 25
-                    risk_factors.append("PE checksum mismatch detected")
+                    risk_factors.append("PE checksum mismatch observed")
 
         return pe_risk, risk_factors
 
@@ -224,16 +224,16 @@ def _calculate_byovd_risk(byovd_results):
         risk_score += 55
         danger_factors = []
         if has_dangerous_imports:
-            danger_factors.append("dangerous imports detected")
+            danger_factors.append("critical-import flag observed")
         if critical_imports and critical_imports.strip():
-            danger_factors.append("critical imports detected")
+            danger_factors.append("critical imports listed")
         if has_terminate_process:
             danger_factors.append("process termination capability")
         if has_communication:
             danger_factors.append("communication mechanisms")
 
         if danger_factors:
-            risk_factors.append(f"Dangerous capabilities: {', '.join(danger_factors)}")
+            risk_factors.append(f"Critical capabilities: {', '.join(danger_factors)}")
 
     if not win11_blocked:
         risk_score += 25
@@ -282,13 +282,13 @@ def _calculate_static_risk(static_results):
         threat_score = 0
         if checkplz_findings.get('initial_threat'):
             threat_score += 50
-            risk_factors.append("Critical: CheckPLZ detected initial threat indicators")
+            risk_factors.append("Critical: CheckPLZ AV signature triggered")
 
         indicators = checkplz_findings.get('threat_indicators', [])
         if indicators:
             indicator_score = min(len(indicators) * 15, 40)
             threat_score += indicator_score
-            risk_factors.append(f"Found {len(indicators)} additional threat indicators")
+            risk_factors.append(f"{len(indicators)} additional signature indicators observed")
 
         static_risk += threat_score
 
@@ -323,7 +323,7 @@ def _calculate_dynamic_risk(dynamic_results, analysis_type):
             45 if analysis_type == 'file' else 30,
         )
         dynamic_risk += pe_sieve_score
-        risk_factors.append(f"PE-Sieve found {pesieve_suspicious} suspicious indicators")
+        risk_factors.append(f"PE-Sieve observed {pesieve_suspicious} memory modifications")
 
     dynamic_risk += _calculate_memory_anomaly_risk(dynamic_results, analysis_type, risk_factors)
     dynamic_risk += _calculate_behavior_risk(dynamic_results, analysis_type, risk_factors)
@@ -358,7 +358,7 @@ def _calculate_memory_anomaly_risk(dynamic_results, analysis_type, risk_factors)
             anomaly_count += count
 
     if anomaly_count > 0:
-        risk_factors.append(f"Found {anomaly_count} weighted memory anomalies")
+        risk_factors.append(f"{anomaly_count} weighted memory anomalies observed")
         return min(total_score, 40 if analysis_type == 'file' else 30)
 
     return 0
@@ -387,7 +387,7 @@ def _calculate_behavior_risk(dynamic_results, analysis_type, risk_factors):
         severity = behavior.get('severity', 'low')
         behavior_score += severity_scores.get(severity, 5)
 
-    risk_factors.append(f"Found {behavior_count} weighted suspicious behaviors")
+    risk_factors.append(f"{behavior_count} weighted runtime indicators observed")
     return min(behavior_score, 35)
 
 
@@ -419,9 +419,9 @@ def _calculate_hsb_risk(dynamic_results, analysis_type, risk_factors):
 
         severity_text = ["LOW", "MID", "HIGH"][min(severity, 2)]
         if severity >= 2:
-            risk_factors.append(f"Critical: Found {count} high-severity memory operations")
+            risk_factors.append(f"Critical: {count} high-severity memory operations observed")
         else:
-            risk_factors.append(f"Found {count} {severity_text} severity memory operations")
+            risk_factors.append(f"{count} {severity_text} severity memory operations observed")
 
     return min(total_hsb_score, 45 if analysis_type == 'file' else 35)
 

@@ -105,13 +105,13 @@ function updateStats() {
             riskClass = 'bg-green-500 text-white';
         }
         
-        elements.averageRisk.textContent = `${riskText} Risk`;
+        elements.averageRisk.textContent = `${riskText} Detection`;
         elements.averageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium ' + riskClass;
-        elements.averageEntropy.textContent = `Risk Score: ${avgRiskScore.toFixed(1)}%`;
+        elements.averageEntropy.textContent = `Detection Score: ${avgRiskScore.toFixed(1)}%`;
     } else {
         elements.averageRisk.textContent = '-';
         elements.averageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium bg-gray-500 text-white';
-        elements.averageEntropy.textContent = 'Risk Score: -';
+        elements.averageEntropy.textContent = 'Detection Score: -';
     }
 }
 

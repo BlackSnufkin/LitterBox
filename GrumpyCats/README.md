@@ -78,7 +78,7 @@ python grumpycat.py [global-options] <command> [command-options]
 
 ```bash
 # Upload and run static + dynamic
-grumpycat.py upload malware.exe --analysis static dynamic
+grumpycat.py upload payload.exe --analysis static dynamic
 
 # Upload a kernel driver and immediately run BYOVD
 grumpycat.py upload-driver rootkit.sys --holygrail
@@ -145,7 +145,7 @@ from grumpycat import LitterBoxClient
 
 with LitterBoxClient(base_url="http://127.0.0.1:1337") as client:
     # Upload and run analysis
-    result = client.upload_file("malware.exe")
+    result = client.upload_file("payload.exe")
     file_hash = result["file_info"]["md5"]
     static_result  = client.analyze_file(file_hash, "static")
     dynamic_result = client.analyze_file(file_hash, "dynamic")
@@ -156,7 +156,7 @@ with LitterBoxClient(base_url="http://127.0.0.1:1337") as client:
     # Driver workflow
     driver_result = client.upload_and_analyze_driver("driver.sys", run_holygrail=True)
 
-    # Risk assessment endpoint
+    # Detection assessment endpoint
     risk = client.get_risk_assessment(file_hash)
     # → {"risk_score": 32.5, "risk_level": "Medium", "risk_factors": [...]}
 
@@ -278,11 +278,11 @@ All 22 tools are async. Tool exceptions become MCP error responses automatically
 
 | Tool                          | What It Does                                                          |
 |-------------------------------|-----------------------------------------------------------------------|
-| `get_file_info`               | Metadata: type, size, hashes, entropy, PE structure, suspicious imports |
+| `get_file_info`               | Metadata: type, size, hashes, entropy, PE structure, sensitive imports |
 | `get_static_results`          | YARA + CheckPlz + Stringnalyzer findings                              |
 | `get_dynamic_results`         | Memory scanners + behavioral telemetry + process output               |
 | `get_holygrail_results`       | LOLDrivers + block status + critical imports                          |
-| `get_risk_assessment`         | `{score, level, factors}` for the target                              |
+| `get_risk_assessment`         | Detection score + level + triggering indicators for the target        |
 | `get_comprehensive_results`   | All four results in one parallel call                                 |
 | `get_report`                  | Full HTML report inline                                               |
 | `download_report`             | Save the HTML report to disk and return the path                      |
@@ -300,7 +300,7 @@ All 22 tools are async. Tool exceptions become MCP error responses automatically
 
 | Tool                | What It Does                                                          |
 |---------------------|-----------------------------------------------------------------------|
-| `list_payloads`     | List every analyzed payload + driver + process with risk summary      |
+| `list_payloads`     | List every analyzed payload + driver + process with detection summary |
 | `sandbox_status`    | Health + tool readiness + fleet summary                               |
 | `cleanup_sandbox`   | Wipe artifacts (destructive — confirm before calling)                 |
 | `delete_payload`    | Delete one payload + its results (destructive)                        |

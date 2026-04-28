@@ -118,12 +118,12 @@ export function codeBlock(content, opts = {}) {
 }
 
 /** Build a summary scanner row (used inside #scannerResultsBody). */
-export function summaryRow({ name, suspicious, count, detail }) {
+export function summaryRow({ name, triggered, count, detail }) {
     return `
         <tr>
             <td>${escapeHtml(name)}</td>
-            <td>${tag(suspicious ? 'critical' : 'clean', suspicious ? 'Suspicious' : 'Clean')}</td>
-            <td class="lb-mono" style="color: ${suspicious ? 'var(--lb-accent)' : 'var(--lb-text-mute)'};">${count}</td>
+            <td>${tag(triggered ? 'critical' : 'clean', triggered ? 'Detected' : 'Clean')}</td>
+            <td class="lb-mono" style="color: ${triggered ? 'var(--lb-accent)' : 'var(--lb-text-mute)'};">${count}</td>
             <td class="lb-muted" style="font-size: 11px;">${escapeHtml(detail)}</td>
         </tr>`;
 }

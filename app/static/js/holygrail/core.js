@@ -377,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="lb-tag medium">⚑ HolyGrail</span>
         <div style="flex: 1;">
           <div class="lb-strong" style="font-size: 13px;">The Holy Grail Found</div>
-          <div class="lb-muted" style="font-size: 11px;">Dangerous imports detected · Not on LOLDrivers · Not blocked</div>
+          <div class="lb-muted" style="font-size: 11px;">Critical imports observed · Not on LOLDrivers · Not blocked</div>
         </div>
       </div>
     `;
@@ -394,10 +394,10 @@ document.addEventListener('DOMContentLoaded', () => {
       description = 'Listed on Microsoft recommended driver block rules';
     } else if (hasDanger) {
       title = 'Potentially Interesting';
-      description = 'Contains suspicious imports but may have limited exploitation potential';
+      description = 'Contains critical imports but may have limited exploitation potential';
     } else {
-      title = 'Low Risk Driver';
-      description = 'No obvious signs of exploitation potential detected';
+      title = 'Low BYOVD Potential';
+      description = 'No obvious signs of exploitation potential observed';
     }
 
     const severity = (isLol || win10 || win11) ? 'medium' : 'info';

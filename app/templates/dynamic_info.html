@@ -77,9 +77,9 @@
                         {% if findings.implanted_shc > 0 %}<div>Implanted Shellcode: {{ findings.implanted_shc }}</div>{% endif %}
                         {% if findings.unreachable > 0 %}<div>Unreachable: {{ findings.unreachable }}</div>{% endif %}
                         {% if findings.other > 0 %}<div>Other: {{ findings.other }}</div>{% endif %}
-                        {% if findings.total_suspicious > 0 %}<div>Total Suspicious: {{ findings.total_suspicious }}</div>{% endif %}
+                        {% if findings.total_suspicious > 0 %}<div>Total Modifications: {{ findings.total_suspicious }}</div>{% endif %}
                     {% else %}
-                        <span class="lb-muted">No modifications detected</span>
+                        <span class="lb-muted">No memory modifications observed</span>
                     {% endif %}
                 </td>
             </tr>
@@ -110,7 +110,7 @@
                             {% endif %}
                         {% endfor %}
                     {% else %}
-                        <span class="lb-muted">No anomalies detected</span>
+                        <span class="lb-muted">No anomalies observed</span>
                     {% endif %}
                 </td>
             </tr>
@@ -126,7 +126,7 @@
                             <div>{{ finding.type }} <span class="lb-muted">({{ finding.level }})</span></div>
                         {% endfor %}
                     {% else %}
-                        <span class="lb-muted">No suspicious activities</span>
+                        <span class="lb-muted">No indicators observed</span>
                     {% endif %}
                 </td>
             </tr>
@@ -144,7 +144,7 @@
                             {% endfor %}
                         {% endfor %}
                     {% else %}
-                        <span class="lb-muted">No suspicious behavior</span>
+                        <span class="lb-muted">No sleep-pattern indicators</span>
                     {% endif %}
                 </td>
             </tr>

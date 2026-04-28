@@ -255,8 +255,28 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dynamicButton) dynamicButton.style.display = 'flex';
     }
     // Make modal functions globally accessible
-    window.showDynamicWarning = () => modal.show();
+    window.showDynamicWarning = () => {
+        // Pre-populate the args input with whatever was last used so the user
+        // can re-run with the same args or tweak them.
+        const argsInput = document.getElementById('dynamicAnalysisArgs');
+        if (argsInput) {
+            try {
+                const saved = JSON.parse(localStorage.getItem('analysisArgs') || '[]');
+                argsInput.value = Array.isArray(saved) ? saved.join(' ') : '';
+            } catch {
+                argsInput.value = '';
+            }
+        }
+        modal.show();
+    };
     window.hideDynamicWarning = () => modal.hide();
+    window.proceedWithDynamicAnalysis = (fileHash) => {
+        const argsInput = document.getElementById('dynamicAnalysisArgs');
+        const argsValue = argsInput ? argsInput.value : '';
+        const args = argsValue.split(' ').filter(arg => arg.trim() !== '');
+        localStorage.setItem('analysisArgs', JSON.stringify(args));
+        window.location.href = `/analyze/dynamic/${fileHash}`;
+    };
 
     // Start analysis if parameters exist
     if (analysis.analysisType && analysis.fileHash) {

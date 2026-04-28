@@ -42,7 +42,7 @@
                 {{ scanner_status_cell(checkplz_detections) }}
                 {{ scanner_count_cell(checkplz_detections) }}
                 <td class="lb-muted" style="font-size: 11px;">
-                    {{ analysis_results.checkplz.findings.initial_threat if checkplz_detections else 'No threats detected' }}
+                    {{ analysis_results.checkplz.findings.initial_threat if checkplz_detections else 'No signatures triggered' }}
                 </td>
             </tr>
         </tbody>
@@ -78,7 +78,7 @@
         {% if findings.found_suspicious_strings and findings.found_suspicious_strings|length > 0 %}
             <div style="border: 1px solid var(--lb-accent); padding: 10px; margin-bottom: 10px;">
                 <div class="lb-eyebrow" style="color: var(--lb-accent); margin-bottom: 6px;">
-                    Suspicious Strings <span class="lb-muted">({{ findings.found_suspicious_strings|length }})</span>
+                    Notable Strings <span class="lb-muted">({{ findings.found_suspicious_strings|length }})</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 3px;">
                     {% for item in findings.found_suspicious_strings[:5] %}
@@ -93,8 +93,8 @@
 
         <div class="lb-grid-2">
             <div>
-                {{ render_findings_row('URLs Found', findings.found_url) }}
-                {{ render_findings_row('Paths Found', findings.found_path) }}
+                {{ render_findings_row('URLs', findings.found_url) }}
+                {{ render_findings_row('Paths', findings.found_path) }}
             </div>
             <div>
                 {{ render_findings_row('IP Addresses', findings.found_ip) }}

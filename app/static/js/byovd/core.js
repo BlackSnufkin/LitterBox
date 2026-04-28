@@ -404,7 +404,7 @@ class ByovdApp {
           <span class="lb-tag medium">⚑ HolyGrail</span>
           <div style="flex: 1;">
             <div class="lb-strong" style="font-size: 14px;">The Holy Grail Found</div>
-            <div class="lb-muted" style="font-size: 11px;">Dangerous imports detected · Not on LOLDrivers · Not blocked</div>
+            <div class="lb-muted" style="font-size: 11px;">Critical imports observed · Not on LOLDrivers · Not blocked</div>
           </div>
         </div>
       `;
@@ -421,11 +421,11 @@ class ByovdApp {
       severity = 'medium';
     } else if (data.hasDanger) {
       title = 'Potentially Interesting';
-      description = 'Contains suspicious imports but may have limited exploitation potential';
+      description = 'Contains critical imports but may have limited exploitation potential';
       severity = 'info';
     } else {
-      title = 'Low Risk Driver';
-      description = 'No obvious signs of exploitation potential detected';
+      title = 'Low BYOVD Potential';
+      description = 'No obvious signs of exploitation potential observed';
       severity = 'info';
     }
 

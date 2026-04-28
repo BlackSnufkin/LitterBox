@@ -567,7 +567,7 @@
               <div class="risk-bar-fill {{ byovd_class }}" style="width: {{ byovd_score if byovd_score is not none else 0 }}%;"></div>
             </div>
           {% else %}
-            <span class="hero-eyebrow">Risk Assessment</span>
+            <span class="hero-eyebrow">Detection Assessment</span>
             <div class="risk-row">
               <div>
                 <span class="risk-score">{{ risk_score|round|int if risk_score is not none else 0 }}</span><span class="risk-score-suffix">/100</span>
@@ -611,7 +611,7 @@
       </div>
     </section>
 
-    <!-- HolyGrail (BYOVD) — driver samples only; promoted above File Info / Risk Factors. -->
+    <!-- HolyGrail (BYOVD) — driver samples only; promoted above File Info / Triggering Indicators. -->
     {% if is_driver_report %}
       {% set bf = byovd_results.findings %}
       {% set bs = bf.summary or {} %}
@@ -637,7 +637,7 @@
           {% elif has_danger %}
             <span class="pill medium">Potentially Interesting</span>
           {% else %}
-            <span class="pill clean">Low Risk</span>
+            <span class="pill clean">Low BYOVD Potential</span>
           {% endif %}
         </h2>
         <p class="section-sub">Driver Imports · LoLDrivers list · Microsoft Driver Block Policy.</p>
@@ -697,14 +697,14 @@
       </section>
     {% endif %}
 
-    <!-- Risk Factors -->
+    <!-- Triggering Indicators -->
     {% if risk_factors %}
     <section class="card">
       <h2 class="section-title">
-        Key Risk Factors
-        <span class="pill {{ risk_class }}">{{ risk_factors|length }} factor{{ 's' if risk_factors|length != 1 else '' }}</span>
+        Triggering Indicators
+        <span class="pill {{ risk_class }}">{{ risk_factors|length }} indicator{{ 's' if risk_factors|length != 1 else '' }}</span>
       </h2>
-      <p class="section-sub">Findings that contributed to the overall risk score.</p>
+      <p class="section-sub">Indicators that contributed to the overall detection score.</p>
       <ul class="factor-list">
         {% for factor in risk_factors %}
           <li>{{ factor }}</li>
@@ -777,7 +777,7 @@
         </dl>
 
         {% if pe.suspicious_imports %}
-          <h3 class="subsection-title">Suspicious Imports ({{ pe.suspicious_imports|length }})</h3>
+          <h3 class="subsection-title">Sensitive Imports ({{ pe.suspicious_imports|length }})</h3>
           <table class="report-table">
             <thead><tr><th>DLL</th><th>Function</th><th>Category</th><th>Note</th></tr></thead>
             <tbody>
@@ -871,13 +871,13 @@
             {% if cp and cp.findings and cp.findings.initial_threat %}
               <span class="threat-state">
                 <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1l7 14H1L8 1zm0 5v4m0 2v.5"/></svg>
-                Threat detected
+                Signature triggered
               </span>
               <span class="pill critical">{{ cp.findings.initial_threat }}</span>
             {% else %}
               <span class="clean-state">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>
-                No threat detected
+                No signatures triggered
               </span>
             {% endif %}
           </div>
@@ -899,15 +899,15 @@
             {% if st and st.findings %}
               {% set sus_count = (st.findings.found_suspicious_strings or [])|length + (st.findings.found_suspicious_functions or [])|length %}
               {% if sus_count > 0 %}
-                <span class="pill medium">{{ sus_count }} suspicious</span>
+                <span class="pill medium">{{ sus_count }} notable</span>
               {% endif %}
             {% endif %}
           </div>
           {% if st and st.findings %}
             {% set f = st.findings %}
             {% set buckets = [
-              ('Suspicious strings', f.found_suspicious_strings),
-              ('Suspicious functions', f.found_suspicious_functions),
+              ('Notable strings', f.found_suspicious_strings),
+              ('Notable functions', f.found_suspicious_functions),
               ('URLs', f.found_url),
               ('IP addresses', f.found_ip),
               ('Domains', f.found_domains),
@@ -952,7 +952,7 @@
             {% else %}
               <div class="clean-state mt-12">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>
-                No suspicious strings detected
+                No notable strings observed
               </div>
             {% endif %}
           {% endif %}
@@ -1007,7 +1007,7 @@
             {% if sus > 0 %}
               <span class="threat-state">
                 <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1l7 14H1L8 1zm0 5v4m0 2v.5"/></svg>
-                {{ sus }} suspicious indicator{{ 's' if sus != 1 else '' }}
+                {{ sus }} memory modification{{ 's' if sus != 1 else '' }}
               </span>
             {% else %}
               <span class="clean-state">
@@ -1088,12 +1088,12 @@
             {% if pa_findings %}
               <span class="threat-state">
                 <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1l7 14H1L8 1zm0 5v4m0 2v.5"/></svg>
-                {{ pa_findings|length }} finding{{ 's' if pa_findings|length != 1 else '' }}
+                {{ pa_findings|length }} indicator{{ 's' if pa_findings|length != 1 else '' }}
               </span>
             {% else %}
               <span class="clean-state">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>
-                No suspicious behaviour
+                No indicators observed
               </span>
             {% endif %}
           </div>
@@ -1197,7 +1197,7 @@
 
     <footer class="report-footer">
       <span>Report generated {{ generated_on }}</span>
-      <span class="branding">LitterBox · automated malware-analysis workbench</span>
+      <span class="branding">LitterBox · automated payload-analysis workbench</span>
     </footer>
   </main>
 </body>

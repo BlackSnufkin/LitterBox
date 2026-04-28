@@ -399,9 +399,9 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         const defaultConfig = {
-            title: 'Suspicious Imports Analysis',
+            title: 'Sensitive Imports Analysis',
             badge: null,
-            badgeLabel: 'Suspicious',
+            badgeLabel: 'Sensitive',
             countClass: 'bg-red-500/10 text-red-500',
             dllColor: 'text-red-500',
             categoryBg: 'bg-red-500/20',
@@ -477,24 +477,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateImportsSummary(buildWith, runtimeCount, suspiciousCount) {
         let summaryText = '';
-        
+
         if (buildWith === 'go') {
             if (suspiciousCount > 0) {
-                summaryText = `Go binary detected: ${runtimeCount} Go runtime imports (benign) and ${suspiciousCount} potentially suspicious imports found.`;
+                summaryText = `Go binary detected: ${runtimeCount} standard Go runtime imports and ${suspiciousCount} sensitive imports observed.`;
             } else {
-                summaryText = `Go binary detected: ${runtimeCount} Go runtime imports found - these are typically benign.`;
+                summaryText = `Go binary detected: ${runtimeCount} standard Go runtime imports — typically not user logic.`;
             }
         } else if (buildWith === 'rust') {
             if (suspiciousCount > 0) {
-                summaryText = `Rust binary detected: ${runtimeCount} Rust runtime imports (benign) and ${suspiciousCount} potentially suspicious imports found.`;
+                summaryText = `Rust binary detected: ${runtimeCount} standard Rust runtime imports and ${suspiciousCount} sensitive imports observed.`;
             } else {
-                summaryText = `Rust binary detected: ${runtimeCount} Rust runtime imports found - these are typically benign.`;
+                summaryText = `Rust binary detected: ${runtimeCount} standard Rust runtime imports — typically not user logic.`;
             }
         } else {
             const totalImports = runtimeCount + suspiciousCount;
-            summaryText = `Found ${totalImports} potentially suspicious imports that may indicate malicious capabilities.`;
+            summaryText = `${totalImports} sensitive imports observed — these are APIs commonly watched by AV/EDR.`;
         }
-        
+
         elements.suspiciousImportsSummary.textContent = summaryText;
     }
 

@@ -1,6 +1,6 @@
 """LitterBox MCP server.
 
-Exposes the LitterBox malware-analysis sandbox to MCP clients (Claude Desktop,
+Exposes the LitterBox payload-analysis sandbox to MCP clients (Claude Desktop,
 Cursor, etc.) so an LLM can drive uploads, analysis, result retrieval, and
 report generation, plus a small set of OPSEC-review prompts.
 
@@ -34,7 +34,7 @@ logger = logging.getLogger("litterbox-mcp")
 mcp = FastMCP(
     name="LitterBox",
     instructions=(
-        "Tools for the LitterBox malware-analysis sandbox: upload payloads / drivers, "
+        "Tools for the LitterBox payload-analysis sandbox: upload payloads / drivers, "
         "run static or dynamic analysis, retrieve results, and generate reports. "
         "Use the prompts for OPSEC review of analysis output. "
         "Tool exceptions are surfaced to the client by FastMCP automatically — "
@@ -128,7 +128,7 @@ async def validate_pid(
 
 @mcp.tool()
 async def get_file_info(file_hash: str) -> dict:
-    """File metadata: type, size, hashes, entropy, PE structure, suspicious imports."""
+    """File metadata: type, size, hashes, entropy, PE structure, sensitive imports."""
     return await _call(client.get_file_info, file_hash)
 
 
@@ -152,7 +152,7 @@ async def get_holygrail_results(file_hash: str) -> dict:
 
 @mcp.tool()
 async def get_risk_assessment(target: str) -> dict:
-    """Computed risk: numerical score, level (Low / Medium / High / Critical), contributing factors."""
+    """Computed detection assessment: numerical score, level (Low / Medium / High / Critical), triggering indicators."""
     return await _call(client.get_risk_assessment, target)
 
 
@@ -218,7 +218,7 @@ async def create_fuzzy_database(
 
 @mcp.tool()
 async def list_payloads() -> dict:
-    """List every analyzed payload, driver, and process in the sandbox with risk summary."""
+    """List every analyzed payload, driver, and process in the sandbox with detection summary."""
     return await _call(client.get_files_summary)
 
 
@@ -261,9 +261,9 @@ def detection_summary(file_hash: str) -> str:
     return f"""Load `get_comprehensive_results("{file_hash}")` and summarize:
 
 1. **YARA matches** — for each rule that fired, name it and the string / pattern that triggered it.
-2. **Memory anomalies** — for each PE-Sieve / Moneta / Patriot / HSB finding, identify the technique it maps to (e.g. private RWX → manual injection, modified PE header → unhooking).
-3. **Behavioral telemetry** — flag anything in the RedEdr timeline atypical for a benign process (suspicious DLL loads, child processes, IOCTL traffic).
-4. **Static red flags** — entropy, packing, suspicious imports, attribution-bearing strings.
+2. **Memory anomalies** — for each PE-Sieve / Moneta / Patriot / HSB indicator, identify the technique it maps to (e.g. private RWX → manual injection, modified PE header → unhooking).
+3. **Behavioral telemetry** — flag anything in the RedEdr timeline atypical for an unmodified process (notable DLL loads, child processes, IOCTL traffic).
+4. **Static signals** — entropy, packing, sensitive imports, attribution-bearing strings.
 
 Be specific: cite rule names, region addresses, API names. Do not speculate beyond the data.
 """

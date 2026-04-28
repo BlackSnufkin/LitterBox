@@ -76,9 +76,9 @@ export default {
             totalDetections += matches.length;
             rows.push(summaryRow({
                 name: 'YARA',
-                suspicious: matches.length > 0,
+                triggered: matches.length > 0,
                 count: matches.length,
-                detail: matches.length > 0 ? `${matches.length} rule match${matches.length === 1 ? '' : 'es'} found` : 'No threats detected',
+                detail: matches.length > 0 ? `${matches.length} rule match${matches.length === 1 ? '' : 'es'}` : 'No rules matched',
             }));
         }
 
@@ -87,9 +87,9 @@ export default {
             totalDetections += susp;
             rows.push(summaryRow({
                 name: 'PE-sieve',
-                suspicious: susp > 0,
+                triggered: susp > 0,
                 count: susp,
-                detail: susp > 0 ? `${susp} suspicious modification${susp === 1 ? '' : 's'} found` : 'No modifications detected',
+                detail: susp > 0 ? `${susp} memory modification${susp === 1 ? '' : 's'} observed` : 'No memory modifications observed',
             }));
         }
 
@@ -103,9 +103,9 @@ export default {
             totalDetections += susp;
             rows.push(summaryRow({
                 name: 'Moneta',
-                suspicious: !isClean,
+                triggered: !isClean,
                 count: susp,
-                detail: isClean ? 'No anomalies detected' : 'Memory anomalies found',
+                detail: isClean ? 'No anomalies observed' : 'Memory anomalies observed',
             }));
         }
 
@@ -115,9 +115,9 @@ export default {
             if (hasDetection) totalDetections++;
             rows.push(summaryRow({
                 name: 'CheckPlz',
-                suspicious: hasDetection,
+                triggered: hasDetection,
                 count: hasDetection ? 1 : 0,
-                detail: hasDetection ? (f.initial_threat || 'Threat detected') : 'No threats detected',
+                detail: hasDetection ? (f.initial_threat || 'Signature triggered') : 'No signatures triggered',
             }));
         }
 
@@ -126,9 +126,9 @@ export default {
             totalDetections += total;
             rows.push(summaryRow({
                 name: 'Patriot',
-                suspicious: total > 0,
+                triggered: total > 0,
                 count: total,
-                detail: total > 0 ? `${total} suspicious activit${total === 1 ? 'y' : 'ies'} found` : 'No suspicious activities',
+                detail: total > 0 ? `${total} indicator${total === 1 ? '' : 's'} observed` : 'No indicators observed',
             }));
         }
 
@@ -137,9 +137,9 @@ export default {
             totalDetections += total;
             rows.push(summaryRow({
                 name: 'Hunt-Sleeping-Beacons',
-                suspicious: total > 0,
+                triggered: total > 0,
                 count: total,
-                detail: total > 0 ? 'Suspicious behaviour detected' : 'No suspicious behaviour',
+                detail: total > 0 ? 'Sleep-pattern indicators observed' : 'No sleep-pattern indicators',
             }));
         }
 
@@ -148,7 +148,7 @@ export default {
         const overEl  = document.getElementById('overallStatus');
         if (totalEl) totalEl.textContent = totalDetections;
         if (overEl) {
-            overEl.textContent = totalDetections > 0 ? 'Threats Detected' : 'Clean';
+            overEl.textContent = totalDetections > 0 ? 'Detections' : 'Clean';
             overEl.style.color = totalDetections > 0 ? 'var(--lb-accent)' : 'var(--lb-sev-low)';
         }
 

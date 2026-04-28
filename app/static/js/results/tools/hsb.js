@@ -27,7 +27,7 @@ export default {
         const processPid = firstDetection?.pid ?? 'N/A';
 
         ctx.statsElement.innerHTML = statRow([
-            { label: 'Status',   value: hasFindings ? 'Suspicious' : 'Clean', severity: hasFindings ? 'critical' : 'clean' },
+            { label: 'Status',   value: hasFindings ? 'Detected' : 'Clean', severity: hasFindings ? 'critical' : 'clean' },
             { label: 'Findings', value: summary.total_findings || 0,          severity: hasFindings ? 'critical' : 'info' },
             { label: 'Threads',  value: summary.scanned_threads || 0,         severity: 'info' },
             { label: 'PID',      value: processPid,                           severity: 'info' },
@@ -35,7 +35,7 @@ export default {
         ]);
 
         if (!hasFindings) {
-            ctx.element.innerHTML = cleanState('No suspicious behaviour detected', `Process ${processName} (PID ${processPid}) is clean.`);
+            ctx.element.innerHTML = cleanState('No sleep-pattern indicators', `Process ${processName} (PID ${processPid}) shows no beacon-like sleep behaviour.`);
             return;
         }
 
@@ -55,7 +55,7 @@ export default {
         html += Object.entries(findingsByThread).map(([tid, items]) => `
             <div class="lb-panel">
                 <div class="lb-panel-hdr">
-                    <span class="lb-glyph">▸</span>${tid === 'process' ? 'Process-wide Findings' : `Thread ${tid}`}
+                    <span class="lb-glyph">▸</span>${tid === 'process' ? 'Process-wide Indicators' : `Thread ${tid}`}
                     <span class="lb-panel-badge">${items.length}</span>
                 </div>
                 <div class="lb-panel-body">

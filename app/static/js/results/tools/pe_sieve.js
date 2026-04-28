@@ -15,13 +15,13 @@ export default {
         const isClean = (f.total_suspicious || 0) === 0;
 
         let html = statRow([
-            { label: 'Status',        value: isClean ? 'Clean' : 'Suspicious', severity: isClean ? 'clean' : 'critical' },
+            { label: 'Status',        value: isClean ? 'Clean' : 'Detected', severity: isClean ? 'clean' : 'critical' },
             { label: 'Total Scanned', value: f.total_scanned || 0,             severity: 'info' },
-            { label: 'Suspicious',    value: f.total_suspicious || 0,          severity: isClean ? 'info' : 'critical' },
+            { label: 'Modifications', value: f.total_suspicious || 0,          severity: isClean ? 'info' : 'critical' },
         ]);
 
         if (isClean) {
-            html += cleanState('No suspicious modifications detected', 'PE analysis completed successfully.');
+            html += cleanState('No memory modifications observed', 'PE-Sieve scan completed without findings.');
             ctx.element.innerHTML = html;
             return;
         }
@@ -38,7 +38,7 @@ export default {
             { label: 'Other',            value: f.other },
         ];
 
-        html += panel('Detection Breakdown', `
+        html += panel('Indicator Breakdown', `
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                 ${breakdown.map(item => `
                     <div style="padding: 10px; border: 1px solid ${item.value > 0 ? 'rgba(239, 68, 68, 0.3)' : 'var(--lb-border)'};">

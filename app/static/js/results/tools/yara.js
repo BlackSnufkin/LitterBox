@@ -35,7 +35,7 @@ export default {
         }
 
         if (isClean) {
-            html += cleanState('No threats detected', 'All YARA rules passed successfully.');
+            html += cleanState('No rules matched', 'All YARA rules passed without matching.');
             ctx.element.innerHTML = html;
             return;
         }
@@ -45,7 +45,7 @@ export default {
         );
 
         const labelMap = {
-            threat_name:   'Threat',
+            threat_name:   'Match',
             rule_filepath: 'Rule File',
             creation_date: 'Created',
             id:            'Rule ID',
