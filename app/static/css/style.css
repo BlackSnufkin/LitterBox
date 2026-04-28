@@ -49,9 +49,8 @@
 
     /* Layout */
     --lb-sidebar-width: 220px;
-    --lb-titlebar-h:    36px;
+    --lb-titlebar-h:    44px;
     --lb-tabs-h:        34px;
-    --lb-statusbar-h:   24px;
 
     /* Motion */
     --lb-transition-fast: 150ms ease;
@@ -106,28 +105,43 @@ a:hover { color: var(--lb-accent); }
     min-width: 0;
 }
 
-/* Titlebar / breadcrumb */
+/* Titlebar — brand + breadcrumb + version */
 .lb-titlebar {
     height: var(--lb-titlebar-h);
     background: var(--lb-bg-soft);
     border-bottom: 1px solid var(--lb-border);
     display: flex;
     align-items: center;
+    gap: 12px;
     padding: 0 14px;
     font-size: 12px;
     color: var(--lb-text-dim);
 }
-.lb-tb-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--lb-accent);
-    margin-right: 10px;
+.lb-tb-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--lb-text);
+    flex-shrink: 0;
+}
+.lb-tb-brand:hover { color: var(--lb-text); opacity: 0.85; }
+.lb-tb-mark { width: 28px; height: 28px; flex-shrink: 0; }
+.lb-tb-name {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--lb-text);
+    line-height: 1;
+}
+.lb-tb-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--lb-border-hi);
     flex-shrink: 0;
 }
 .lb-tb-path { color: var(--lb-text); }
 .lb-tb-sep  { color: var(--lb-text-mute); margin: 0 6px; }
-.lb-tb-right { margin-left: auto; color: var(--lb-text-mute); font-size: 11px; }
 
 /* Tabs */
 .lb-tabs {
@@ -170,37 +184,6 @@ a:hover { color: var(--lb-accent); }
     flex-direction: column;
     overflow-y: auto;
 }
-.lb-sidebar-brand {
-    padding: 0 14px 14px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--lb-border);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    color: var(--lb-text);
-}
-.lb-sidebar-brand:hover { color: var(--lb-text); }
-.lb-brand-mark {
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
-}
-.lb-brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-.lb-brand-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--lb-text);
-    letter-spacing: 0.02em;
-}
-.lb-brand-tag {
-    font-size: 9px;
-    color: var(--lb-text-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    margin-top: 2px;
-}
-
 .lb-nav-group { padding: 8px 14px; }
 .lb-nav-heading {
     font-size: 10px;
@@ -263,6 +246,13 @@ a:hover { color: var(--lb-accent); }
 .lb-sidebar-foot .lb-status-dot.ok    { background: var(--lb-sev-low);  box-shadow: 0 0 6px var(--lb-sev-low); }
 .lb-sidebar-foot .lb-status-dot.warn  { background: var(--lb-sev-medium); box-shadow: 0 0 6px var(--lb-sev-medium); }
 .lb-sidebar-foot .lb-status-dot.fail  { background: var(--lb-accent);   box-shadow: 0 0 6px var(--lb-accent); }
+.lb-sidebar-foot .lb-status-text { flex: 1; }
+.lb-sidebar-version {
+    color: var(--lb-text-mute);
+    font-family: 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+}
 
 /* Main content area */
 .lb-content {
@@ -272,34 +262,6 @@ a:hover { color: var(--lb-accent); }
     flex: 1;
     min-width: 0;
 }
-
-/* Status bar — IDE-style: dark with subtle red dot, only goes red on alerts. */
-.lb-statusbar {
-    height: var(--lb-statusbar-h);
-    background: var(--lb-bg-soft);
-    border-top: 1px solid var(--lb-border);
-    color: var(--lb-text-dim);
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    gap: 16px;
-    letter-spacing: 0.02em;
-}
-.lb-statusbar .lb-status-seg { display: flex; align-items: center; gap: 6px; color: var(--lb-text-dim); }
-.lb-statusbar .lb-status-seg-right { margin-left: auto; }
-.lb-statusbar .lb-status-seg::before {
-    content: '';
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--lb-text-mute);
-    flex-shrink: 0;
-}
-.lb-statusbar .lb-status-seg.brand::before { background: var(--lb-accent); }
-.lb-statusbar.warn { background: rgba(234, 179, 8, 0.08); border-top-color: var(--lb-sev-medium); color: var(--lb-sev-medium); }
-.lb-statusbar.crit { background: rgba(239, 68, 68, 0.08); border-top-color: var(--lb-sev-critical); color: var(--lb-accent-soft); }
-.lb-statusbar.ok   { color: var(--lb-sev-low); }
 
 /* ============================================================
  * Panels

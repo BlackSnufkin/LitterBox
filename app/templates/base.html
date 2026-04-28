@@ -1,10 +1,9 @@
 <!-- app/templates/base.html
  *
  * LitterBox shell — terminal/IDE layout.
- * - top breadcrumb titlebar
- * - left sidebar (brand + grouped navigation + status footer)
+ * - top titlebar: brand (logo + name) + breadcrumb + version
+ * - left sidebar: grouped navigation + system-status footer
  * - main column: optional tabs row + content
- * - bottom red status bar
  *
  * Tailwind utility classes are still available; pages are encouraged
  * to use the .lb-* component classes from app/static/css/style.css.
@@ -25,27 +24,22 @@
 
 <div class="lb-page">
 
-    <!-- Titlebar / breadcrumb -->
+    <!-- Titlebar: brand + breadcrumb -->
     <div class="lb-titlebar">
-        <span class="lb-tb-dot"></span>
+        <a href="/" class="lb-tb-brand" title="LitterBox home">
+            <img src="{{ favicon_url }}" alt="" class="lb-tb-mark"/>
+            <span class="lb-tb-name">{{ config.application.name }}</span>
+        </a>
+        <span class="lb-tb-divider"></span>
         <span class="lb-tb-path">
             {% block breadcrumb %}Home{% endblock %}
         </span>
-        <span class="lb-tb-right">v{{ config.application.version }}</span>
     </div>
 
     <div class="lb-shell">
 
         <!-- Sidebar -->
         <aside class="lb-sidebar">
-            <a href="/" class="lb-sidebar-brand">
-                <img src="{{ favicon_url }}" alt="" class="lb-brand-mark"/>
-                <span class="lb-brand-text">
-                    <span class="lb-brand-title">{{ config.application.name }}</span>
-                    <span class="lb-brand-tag">SandBox · Red Team</span>
-                </span>
-            </a>
-
             <div class="lb-nav-group">
                 <div class="lb-nav-heading">Analyse</div>
 
@@ -105,12 +99,13 @@
 
             {% block sidebar_extra %}{% endblock %}
 
-            <!-- Status footer -->
+            <!-- Status footer + version -->
             <div class="lb-sidebar-foot">
                 <span id="status-indicator" class="lb-status-dot"></span>
                 <span class="lb-status-text">
-                    Status: <span id="status-text">Checking…</span>
+                    <span id="status-text">Checking…</span>
                 </span>
+                <span class="lb-sidebar-version">v{{ config.application.version }}</span>
             </div>
 
             <!-- Hidden popover for issues -->
@@ -128,14 +123,6 @@
             </main>
         </div>
 
-    </div>
-
-    <!-- Status bar — IDE-style: contextual file/path info, no brand repetition. -->
-    <div class="lb-statusbar">
-        <span class="lb-status-seg brand">{% block statusbar_left %}Ready{% endblock %}</span>
-        {% block statusbar_segs %}{% endblock %}
-        <span class="lb-status-seg lb-status-seg-right">UTF-8</span>
-        <span class="lb-status-seg">LF</span>
     </div>
 
 </div>
