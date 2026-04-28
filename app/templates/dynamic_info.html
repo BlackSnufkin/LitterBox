@@ -159,7 +159,10 @@
     {% if analysis_results.rededr and analysis_results.rededr.findings %}
         {% set findings = analysis_results.rededr.findings %}
         {% set summary = findings.summary %}
-        <div class="lb-chip-row">
+        {% set proc = findings.process_info or {} %}
+
+        <!-- Activity counts strip -->
+        <div class="lb-chip-row" style="border-bottom: 1px solid var(--lb-border);">
             <div class="lb-chip">
                 <div class="lb-chip-name">Total Events</div>
                 <div class="lb-chip-count">{{ summary.total_events }}</div>
@@ -181,21 +184,36 @@
                 <div class="lb-chip-count">{{ summary.total_child_processes }}</div>
             </div>
         </div>
+
+        <!-- Process metadata -->
         <div class="lb-panel-body">
-            <div class="lb-grid-3">
-                <div>
-                    <div class="lb-eyebrow" style="margin-bottom: 4px;">PID</div>
-                    <div class="lb-strong lb-mono">{{ findings.process_info.pid }}</div>
-                </div>
-                <div>
-                    <div class="lb-eyebrow" style="margin-bottom: 4px;">Parent PID</div>
-                    <div class="lb-strong lb-mono">{{ findings.process_info.parent_pid }}</div>
-                </div>
-                <div>
-                    <div class="lb-eyebrow" style="margin-bottom: 4px;">Status</div>
-                    <div class="lb-strong">{{ 'Protected' if findings.process_info.is_protected_process else 'Standard' }}</div>
+            <div class="lb-hash-row">
+                <div class="lb-hash-label">PID</div>
+                <div class="lb-hash-value lb-mono">{{ proc.pid or 'N/A' }}</div>
+            </div>
+            <div class="lb-hash-row">
+                <div class="lb-hash-label">Parent PID</div>
+                <div class="lb-hash-value lb-mono">{{ proc.parent_pid or 'N/A' }}</div>
+            </div>
+            <div class="lb-hash-row">
+                <div class="lb-hash-label">Status</div>
+                <div class="lb-hash-value">
+                    {% if proc.is_protected_process %}<span class="lb-tag clean">Protected</span>{% else %}<span class="lb-tag muted">Standard</span>{% endif %}
+                    {% if proc.is_debugged %}<span class="lb-tag medium" style="margin-left: 6px;">Debugged</span>{% endif %}
                 </div>
             </div>
+            {% if proc.image_path %}
+            <div class="lb-hash-row">
+                <div class="lb-hash-label">Image</div>
+                <div class="lb-hash-value lb-mono lb-dim">{{ proc.image_path }}</div>
+            </div>
+            {% endif %}
+            {% if proc.commandline %}
+            <div class="lb-hash-row">
+                <div class="lb-hash-label">Command</div>
+                <div class="lb-hash-value lb-mono lb-dim">{{ proc.commandline }}</div>
+            </div>
+            {% endif %}
         </div>
     {% else %}
         <div class="lb-panel-body">

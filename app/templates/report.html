@@ -910,27 +910,45 @@
               ('Suspicious functions', f.found_suspicious_functions),
               ('URLs', f.found_url),
               ('IP addresses', f.found_ip),
-              ('DLLs', f.found_dll),
+              ('Domains', f.found_domains),
+              ('Email addresses', f.found_emails),
               ('Network indicators', f.found_network_indicators),
-              ('Registry keys', f.found_registry_keys)
+              ('Registry keys', f.found_registry_keys),
+              ('File operations', f.found_file_operations),
+              ('File paths', f.found_path),
+              ('Files referenced', f.found_file),
+              ('DLLs', f.found_dll),
+              ('Functions', f.found_functions),
+              ('Commands', f.found_commands),
+              ('Error messages', f.found_error_messages),
+              ('Interesting strings', f.found_interesting_strings)
             ] %}
             {% set ns = namespace(any=false) %}
             {% for label, items in buckets %}{% if items %}{% set ns.any = true %}{% endif %}{% endfor %}
             {% if ns.any %}
               <table class="report-table mt-12">
-                <thead><tr><th>Category</th><th>Count</th><th>Sample</th></tr></thead>
+                <thead><tr><th>Category</th><th>Count</th></tr></thead>
                 <tbody>
                 {% for label, items in buckets %}
                   {% if items %}
                     <tr>
                       <td>{{ label }}</td>
                       <td class="mono">{{ items|length }}</td>
-                      <td class="mono muted">{{ items[:3]|join(', ')|truncate(140, true) }}</td>
                     </tr>
                   {% endif %}
                 {% endfor %}
                 </tbody>
               </table>
+              {# Expand each non-empty bucket into a code block so URLs / IPs /
+                 paths are fully visible in the downloaded report (capped at
+                 100 items per category to keep the file size bounded). #}
+              {% for label, items in buckets %}
+                {% if items %}
+                  <h4 class="subsection-title mt-12">{{ label }} ({{ items|length }})</h4>
+                  <pre class="code">{% for item in items[:100] %}{{ item }}
+{% endfor %}{% if items|length > 100 %}… and {{ items|length - 100 }} more{% endif %}</pre>
+                {% endif %}
+              {% endfor %}
             {% else %}
               <div class="clean-state mt-12">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>

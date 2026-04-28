@@ -101,6 +101,30 @@ def api_byovd_info(target):
         return jsonify(json.load(f))
 
 
+@api_bp.route('/api/results/<target>/risk', methods=['GET'])
+@error_handler
+def api_risk_assessment(target):
+    """Return the computed risk assessment (score, level, factors) for a target."""
+    app = current_app
+    deps = _deps()
+    app.logger.debug(f"Fetching risk assessment for target: {target}")
+
+    data, error_msg, is_error = deps.helpers.load_analysis_data(target)
+    if is_error:
+        app.logger.warning(f"Error loading data for risk assessment: {error_msg}")
+        return jsonify({'error': error_msg}), 404
+
+    risk_score, risk_level, risk_factors = deps.helpers.calculate_and_add_risk(data)
+    app.logger.debug(
+        f"Risk assessment calculated - score={risk_score}, level={risk_level}"
+    )
+    return jsonify({
+        'risk_score': risk_score,
+        'risk_level': risk_level,
+        'risk_factors': risk_factors,
+    })
+
+
 @api_bp.route('/api/report/<target>', methods=['GET'])
 @error_handler
 def generate_report(target):

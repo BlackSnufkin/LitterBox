@@ -1,16 +1,17 @@
 import argparse
-import hashlib
 import json
 import logging
 import os
 import re
-import requests
 import sys
 import tempfile
 import webbrowser
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, List, Union, BinaryIO, Any, Tuple
+from typing import Optional, Dict, List, Union, BinaryIO
+
+import requests
 from requests.adapters import HTTPAdapter, Retry
 from urllib.parse import urljoin
 
@@ -46,10 +47,6 @@ class LitterBoxClient:
         self.logger = logger or logging.getLogger(__name__)
         self.proxy_config = proxy_config
         self.headers = headers or {}
-        
-        # Cache for file lookups to improve performance
-        self._file_cache = {}
-        
         self.session = self._create_session(max_retries)
 
     def _create_session(self, max_retries: int) -> requests.Session:
@@ -155,17 +152,10 @@ class LitterBoxClient:
         files = self._prepare_file_upload(file_path, file_name)
         try:
             response = self._make_request('POST', '/upload', files=files)
-            result = response.json()
-            
-            # Cache the file info for faster lookups
-            if 'file_info' in result:
-                file_hash = result['file_info'].get('md5')
-                if file_hash:
-                    self._file_cache[file_hash] = result['file_info']
-                    
-            return result
+            return response.json()
         finally:
-            # Ensure file is closed
+            # If we opened the file ourselves (path-based), close it. For
+            # caller-provided BinaryIO objects, the caller owns the handle.
             if isinstance(file_path, (str, Path)):
                 files['file'][1].close()
 
@@ -177,10 +167,6 @@ class LitterBoxClient:
     def delete_file(self, file_hash: str) -> Dict:
         """Delete a file and its analysis results."""
         response = self._make_request('DELETE', f'/file/{file_hash}')
-        
-        # Remove from cache
-        self._file_cache.pop(file_hash, None)
-        
         return response.json()
 
     # =============================================================================
@@ -251,12 +237,11 @@ class LitterBoxClient:
         
         if run_holygrail:
             try:
-                holygrail_result = self.analyze_holygrail(file_hash)
-                results['holygrail'] = holygrail_result
-            except Exception as e:
+                results['holygrail'] = self.analyze_holygrail(file_hash)
+            except LitterBoxError as e:
                 self.logger.error(f"HolyGrail analysis failed: {e}")
                 results['holygrail'] = {'error': str(e)}
-                
+
         return results
 
     # =============================================================================
@@ -354,32 +339,45 @@ class LitterBoxClient:
         response = self._make_request('GET', f'/api/results/{target}/holygrail')
         return response.json()
 
+    def get_risk_assessment(self, target: str) -> Dict:
+        """Get the computed risk assessment (score, level, factors) for a target."""
+        response = self._make_request('GET', f'/api/results/{target}/risk')
+        return response.json()
+
     def get_files_summary(self) -> Dict:
         """Get summary of all analyzed files and processes."""
         response = self._make_request('GET', '/files')
         return response.json()
 
     def get_comprehensive_results(self, target: str) -> Dict:
-        """Get all available results for a target in one call."""
-        results = {'target': target}
-        
-        # Try to get each type of result
-        for result_type, method in [
-            ('file_info', self.get_file_info),
-            ('static_results', self.get_static_results),
-            ('dynamic_results', self.get_dynamic_results),
-            ('holygrail_results', self.get_holygrail_results)
-        ]:
+        """Get all available results for a target in one call.
+
+        The four GETs are independent, so they fan out across a small
+        thread pool — wall time on a populated target drops from
+        sequential (~4×) to roughly the slowest single response.
+        """
+        fetchers = [
+            ('file_info',         self.get_file_info),
+            ('static_results',    self.get_static_results),
+            ('dynamic_results',   self.get_dynamic_results),
+            ('holygrail_results', self.get_holygrail_results),
+        ]
+
+        def _safe_fetch(method):
             try:
-                results[result_type] = method(target)
+                return method(target)
             except LitterBoxAPIError as e:
-                if e.status_code == 404:
-                    results[result_type] = None
-                else:
-                    results[result_type] = {'error': str(e)}
-            except Exception as e:
-                results[result_type] = {'error': str(e)}
-                
+                # 404 means "this analysis type wasn't run for this target",
+                # which is normal and shouldn't bubble up as an error.
+                return None if e.status_code == 404 else {'error': str(e)}
+            except LitterBoxError as e:
+                return {'error': str(e)}
+
+        with ThreadPoolExecutor(max_workers=len(fetchers)) as executor:
+            futures = {key: executor.submit(_safe_fetch, fn) for key, fn in fetchers}
+            results = {key: fut.result() for key, fut in futures.items()}
+
+        results['target'] = target
         return results
 
     # =============================================================================
@@ -456,7 +454,7 @@ class LitterBoxClient:
     # SYSTEM OPERATIONS
     # =============================================================================
 
-    def cleanup(self, include_uploads: bool = True, include_results: bool = True, 
+    def cleanup(self, include_uploads: bool = True, include_results: bool = True,
                include_analysis: bool = True) -> Dict:
         """Clean up analysis artifacts and uploaded files."""
         data = {
@@ -465,10 +463,6 @@ class LitterBoxClient:
             'cleanup_analysis': include_analysis
         }
         response = self._make_request('POST', '/cleanup', json=data)
-        
-        # Clear local cache
-        self._file_cache.clear()
-        
         return response.json()
 
     def check_health(self) -> Dict:
@@ -522,10 +516,6 @@ class LitterBoxClient:
         """Close the session and cleanup resources."""
         if hasattr(self, 'session'):
             self.session.close()
-
-    def __del__(self):
-        """Ensure session is closed on garbage collection."""
-        self.close()
 
 
 # =============================================================================
@@ -665,7 +655,7 @@ def setup_enhanced_client(args) -> LitterBoxClient:
 def handle_enhanced_analysis_result(result: Dict, analysis_type: str):
     """Enhanced result handling with better formatting."""
     status = result.get('status', 'unknown')
-    
+
     if status == 'early_termination':
         print("Process terminated early:")
         print(f"   Error: {result.get('error')}")
@@ -680,153 +670,180 @@ def handle_enhanced_analysis_result(result: Dict, analysis_type: str):
             print(f"   Details: {result['details']}")
     elif status == 'success':
         print("Analysis completed successfully")
-        if 'results' in result:
-            print(json.dumps(result['results'], indent=2))
-        else:
-            print(json.dumps(result, indent=2))
+        print(json.dumps(result.get('results', result), indent=2))
     else:
         print(json.dumps(result, indent=2))
 
 
+# =============================================================================
+# COMMAND HANDLERS
+# Each handler does the work for one CLI subcommand. main() looks up the
+# right handler in the COMMAND_HANDLERS dispatch table below.
+# =============================================================================
+
+def _cmd_upload(client: LitterBoxClient, args):
+    result = client.upload_file(args.file, file_name=args.name)
+    file_hash = result['file_info']['md5']
+    print(f"File uploaded successfully. Hash: {file_hash}")
+
+    for analysis_type in args.analysis or []:
+        print(f"Running {analysis_type} analysis...")
+        analysis_args = args.args if analysis_type == 'dynamic' else None
+        result = client.analyze_file(file_hash, analysis_type,
+                                     cmd_args=analysis_args, wait_for_completion=True)
+        handle_enhanced_analysis_result(result, analysis_type)
+
+
+def _cmd_upload_driver(client: LitterBoxClient, args):
+    result = client.upload_and_analyze_driver(args.file, file_name=args.name,
+                                              run_holygrail=args.holygrail)
+    file_hash = result['upload']['file_info']['md5']
+    print(f"Driver uploaded successfully. Hash: {file_hash}")
+
+    if args.holygrail and result['holygrail']:
+        if 'error' in result['holygrail']:
+            print(f"HolyGrail analysis failed: {result['holygrail']['error']}")
+        else:
+            print("HolyGrail analysis completed")
+            print(json.dumps(result['holygrail'], indent=2))
+
+
+def _cmd_analyze_pid(client: LitterBoxClient, args):
+    print(f"Analyzing process {args.pid}...")
+    result = client.analyze_file(str(args.pid), 'dynamic',
+                                 cmd_args=args.args, wait_for_completion=args.wait)
+    handle_enhanced_analysis_result(result, 'dynamic')
+
+
+def _cmd_results(client: LitterBoxClient, args):
+    if args.comprehensive:
+        result = client.get_comprehensive_results(args.target)
+        print("Comprehensive Results:")
+        print(json.dumps(result, indent=2))
+        return
+
+    if not args.type:
+        print("Please specify --type or use --comprehensive")
+        sys.exit(1)
+
+    if args.type == 'holygrail':
+        result = client.get_holygrail_results(args.target)
+    else:
+        result = client.get_results(args.target, args.type)
+    print(json.dumps(result, indent=2))
+
+
+def _cmd_doppelganger_scan(client: LitterBoxClient, args):
+    print(f"Running doppelganger scan with type: {args.type}")
+    print(json.dumps(client.run_blender_scan(), indent=2))
+
+
+def _cmd_doppelganger_analyze(client: LitterBoxClient, args):
+    print(f"Running doppelganger analysis with type: {args.type}")
+    if args.type == 'blender':
+        result = client.compare_with_blender(args.hash)
+    else:
+        result = client.analyze_with_fuzzy(args.hash, args.threshold)
+    print(json.dumps(result, indent=2))
+
+
+def _cmd_doppelganger_db(client: LitterBoxClient, args):
+    print("Creating doppelganger fuzzy database...")
+    print(json.dumps(client.create_fuzzy_database(args.folder, args.extensions), indent=2))
+
+
+def _cmd_report(client: LitterBoxClient, args):
+    if args.browser:
+        print(f"Opening report for {args.target} in browser...")
+        if not client.open_report_in_browser(args.target):
+            print("Failed to open report in browser.")
+            sys.exit(1)
+    elif args.download:
+        print(f"Downloading report for {args.target}...")
+        output_path = client.download_report(args.target, args.output)
+        print(f"Report saved to: {output_path}")
+    else:
+        print(client.get_report(args.target))
+
+
+def _cmd_status(client: LitterBoxClient, args):
+    if args.full:
+        result = client.get_system_status()
+        print("System Status:")
+    else:
+        result = client.check_health()
+        print("Health Check:")
+    print(json.dumps(result, indent=2))
+
+
+def _cmd_health(client: LitterBoxClient, args):
+    result = client.check_health()
+    status = result.get('status', 'unknown')
+    print("Service is healthy" if status == 'ok' else f"Service status: {status}")
+    print(json.dumps(result, indent=2))
+
+
+def _cmd_files(client: LitterBoxClient, args):
+    print("Files Summary:")
+    print(json.dumps(client.get_files_summary(), indent=2))
+
+
+def _cmd_cleanup(client: LitterBoxClient, args):
+    if args.all:
+        args.uploads = args.results = args.analysis = True
+    result = client.cleanup(include_uploads=args.uploads,
+                            include_results=args.results,
+                            include_analysis=args.analysis)
+    print("Cleanup Results:")
+    print(json.dumps(result, indent=2))
+
+
+def _cmd_delete(client: LitterBoxClient, args):
+    print("Deletion Results:")
+    print(json.dumps(client.delete_file(args.hash), indent=2))
+
+
+# Dispatch table — keyed by the CLI subcommand name.
+COMMAND_HANDLERS = {
+    'upload':                _cmd_upload,
+    'upload-driver':         _cmd_upload_driver,
+    'analyze-pid':           _cmd_analyze_pid,
+    'results':               _cmd_results,
+    'doppelganger-scan':     _cmd_doppelganger_scan,
+    'doppelganger-analyze':  _cmd_doppelganger_analyze,
+    'doppelganger-db':       _cmd_doppelganger_db,
+    'report':                _cmd_report,
+    'status':                _cmd_status,
+    'health':                _cmd_health,
+    'files':                 _cmd_files,
+    'cleanup':               _cmd_cleanup,
+    'delete':                _cmd_delete,
+}
+
+
 def main():
-    """Enhanced main function with comprehensive command handling."""
+    """CLI entry point. Parses args, dispatches to the right handler."""
     parser = create_enhanced_parser()
     args = parser.parse_args()
-    
-    # Configure logging
+
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(
-        level=log_level, 
+        level=log_level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-    
+
     if not args.command:
         parser.print_help()
         return
-    
+
+    handler = COMMAND_HANDLERS.get(args.command)
+    if handler is None:
+        parser.print_help()
+        sys.exit(1)
+
     try:
         with setup_enhanced_client(args) as client:
-            
-            if args.command == 'upload':
-                result = client.upload_file(args.file, file_name=args.name)
-                file_hash = result['file_info']['md5']
-                print(f"File uploaded successfully. Hash: {file_hash}")
-                
-                if args.analysis:
-                    for analysis_type in args.analysis:
-                        print(f"Running {analysis_type} analysis...")
-                        analysis_args = args.args if analysis_type == 'dynamic' else None
-                        result = client.analyze_file(file_hash, analysis_type, 
-                                                   cmd_args=analysis_args, wait_for_completion=True)
-                        handle_enhanced_analysis_result(result, analysis_type)
-            
-            elif args.command == 'upload-driver':
-                result = client.upload_and_analyze_driver(args.file, file_name=args.name, 
-                                                        run_holygrail=args.holygrail)
-                file_hash = result['upload']['file_info']['md5']
-                print(f"Driver uploaded successfully. Hash: {file_hash}")
-                
-                if args.holygrail and result['holygrail']:
-                    if 'error' in result['holygrail']:
-                        print(f"HolyGrail analysis failed: {result['holygrail']['error']}")
-                    else:
-                        print("HolyGrail analysis completed")
-                        print(json.dumps(result['holygrail'], indent=2))
-            
-            elif args.command == 'analyze-pid':
-                print(f"Analyzing process {args.pid}...")
-                result = client.analyze_file(str(args.pid), 'dynamic', 
-                                           cmd_args=args.args, wait_for_completion=args.wait)
-                handle_enhanced_analysis_result(result, 'dynamic')
-            
-            elif args.command == 'results':
-                if args.comprehensive:
-                    result = client.get_comprehensive_results(args.target)
-                    print("Comprehensive Results:")
-                    print(json.dumps(result, indent=2))
-                elif args.type:
-                    if args.type == 'holygrail':
-                        result = client.get_holygrail_results(args.target)
-                    else:
-                        result = client.get_results(args.target, args.type)
-                    print(json.dumps(result, indent=2))
-                else:
-                    print("Please specify --type or use --comprehensive")
-                    return
-            
-            elif args.command == 'doppelganger-scan':
-                print(f"Running doppelganger scan with type: {args.type}")
-                result = client.run_blender_scan()
-                print(json.dumps(result, indent=2))
-                
-            elif args.command == 'doppelganger-analyze':
-                print(f"Running doppelganger analysis with type: {args.type}")
-                if args.type == 'blender':
-                    result = client.compare_with_blender(args.hash)
-                else:
-                    result = client.analyze_with_fuzzy(args.hash, args.threshold)
-                print(json.dumps(result, indent=2))
-                
-            elif args.command == 'doppelganger-db':
-                print("Creating doppelganger fuzzy database...")
-                result = client.create_fuzzy_database(args.folder, args.extensions)
-                print(json.dumps(result, indent=2))
-
-            elif args.command == 'report':
-                if args.browser:
-                    print(f"Opening report for {args.target} in browser...")
-                    success = client.open_report_in_browser(args.target)
-                    if not success:
-                        print("Failed to open report in browser.")
-                        sys.exit(1)
-                elif args.download:
-                    print(f"Downloading report for {args.target}...")
-                    output_path = client.download_report(args.target, args.output)
-                    print(f"Report saved to: {output_path}")
-                else:
-                    report = client.get_report(args.target)
-                    print(report)
-            
-            elif args.command == 'status':
-                if args.full:
-                    result = client.get_system_status()
-                    print("System Status:")
-                else:
-                    result = client.check_health()
-                    print("Health Check:")
-                print(json.dumps(result, indent=2))
-            
-            elif args.command == 'health':
-                result = client.check_health()
-                status = result.get('status', 'unknown')
-                if status == 'ok':
-                    print("Service is healthy")
-                else:
-                    print(f"Service status: {status}")
-                print(json.dumps(result, indent=2))
-            
-            elif args.command == 'files':
-                result = client.get_files_summary()
-                print("Files Summary:")
-                print(json.dumps(result, indent=2))
-
-            elif args.command == 'cleanup':
-                if args.all:
-                    args.uploads = args.results = args.analysis = True
-                result = client.cleanup(include_uploads=args.uploads, 
-                                      include_results=args.results,
-                                      include_analysis=args.analysis)
-                print("Cleanup Results:")
-                print(json.dumps(result, indent=2))
-            
-            elif args.command == 'delete':
-                result = client.delete_file(args.hash)
-                print("Deletion Results:")
-                print(json.dumps(result, indent=2))
-            
-            else:
-                parser.print_help()
-    
+            handler(client, args)
     except LitterBoxAPIError as e:
         logging.error(f"API Error (Status {e.status_code}): {str(e)}")
         if args.debug and e.response:

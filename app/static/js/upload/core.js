@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
         detectionNotes: document.getElementById('detectionNotes'),
         officeInfo: document.getElementById('officeInfo'),
         macroStatus: document.getElementById('macroStatus'),
+        macroDetectionNotes: document.getElementById('macroDetectionNotes'),
         checksumInfo: document.getElementById('checksumInfo'),
         checksumStatus: document.getElementById('checksumStatus'),
         storedChecksum: document.getElementById('storedChecksum'),

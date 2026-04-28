@@ -9,122 +9,115 @@
 
 ## What This Is
 
-GrumpyCats is a Python client for talking to LitterBox malware analysis sandbox. It comes in two flavors:
+GrumpyCats is the client side of LitterBox. Three pieces:
 
-1. **grumpycat.py** - Python client that works as both a command-line tool and a library you can import
-2. **LitterBoxMCP.py** - MCP server that lets Claude and other AI models analyze malware for you
+1. **`grumpycat.py`** — Python CLI + library for the LitterBox HTTP API.
+2. **`LitterBoxMCP.py`** — MCP server that exposes the same surface to AI agents (Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, …) plus four OPSEC-review prompts.
+3. **`install_mcp.py`** — one-shot installer that wires `LitterBoxMCP.py` into the right config file for your MCP client of choice.
 
 ---
 
 ## Table of Contents
 - [Command Line Tool](#command-line-tool)
 - [Using It](#using-it)
-- [AI Integration](#ai-integration)
-- [Installation](#installation)
-- [API Functions](#api-functions)
+- [Using It as a Library](#using-it-as-a-library)
+- [AI Integration (MCP)](#ai-integration-mcp)
+- [Installer Reference](#installer-reference)
+- [MCP Tools Reference](#mcp-tools-reference)
+- [OPSEC Review Prompts](#opsec-review-prompts)
+
 ---
 
 ## Command Line Tool
 
-The Python client talks to your LitterBox server and handles all the boring stuff like connection management and error handling for you.
+The CLI talks to your LitterBox server, handles connection pooling, retries, and structured errors for you.
 
-### What You Need
+### Requirements
 
 ```bash
 pip install requests
 ```
 
-If you're using this with Claude Desktop, install it globally.
-
-### How to Use It
+### Usage
 
 ```bash
-python grumpycat.py [options] <command> [command-options]
+python grumpycat.py [global-options] <command> [command-options]
 ```
 
 ### Commands
 
-| Command | What It Does |
-|---------|-------------|
-| `upload` | Upload a file for analysis |
-| `upload-driver` | Upload a kernel driver for BYOVD analysis |
-| `analyze-pid` | Analyze a running process |
-| `results` | Get your analysis results |
-| `report` | Generate HTML reports |
-| `files` | See all your analyzed files |
-| `doppelganger-scan` | Run system baseline scan |
-| `doppelganger-analyze` | Compare files for similarity |
-| `doppelganger-db` | Build fuzzy hash database |
-| `status` | Check if everything's working |
-| `cleanup` | Delete all your junk |
-| `health` | Health check |
-| `delete` | Delete specific files |
+| Command                  | What It Does                                |
+|--------------------------|---------------------------------------------|
+| `upload`                 | Upload a payload for analysis               |
+| `upload-driver`          | Upload a kernel driver for BYOVD analysis   |
+| `analyze-pid`            | Analyze a running process                   |
+| `results`                | Fetch analysis results                      |
+| `report`                 | Generate / view / download an HTML report   |
+| `files`                  | List every analyzed payload + summary       |
+| `doppelganger-scan`      | Snapshot the host for Blender comparison    |
+| `doppelganger-analyze`   | Compare a payload against Blender or fuzzy  |
+| `doppelganger-db`        | Build the FuzzyHash baseline DB             |
+| `status`                 | Server health + fleet summary               |
+| `health`                 | Just the health check                       |
+| `cleanup`                | Wipe sandbox artifacts                      |
+| `delete`                 | Delete one payload + its results            |
 
-### Options
+### Global Options
 
-| Option | What It Does |
-|--------|-------------|
-| `--debug` | Show debug info |
-| `--url URL` | Your LitterBox server URL |
-| `--timeout TIMEOUT` | How long to wait for responses |
-| `--no-verify-ssl` | Skip SSL verification |
-| `--proxy PROXY` | Use a proxy |
+| Option                | What It Does                                       |
+|-----------------------|----------------------------------------------------|
+| `--debug`             | Verbose logging                                    |
+| `--url URL`           | LitterBox server URL (default `http://127.0.0.1:1337`) |
+| `--timeout TIMEOUT`   | Request timeout, seconds                           |
+| `--no-verify-ssl`     | Skip SSL verification                              |
+| `--proxy PROXY`       | Route requests through a proxy                     |
 
 ## Using It
 
-### Basic Stuff
+### Basics
 
 ```bash
-# Upload and analyze a file
+# Upload and run static + dynamic
 grumpycat.py upload malware.exe --analysis static dynamic
 
-# Upload a kernel driver for BYOVD analysis
+# Upload a kernel driver and immediately run BYOVD
 grumpycat.py upload-driver rootkit.sys --holygrail
 
-# Analyze a running process
+# Analyze a running process by PID
 grumpycat.py analyze-pid 1234 --wait
 
-# Get all results at once
+# Pull every result for a target in one call
 grumpycat.py results abc123def --comprehensive
 
-# Get specific results
+# Or scope to one analysis type
 grumpycat.py results abc123def --type static
-```
-
-### Driver Analysis
-
-```bash
-# Upload and analyze a driver
-grumpycat.py upload-driver driver.sys --holygrail
-
-# Get the BYOVD results
 grumpycat.py results abc123def --type holygrail
 ```
 
-### Similarity Analysis
+### Doppelganger / similarity
 
 ```bash
-# Scan your system for baseline
+# Snapshot the live host for baseline comparison
 grumpycat.py doppelganger-scan --type blender
 
-# Check if your malware looks like known stuff
+# Score a payload against the FuzzyHash baseline
 grumpycat.py doppelganger-analyze abc123def --type fuzzy --threshold 85
 
-# Build a database of known samples
-grumpycat.py doppelganger-db --folder /path/to/files --extensions .exe .dll
+# Build the FuzzyHash baseline DB
+grumpycat.py doppelganger-db --folder /path/to/refs --extensions .exe .dll
 ```
 
 ### Reports
 
 ```bash
-# View report in terminal
+# Print to stdout
 grumpycat.py report abc123def
 
-# Download it
+# Download to current dir
 grumpycat.py report abc123def --download
 
-# Save to specific folder
-grumpycat.py report abc123def --download --output /path/to/reports/
+# Download to a specific dir
+grumpycat.py report abc123def --download --output ./reports/
 
 # Open in your browser
 grumpycat.py report abc123def --browser
@@ -133,133 +126,198 @@ grumpycat.py report abc123def --browser
 ### Maintenance
 
 ```bash
-# Check if everything's working
+# Health + fleet summary
 grumpycat.py status --full
 
-# Clean up your mess
+# Wipe everything
 grumpycat.py cleanup --all
 
-# Delete specific stuff
+# Delete one payload
 grumpycat.py delete abc123def
-```
-
-### Using It as a Library
-
-```python
-from grumpycat import LitterBoxClient
-
-# Use it in your code
-with LitterBoxClient(base_url="http://127.0.0.1:1337") as client:
-    
-    # Upload and analyze
-    result = client.upload_file("malware.exe")
-    file_hash = result['file_info']['md5']
-    
-    # Run analysis
-    static_result = client.analyze_file(file_hash, 'static')
-    dynamic_result = client.analyze_file(file_hash, 'dynamic')
-    
-    # Get everything at once
-    all_results = client.get_comprehensive_results(file_hash)
-    
-    # Driver analysis
-    driver_result = client.upload_and_analyze_driver("driver.sys", run_holygrail=True)
-    
-    # Similarity stuff
-    blender_scan = client.run_blender_scan()
-    comparison = client.compare_with_blender(file_hash)
-    
-    # Check system status
-    status = client.get_system_status()
 ```
 
 ---
 
-## AI Integration
+## Using It as a Library
 
-The MCP server lets Claude analyze malware and give you OPSEC advice. It's basically like having a red team consultant that never sleeps.
+```python
+from grumpycat import LitterBoxClient
 
-### What You Need
+with LitterBoxClient(base_url="http://127.0.0.1:1337") as client:
+    # Upload and run analysis
+    result = client.upload_file("malware.exe")
+    file_hash = result["file_info"]["md5"]
+    static_result  = client.analyze_file(file_hash, "static")
+    dynamic_result = client.analyze_file(file_hash, "dynamic")
 
-| Thing | How to Get It |
-|-------------|--------------|
-| **Claude Desktop** | [Download it](https://claude.ai/desktop) |
-| **fastmcp** | `pip install fastmcp` |
-| **mcp-server** | `pip install mcp-server` |
-| **requests** | `pip install requests` |
-| **uv** | `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
-| **grumpycat.py** | Put it in the same folder |
+    # Pull every result for a target with a single fan-out call
+    all_results = client.get_comprehensive_results(file_hash)
 
-### Setup
+    # Driver workflow
+    driver_result = client.upload_and_analyze_driver("driver.sys", run_holygrail=True)
+
+    # Risk assessment endpoint
+    risk = client.get_risk_assessment(file_hash)
+    # → {"risk_score": 32.5, "risk_level": "Medium", "risk_factors": [...]}
+
+    # Doppelganger
+    blender_snapshot = client.run_blender_scan()
+    comparison       = client.compare_with_blender(file_hash)
+    fuzzy_score      = client.analyze_with_fuzzy(file_hash, threshold=85)
+
+    # Server health
+    status = client.get_system_status()
+```
+
+The client uses a `requests.Session` with retry-on-5xx, fans out the four `/api/results/<hash>/*` reads in parallel for `get_comprehensive_results`, and exposes a context-manager interface so the session closes cleanly.
+
+---
+
+## AI Integration (MCP)
+
+`LitterBoxMCP.py` is a stdio MCP server that exposes 22 tools and 4 OPSEC-review prompts to any MCP-compatible client. Tools run async and offload the sync `LitterBoxClient` calls to a worker thread, so multiple tool calls don't serialize.
+
+### Requirements
 
 ```bash
-mcp install .\LitterBoxMCP.py
+pip install mcp requests
 ```
 
-You should see:
+The included installer auto-detects the project's `venv/` Python first, then `$VIRTUAL_ENV`, then the `python` running the script — and warns if `mcp` or `requests` are missing so the server actually has a chance of starting after install.
+
+### Quick Install
+
+```bash
+# See what clients the installer recognises and which already have litterbox configured
+py install_mcp.py --list
+
+# Install for a single client (project-scoped Claude Code config in <repo>/.mcp.json)
+py install_mcp.py --install claude-code-project
+
+# Install everywhere
+py install_mcp.py --install all
 ```
-[05/16/25 02:47:13] INFO     Added server 'LitterBoxMCP' to Claude config                                  claude.py:143
-                    INFO     Successfully installed LitterBoxMCP in Claude app  
+
+After install, **reload your MCP client** (close + reopen Claude Desktop, "Developer: Reload Window" in VS Code, etc.) so the new config is picked up.
+
+### Supported clients
+
+| Key                    | Scope    | Config file                                                    |
+|------------------------|----------|----------------------------------------------------------------|
+| `claude-code-project`  | project  | `<repo>/.mcp.json`                                             |
+| `claude-code-global`   | global   | `~/.claude.json`                                               |
+| `claude-desktop`       | global   | `%APPDATA%\Claude\claude_desktop_config.json` (Win) / equivalents on macOS / Linux |
+| `cursor`               | global   | `~/.cursor/mcp.json`                                           |
+| `windsurf`             | global   | `~/.codeium/windsurf/mcp_config.json`                          |
+| `vscode-project`       | project  | `<repo>/.vscode/mcp.json`                                      |
+
+Aliases: `claude-code` → `claude-code-project`, `claude` → `claude-desktop`, `vscode` / `vs-code` → `vscode-project`.
+
+The installer:
+- Reads any existing config and merges the LitterBox entry without clobbering other MCP servers you already have.
+- Knows that VS Code uses `{"servers": {...}}` while everyone else uses `{"mcpServers": {...}}` and writes the right structure per client.
+- Writes atomically (`.tmp` + rename) so a partial write can't corrupt your config.
+- Same flags work for `--uninstall`.
+
+### Running the server directly
+
+The installer's job ends after writing the config. The MCP client launches the server as a subprocess. If you want to run it by hand for debugging:
+
+```bash
+# stdio transport (default — what MCP clients use)
+py LitterBoxMCP.py
+
+# Streamable HTTP transport (for remote clients)
+py LitterBoxMCP.py --transport streamable-http --host 127.0.0.1 --port 8765
 ```
 
-## Installation
+Logs go to stderr — required for stdio transport, since stdout is the JSON-RPC channel.
 
-1. Download the files
-2. Install requests (`pip install requests`)
-3. For AI stuff, install the MCP requirements
-4. Install the MCP server in Claude if you want AI analysis
+---
 
-## API Functions
+## Installer Reference
 
-When you're using the MCP server with Claude, these functions are available:
+`install_mcp.py` modes are mutually exclusive — pick exactly one:
 
-### Analysis Functions
+| Flag                              | What It Does                                                                 |
+|-----------------------------------|------------------------------------------------------------------------------|
+| `--list`                          | Show every supported client + whether LitterBox is currently installed       |
+| `--install CLIENT [CLIENT ...]`   | Write the LitterBox entry into one or more clients (or `all`)                |
+| `--uninstall CLIENT [CLIENT ...]` | Remove the LitterBox entry from one or more clients (or `all`)               |
+| `--print`                         | Dump the config JSON to stdout — for copy-paste into clients we don't ship   |
 
-| Function | What It Does |
-|----------|-------------|
-| `upload_payload(path, name=None)` | Upload a file for analysis |
-| `upload_kernel_driver(path, name=None, run_holygrail=True)` | Upload a driver for BYOVD analysis |
-| `analyze_static(file_hash)` | Run static analysis |
-| `analyze_dynamic(target, cmd_args=None)` | Run dynamic analysis |
-| `analyze_holygrail(file_hash)` | Run BYOVD analysis on drivers |
-| `get_comprehensive_results(target)` | Get all results at once |
-| `get_file_info(file_hash)` | Get file details |
-| `get_static_results(file_hash)` | Get static analysis results |
-| `get_dynamic_results(target)` | Get dynamic analysis results |
-| `get_holygrail_results(target)` | Get BYOVD results |
+### Examples
 
-### Similarity Analysis
+```bash
+py install_mcp.py --list
+py install_mcp.py --install claude-code-project
+py install_mcp.py --install claude-code cursor             # alias + multi-target
+py install_mcp.py --install all
+py install_mcp.py --uninstall cursor
+py install_mcp.py --print                                   # JSON only, no file writes
+```
 
-| Function | What It Does |
-|----------|-------------|
-| `run_blender_scan()` | Scan system for baseline |
-| `compare_with_blender(file_hash)` | Compare against baseline |
-| `create_fuzzy_database(folder_path, extensions=None)` | Build similarity database |
-| `analyze_fuzzy_similarity(file_hash, threshold=85)` | Check similarity to known samples |
+---
 
-### System Stuff
+## MCP Tools Reference
 
-| Function | What It Does |
-|----------|-------------|
-| `list_analyzed_payloads()` | See all your analyzed files |
-| `get_system_status()` | Check system health |
-| `cleanup_analysis_artifacts()` | Clean up files |
-| `check_sandbox_health()` | Verify tools are working |
-| `delete_payload(file_hash)` | Delete specific files |
+All 22 tools are async. Tool exceptions become MCP error responses automatically — no manual envelopes.
 
-### OPSEC Analysis Prompts
+### Intake — upload + kick off analysis
 
-These are the AI prompts that help with red team analysis:
+| Tool                    | What It Does                                                          |
+|-------------------------|-----------------------------------------------------------------------|
+| `upload_payload`        | Upload an `.exe / .dll / .bin / .lnk / .docx / .xlsx`                 |
+| `upload_driver`         | Upload a `.sys` and (by default) immediately run BYOVD                |
+| `analyze_static`        | YARA / CheckPlz / Stringnalyzer on an uploaded file                   |
+| `analyze_dynamic`       | In-memory YARA, PE-Sieve, Moneta, Patriot, HSB, RedEdr (executes!)    |
+| `analyze_holygrail`     | BYOVD analysis on a kernel driver                                     |
+| `validate_pid`          | Confirm a PID is accessible before targeting it for dynamic analysis  |
 
-| Prompt | What It Does |
-|--------|---------|
-| `analyze_detection_patterns(file_hash="")` | Figure out what's getting detected and why |
-| `assess_evasion_effectiveness(file_hash="")` | Check how well your evasion is working |
-| `analyze_attribution_risks(file_hash="")` | Look for things that could link back to you |
-| `generate_opsec_improvement_plan(file_hash="")` | Get a plan to make your stuff harder to detect |
-| `evaluate_deployment_readiness(file_hash="")` | Decide if your payload is ready for real use |
+### Retrieval — read the results
+
+| Tool                          | What It Does                                                          |
+|-------------------------------|-----------------------------------------------------------------------|
+| `get_file_info`               | Metadata: type, size, hashes, entropy, PE structure, suspicious imports |
+| `get_static_results`          | YARA + CheckPlz + Stringnalyzer findings                              |
+| `get_dynamic_results`         | Memory scanners + behavioral telemetry + process output               |
+| `get_holygrail_results`       | LOLDrivers + block status + critical imports                          |
+| `get_risk_assessment`         | `{score, level, factors}` for the target                              |
+| `get_comprehensive_results`   | All four results in one parallel call                                 |
+| `get_report`                  | Full HTML report inline                                               |
+| `download_report`             | Save the HTML report to disk and return the path                      |
+
+### Doppelganger — comparison
+
+| Tool                       | What It Does                                                           |
+|----------------------------|------------------------------------------------------------------------|
+| `run_blender_scan`         | Snapshot the live host                                                 |
+| `compare_with_blender`     | Compare a payload's runtime indicators against the host snapshot       |
+| `analyze_fuzzy_similarity` | ssdeep similarity score (0-100) against the FuzzyHash baseline         |
+| `create_fuzzy_database`    | (Re)build the FuzzyHash baseline DB from a folder of reference binaries|
+
+### Fleet management
+
+| Tool                | What It Does                                                          |
+|---------------------|-----------------------------------------------------------------------|
+| `list_payloads`     | List every analyzed payload + driver + process with risk summary      |
+| `sandbox_status`    | Health + tool readiness + fleet summary                               |
+| `cleanup_sandbox`   | Wipe artifacts (destructive — confirm before calling)                 |
+| `delete_payload`    | Delete one payload + its results (destructive)                        |
+
+---
+
+## OPSEC Review Prompts
+
+Short, data-first prompt templates. Each one tells the LLM which tools to call and asks targeted questions instead of dumping a wall of categories. All take a `file_hash` parameter.
+
+| Prompt                      | Use For                                                                |
+|-----------------------------|------------------------------------------------------------------------|
+| `detection_summary`         | "What triggered detection?" — YARA matches, memory anomalies, behavioral telemetry, static red flags |
+| `evasion_recommendations`   | "How do I make this stealthier?" — concrete changes per detection, ranked by impact |
+| `attribution_check`         | "What gives me away?" — tool similarity, framework fingerprints, compilation artifacts |
+| `deployment_readiness`      | "Should I ship this?" — GO / CONDITIONAL / NO-GO verdict against pass-fail criteria |
 
 ### Claude Integration
 
 https://github.com/user-attachments/assets/bd5e0653-c4c3-4d89-8651-215b8ee9cea2
-
