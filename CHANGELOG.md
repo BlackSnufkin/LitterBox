@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file.
 - Tailored downloadable report for driver samples: HolyGrail BYOVD section promoted above File Information
 - Driver reports swap the hero "Risk Assessment" for "BYOVD Potential" using a Python port of `holygrail/core.js`'s `calculateScore`
 - Driver reports swap the YARA/PE-Sieve/Moneta/Patriot/HSB chip row for LOLDrivers / Win10 / Win11 / Critical Imports
+- `/api/results/<target>/risk` endpoint returning `{risk_score, risk_level, risk_factors}`
+- `grumpycat.get_risk_assessment(target)` client method for the new endpoint
+- `GrumpyCats/install_mcp.py` — installer for six MCP clients (Claude Code project + global, Claude Desktop, Cursor, Windsurf, VS Code project) with auto-detected venv Python and idempotent JSON merge
 
 ### Changed
 - Backend split into 6 Flask blueprints + services + helpers under `app/blueprints/`, `app/services/`, `app/helpers.py`
@@ -25,6 +28,11 @@ All notable changes to this project will be documented in this file.
 - `helpers._load_file_data` now also loads `byovd_results.json` and threads it through to the report template
 - Switched to Tailwind v4 via the standalone CLI binary — committed `tailwind.min.css` shrinks ~2.8 MB → ~280 KB
 - `CLAUDE.md` primer with an end-to-end "Adding a new scanner tool" recipe (backend + frontend)
+- `grumpycat.py`: `main()` if/elif chain replaced with a `COMMAND_HANDLERS` dispatch table; `get_comprehensive_results` now fans the four GETs across a `ThreadPoolExecutor`
+- `LitterBoxMCP.py`: full rewrite onto modern FastMCP — `@mcp.tool()` with docstrings, `Annotated[..., Field(...)]` parameter docs, async tools via `asyncio.to_thread`, stderr logging, `mcp.run(transport=...)` API, default bind to 127.0.0.1, four focused 15-25-line OPSEC prompts replacing the previous five 150-200-line ones
+- Stringnalyzer block in the downloadable report renders every non-empty IOC bucket (URLs, IPs, domains, paths, …) as a full code block instead of a 3-item / 140-char sample, with 16 categories and a 100-item cap per category
+- Process Telemetry summary panel on `/results/<hash>/dynamic` uses `lb-hash-row` label/value pattern and surfaces `image_path` + `commandline` when RedEdr provides them
+- `GrumpyCats/README.md` rewritten to match — three-component framing, accurate `pip install mcp requests`, full installer reference, current 22 MCP tools and 4 prompts
 
 ### Fixed
 - XSS hardening at user-data interpolation sites in results-page renderers
@@ -39,6 +47,8 @@ All notable changes to this project will be documented in this file.
 - Latent `utils` parameter bugs in `/files` and `/results/<hash>/info` helper chains
 - `.gitignore` `Results/` pattern was unanchored and shadowed `app/static/js/results/` and `app/blueprints/results.py`
 - Duplicate `.logo-wrapper` definition in `style.css` merged
+- Upload of `.xls` / `.docx` / Office macro samples no longer throws "can't access property 'innerHTML', elements.macroDetectionNotes is undefined" — the missing element was added to the JS lookup table (upstream issue)
+- `LitterBoxMCP.py` startup crash — `from optimized_litterbox_client import …` (module never existed) replaced with `from grumpycat import …`, `mcp.serve(host=..., port=...)` (removed API) replaced with `mcp.run(transport=...)`, and logging routed to stderr so it doesn't corrupt stdio JSON-RPC
 
 ### Removed
 - Pre-redesign Tailwind utility chains across all templates
@@ -46,6 +56,8 @@ All notable changes to this project will be documented in this file.
 - `_design_previews/` iteration HTML files
 - Tailwind CDN runtime dependency from `report.html`
 - Bottom IDE-style statusbar (it duplicated the sidebar-foot status indicator)
+- `grumpycat.py`: dead `_file_cache` (read by nothing), unused `hashlib` / `Tuple` / `Any` imports, unreliable `__del__`
+- `LitterBoxMCP.py`: `handle_api_operation` try/except envelope (FastMCP converts exceptions to MCP errors automatically), `LitterBoxMCPClient` lazy wrapper, redundant `name=` / `description=` decorator args, `shutdown_client` exposed as a tool
 
 ### Notes
 - No new dependencies; setup unchanged: `pip install -r requirements.txt && py litterbox.py --debug` (admin)
