@@ -552,35 +552,150 @@
         </div>
 
         <div class="risk-card stack">
-          <span class="hero-eyebrow">Risk Assessment</span>
-          <div class="risk-row">
-            <div>
-              <span class="risk-score">{{ risk_score|round|int if risk_score is not none else 0 }}</span><span class="risk-score-suffix">/100</span>
+          {% if is_driver_report %}
+            {% set bf = byovd_results.findings %}
+            {% set bd = bf.detailed_analysis or {} %}
+            {% set bs = bf.summary or {} %}
+            <span class="hero-eyebrow">BYOVD Potential</span>
+            <div class="risk-row">
+              <div>
+                <span class="risk-score">{{ byovd_score if byovd_score is not none else 0 }}</span><span class="risk-score-suffix">/100</span>
+              </div>
+              <span class="pill {{ byovd_class }}">{{ byovd_label or 'Unknown' }}</span>
             </div>
-            <span class="pill {{ risk_class }}">{{ risk_level or 'Unknown' }}</span>
-          </div>
-          <div class="risk-bar">
-            <div class="risk-bar-fill {{ risk_class }}" style="width: {{ (risk_score|round|int if risk_score is not none else 0) }}%;"></div>
-          </div>
+            <div class="risk-bar">
+              <div class="risk-bar-fill {{ byovd_class }}" style="width: {{ byovd_score if byovd_score is not none else 0 }}%;"></div>
+            </div>
+          {% else %}
+            <span class="hero-eyebrow">Risk Assessment</span>
+            <div class="risk-row">
+              <div>
+                <span class="risk-score">{{ risk_score|round|int if risk_score is not none else 0 }}</span><span class="risk-score-suffix">/100</span>
+              </div>
+              <span class="pill {{ risk_class }}">{{ risk_level or 'Unknown' }}</span>
+            </div>
+            <div class="risk-bar">
+              <div class="risk-bar-fill {{ risk_class }}" style="width: {{ (risk_score|round|int if risk_score is not none else 0) }}%;"></div>
+            </div>
+          {% endif %}
         </div>
       </div>
 
-      <!-- Detection summary chips -->
+      <!-- Status chip row -->
       <div class="chip-row">
-        {% set detection_pairs = [
-          ('YARA',     detections.yara     if detections else 0),
-          ('PE-Sieve', detections.pesieve  if detections else 0),
-          ('Moneta',   detections.moneta   if detections else 0),
-          ('Patriot',  detections.patriot  if detections else 0),
-          ('HSB',      detections.hsb      if detections else 0)
-        ] %}
-        {% for label, count in detection_pairs %}
-          <span class="chip {% if count and count > 0 %}has-detections{% endif %}">
-            {{ label }} <strong>{{ count or 0 }}</strong>
-          </span>
-        {% endfor %}
+        {% if is_driver_report %}
+          {% set bd = byovd_results.findings.detailed_analysis or {} %}
+          {% set bs = byovd_results.findings.summary or {} %}
+          {% set is_lol = bd.is_loldriver or bs.is_loldriver %}
+          {% set is_w10 = bd.is_win10_blocked or bs.is_win10_blocked %}
+          {% set is_w11 = bd.is_win11_blocked or bs.is_win11_blocked %}
+          {% set crit_count = (bd.critical_imports or '').split(',') | reject('equalto', '') | list | length %}
+          <span class="chip {% if is_lol %}has-detections{% endif %}">LOLDrivers <strong>{{ 'Listed' if is_lol else 'Not listed' }}</strong></span>
+          <span class="chip {% if is_w10 %}has-detections{% endif %}">Win10 <strong>{{ 'Blocked' if is_w10 else 'Allowed' }}</strong></span>
+          <span class="chip {% if is_w11 %}has-detections{% endif %}">Win11 <strong>{{ 'Blocked' if is_w11 else 'Allowed' }}</strong></span>
+          <span class="chip {% if crit_count > 0 %}has-detections{% endif %}">Critical Imports <strong>{{ crit_count }}</strong></span>
+        {% else %}
+          {% set detection_pairs = [
+            ('YARA',     detections.yara     if detections else 0),
+            ('PE-Sieve', detections.pesieve  if detections else 0),
+            ('Moneta',   detections.moneta   if detections else 0),
+            ('Patriot',  detections.patriot  if detections else 0),
+            ('HSB',      detections.hsb      if detections else 0)
+          ] %}
+          {% for label, count in detection_pairs %}
+            <span class="chip {% if count and count > 0 %}has-detections{% endif %}">
+              {{ label }} <strong>{{ count or 0 }}</strong>
+            </span>
+          {% endfor %}
+        {% endif %}
       </div>
     </section>
+
+    <!-- HolyGrail (BYOVD) — driver samples only; promoted above File Info / Risk Factors. -->
+    {% if is_driver_report %}
+      {% set bf = byovd_results.findings %}
+      {% set bs = bf.summary or {} %}
+      {% set bd = bf.detailed_analysis or {} %}
+      {% set is_lol = bd.is_loldriver or bs.is_loldriver %}
+      {% set is_w10 = bd.is_win10_blocked or bs.is_win10_blocked %}
+      {% set is_w11 = bd.is_win11_blocked or bs.is_win11_blocked %}
+      {% set has_term = bd.has_terminate_process %}
+      {% set has_comms = bd.has_communication %}
+      {% set crit_imports = bd.critical_imports or '' %}
+      {% set crit_list = crit_imports.split(',') if crit_imports else [] %}
+      {% set has_danger = crit_list|length > 0 %}
+      {# Verdict: HolyGrail = exploitable + not on lol-list + not blocked #}
+      {% set is_holygrail = has_danger and not is_lol and not (is_w10 or is_w11) %}
+
+      <section class="card">
+        <h2 class="section-title">
+          HolyGrail BYOVD Analysis
+          {% if is_holygrail %}
+            <span class="pill critical">Holy Grail</span>
+          {% elif is_lol or is_w10 or is_w11 %}
+            <span class="pill medium">Known / Blocked</span>
+          {% elif has_danger %}
+            <span class="pill medium">Potentially Interesting</span>
+          {% else %}
+            <span class="pill clean">Low Risk</span>
+          {% endif %}
+        </h2>
+        <p class="section-sub">Driver Imports · LoLDrivers list · Microsoft Driver Block Policy.</p>
+
+        <dl class="kv">
+          <dt>Driver</dt>             <dd class="mono">{{ bd.original_filename or bd.name or '—' }}</dd>
+          <dt>Architecture</dt>       <dd>{{ bd.architecture or '—' }}</dd>
+          <dt>File Version</dt>       <dd class="mono">{{ bd.file_version or '—' }}</dd>
+          <dt>Compile Time</dt>       <dd class="mono">{{ bd.compile_time or byovd_results.compile_time or '—' }}</dd>
+          <dt>SHA-256</dt>            <dd class="mono">{{ bd.sha256 or '—' }}</dd>
+          <dt>LOLDrivers</dt>
+          <dd>
+            {% if is_lol %}
+              <span class="pill medium">Listed</span>
+            {% else %}
+              <span class="pill clean">Not listed</span>
+            {% endif %}
+          </dd>
+          <dt>Windows 10 Block Policy</dt>
+          <dd>
+            {% if is_w10 %}
+              <span class="pill medium">Blocked</span>
+              {% if bd.win10_block_reason %}<span class="muted"> · {{ bd.win10_block_reason }}</span>{% endif %}
+            {% else %}
+              <span class="pill clean">Not blocked</span>
+            {% endif %}
+          </dd>
+          <dt>Windows 11 Block Policy</dt>
+          <dd>
+            {% if is_w11 %}
+              <span class="pill medium">Blocked</span>
+              {% if bd.win11_block_reason %}<span class="muted"> · {{ bd.win11_block_reason }}</span>{% endif %}
+            {% else %}
+              <span class="pill clean">Not blocked</span>
+            {% endif %}
+          </dd>
+          <dt>Terminate-Process Primitive</dt>
+          <dd>
+            {% if has_term %}<span class="pill critical">Present</span>{% else %}<span class="pill clean">Absent</span>{% endif %}
+          </dd>
+          <dt>User-mode IOCTL Comms</dt>
+          <dd>
+            {% if has_comms %}<span class="pill medium">Present</span>{% else %}<span class="pill clean">Absent</span>{% endif %}
+          </dd>
+        </dl>
+
+        {% if crit_list %}
+          <h3 class="subsection-title">Critical Imports ({{ crit_list|length }})</h3>
+          <p class="section-sub">Privileged kernel primitives commonly exploited in BYOVD attacks.</p>
+          <div class="finding-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
+            {% for imp in crit_list %}
+              {% set name = imp.strip() %}
+              <span class="pill {% if name in av_killer_imports %}medium{% else %}clean{% endif %}">{{ name }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
 
     <!-- Risk Factors -->
     {% if risk_factors %}

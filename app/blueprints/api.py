@@ -117,6 +117,7 @@ def generate_report(target):
         file_info=data['file_info'],
         static_results=data['static_results'],
         dynamic_results=data['dynamic_results'],
+        byovd_results=data.get('byovd_results'),
         pid=data['pid'],
     )
 

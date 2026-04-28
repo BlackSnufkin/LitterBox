@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file.
 
 ## [v5.0.0] - 2026-04-28
+### Added
+- Tailored downloadable report for driver samples: HolyGrail BYOVD section promoted above File Information
+- Driver reports swap the hero "Risk Assessment" for "BYOVD Potential" using a Python port of `holygrail/core.js`'s `calculateScore`
+- Driver reports swap the YARA/PE-Sieve/Moneta/Patriot/HSB chip row for LOLDrivers / Win10 / Win11 / Critical Imports
+
 ### Changed
 - Backend split into 6 Flask blueprints + services + helpers under `app/blueprints/`, `app/services/`, `app/helpers.py`
 - `app/utils.py` (1,400 lines) split into the `app/utils/` package with single-concern modules
@@ -11,17 +16,22 @@ All notable changes to this project will be documented in this file.
 - Shared JS utils package `app/static/js/utils/` (escape, formatters, severity, fetch, modals, dom)
 - Per-tool scanner modules under `app/static/js/results/tools/` — one file per scanner, `tools.js` is now a 66-line registry
 - Reusable Jinja macros in `app/templates/partials/_macros.html` consumed by static/dynamic info pages
-- Full UI redesign on a terminal/IDE shell — breadcrumb titlebar, iconed sidebar, optional tab row, IDE-style status bar
+- Full UI redesign on a terminal/IDE shell — titlebar (logo + breadcrumb), iconed sidebar, optional tab row, sidebar foot shows status + version
 - New `:root` design tokens and `.lb-*` component vocabulary (panels, tags, buttons, chips, tables, hash rows, empty states)
 - JetBrains Mono throughout
-- Calm-red rule — bright red reserved for severity tags, destructive buttons, brand dot, and the critical-state statusbar
+- Calm-red rule — bright red reserved for severity tags, destructive buttons, and the brand dot
 - Self-contained downloadable report — Tailwind CDN dependency dropped, all CSS inlined, logo embedded as base64
+- `file_info` header consolidated — Back / Static / Dynamic buttons in the panel header, Dynamic flagged yellow because it executes the payload
+- `helpers._load_file_data` now also loads `byovd_results.json` and threads it through to the report template
+- Switched to Tailwind v4 via the standalone CLI binary — committed `tailwind.min.css` shrinks ~2.8 MB → ~280 KB
 - `CLAUDE.md` primer with an end-to-end "Adding a new scanner tool" recipe (backend + frontend)
 
 ### Fixed
 - XSS hardening at user-data interpolation sites in results-page renderers
+- Detection counts on `/results/<hash>/static` were using dynamic-scope counts when a dynamic scan also existed; each summary page now scopes to its own results
 - `ModalHandler` crash on dynamic results pages (null-deref against removed `.bg-gray-900` selector)
 - `AnalysisCore.updateStageToComplete` null-deref against removed stage-indicator markup
+- `tools.summary` was silently skipped because its `elementId` pointed at the removed `summaryWrapper` div
 - Per-tool render failures no longer suppress the rest of the rendering
 - Drag-and-drop highlight no longer null-derefs against the removed `.upload-icon` selector
 - Upload "Unsupported file type" false positive — extensions now sourced from `window.serverConfig`
@@ -35,10 +45,11 @@ All notable changes to this project will be documented in this file.
 - Inline cyber-themed `<style>` blocks in `holygrail.html` and `byovd_info.html`
 - `_design_previews/` iteration HTML files
 - Tailwind CDN runtime dependency from `report.html`
+- Bottom IDE-style statusbar (it duplicated the sidebar-foot status indicator)
 
 ### Notes
 - No new dependencies; setup unchanged: `pip install -r requirements.txt && py litterbox.py --debug` (admin)
-- Tailwind stays at the precompiled v2.2.19 build
+- Tailwind upgraded to v4 — `tailwind.min.css` is now generated locally by the maintainer via the standalone CLI binary; end users still ship the committed file
 - No public API / endpoint changes; existing JS DOM-ID contracts preserved
 
 

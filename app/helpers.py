@@ -45,6 +45,7 @@ class RouteHelpers:
             'file_info': None,
             'static_results': None,
             'dynamic_results': dynamic_results,
+            'byovd_results': None,
         }, None, False
 
     def _load_file_data(self, file_hash):
@@ -62,9 +63,11 @@ class RouteHelpers:
 
         static_path = os.path.join(result_path, 'static_analysis_results.json')
         dynamic_path = os.path.join(result_path, 'dynamic_analysis_results.json')
+        byovd_path = os.path.join(result_path, 'byovd_results.json')
 
         static_results = json_helpers.load_json_file(static_path) if os.path.exists(static_path) else None
         dynamic_results = json_helpers.load_json_file(dynamic_path) if os.path.exists(dynamic_path) else None
+        byovd_results = json_helpers.load_json_file(byovd_path) if os.path.exists(byovd_path) else None
 
         return {
             'is_pid': False,
@@ -73,6 +76,7 @@ class RouteHelpers:
             'file_info': file_info,
             'static_results': static_results,
             'dynamic_results': dynamic_results,
+            'byovd_results': byovd_results,
         }, None, False
 
     def calculate_and_add_risk(self, data):
