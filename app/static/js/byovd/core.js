@@ -400,7 +400,7 @@ class ByovdApp {
   buildVerdictSection(data) {
     if (data.isHolyGrail) {
       return `
-        <div style="border: 1px solid var(--lb-sev-medium); padding: 12px 14px; display: flex; align-items: center; gap: 12px; background: rgba(234, 179, 8, 0.04);">
+        <div style="border: 1px solid var(--lb-sev-medium); padding: 12px 14px; display: flex; align-items: center; gap: 12px; background: rgba(250, 204, 21, 0.04);">
           <span class="lb-tag medium">⚑ HolyGrail</span>
           <div style="flex: 1;">
             <div class="lb-strong" style="font-size: 14px;">The Holy Grail Found</div>
@@ -589,7 +589,7 @@ class ByovdApp {
       ` : '';
 
       return `
-        <div style="border: 1px solid ${blocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}; padding: 12px;">
+        <div style="border: 1px solid ${blocked ? 'rgba(248, 113, 113, 0.22)' : 'rgba(74, 222, 128, 0.22)'}; padding: 12px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span class="lb-strong" style="font-size: 13px;">${this.escapeHtml(name)}</span>
             <span class="lb-tag ${blocked ? 'critical' : 'clean'}">${blocked ? 'Blocked' : 'Allowed'}</span>

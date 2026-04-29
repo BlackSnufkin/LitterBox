@@ -66,8 +66,8 @@
         <div class="lb-eyebrow" style="margin-bottom: 8px;">Triggering Indicators</div>
         <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;">
             {% for factor in file_info.risk_assessment.factors %}
-            <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid var(--lb-accent); font-size: 12px;">
-                <span style="color: var(--lb-accent);">!</span>
+            <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid rgba(248, 113, 113, 0.4); font-size: 12px;">
+                <span style="color: var(--lb-accent-soft);">!</span>
                 <span class="lb-dim">{{ factor }}</span>
             </li>
             {% endfor %}
@@ -174,8 +174,8 @@
             <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;">
                 {% for note in file_info.pe_info.detection_notes %}
                 {% set is_runtime = file_info.pe_info.build_with and ('runtime' in note.lower() or file_info.pe_info.build_with in note.lower()) %}
-                <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid {% if is_runtime %}var(--lb-text-mute){% else %}var(--lb-accent){% endif %}; font-size: 12px;">
-                    <span style="color: {% if is_runtime %}var(--lb-text-mute){% else %}var(--lb-accent){% endif %};">!</span>
+                <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid {% if is_runtime %}var(--lb-text-mute){% else %}rgba(248, 113, 113, 0.4){% endif %}; font-size: 12px;">
+                    <span style="color: {% if is_runtime %}var(--lb-text-mute){% else %}var(--lb-accent-soft){% endif %};">!</span>
                     <span class="lb-dim">{{ note }}</span>
                 </li>
                 {% endfor %}
@@ -276,10 +276,10 @@
             {% endif %}
 
             {% if dll_suspicious_imports %}
-            <div style="border: 1px solid var(--lb-accent); padding: 10px;">
-                <div class="lb-mono lb-strong" style="font-size: 12px; color: var(--lb-accent); margin-bottom: 6px;">{{ dll }}</div>
+            <div style="border: 1px solid rgba(248, 113, 113, 0.25); padding: 10px;">
+                <div class="lb-mono lb-strong" style="font-size: 12px; color: var(--lb-accent-soft); margin-bottom: 6px;">{{ dll }}</div>
                 {% for import in dll_suspicious_imports %}
-                <div style="padding-left: 10px; border-left: 1px solid var(--lb-accent); margin-bottom: 4px;">
+                <div style="padding-left: 10px; border-left: 1px solid rgba(248, 113, 113, 0.3); margin-bottom: 4px;">
                     <div class="lb-mono" style="font-size: 11px;">
                         {{ import.function }} <span class="lb-accent">[{{ import.category }}]</span>
                         {% if import.hint is not none %}<span class="lb-muted" style="font-size: 10px;" title="Import hint">Hint: {{ import.hint }}</span>{% endif %}

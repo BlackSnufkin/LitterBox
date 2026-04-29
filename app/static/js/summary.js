@@ -93,24 +93,24 @@ function updateStats() {
         
         if (avgRiskScore >= 75) {
             riskText = 'Critical';
-            riskClass = 'bg-red-900 text-white';
+            riskClass = 'bg-red-500/15 text-red-300 border border-red-500/30';
         } else if (avgRiskScore >= 50) {
             riskText = 'High';
-            riskClass = 'bg-red-500 text-white';
+            riskClass = 'bg-orange-500/15 text-orange-300 border border-orange-500/30';
         } else if (avgRiskScore >= 25) {
             riskText = 'Medium';
-            riskClass = 'bg-yellow-500 text-black';
+            riskClass = 'bg-yellow-500/15 text-yellow-300 border border-yellow-500/30';
         } else {
             riskText = 'Low';
-            riskClass = 'bg-green-500 text-white';
+            riskClass = 'bg-green-500/15 text-green-300 border border-green-500/30';
         }
-        
+
         elements.averageRisk.textContent = `${riskText} Detection`;
         elements.averageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium ' + riskClass;
         elements.averageEntropy.textContent = `Detection Score: ${avgRiskScore.toFixed(1)}%`;
     } else {
         elements.averageRisk.textContent = '-';
-        elements.averageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium bg-gray-500 text-white';
+        elements.averageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium bg-gray-500/15 text-gray-400 border border-gray-500/30';
         elements.averageEntropy.textContent = 'Detection Score: -';
     }
 }
@@ -137,21 +137,21 @@ function renderFiles() {
             riskEl.className = 'px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium';
             
             if (score >= 75) {
-                riskEl.className += ' bg-red-900 text-white';
+                riskEl.className += ' bg-red-500/15 text-red-300 border border-red-500/30';
             } else if (score >= 50) {
-                riskEl.className += ' bg-red-500 text-white';
+                riskEl.className += ' bg-orange-500/15 text-orange-300 border border-orange-500/30';
             } else if (score >= 25) {
-                riskEl.className += ' bg-yellow-500 text-black';
+                riskEl.className += ' bg-yellow-500/15 text-yellow-300 border border-yellow-500/30';
             } else {
-                riskEl.className += ' bg-green-500 text-white';
+                riskEl.className += ' bg-green-500/15 text-green-300 border border-green-500/30';
             }
-            
+
             if (factors && factors.length > 0) {
                 entropyEl.textContent = factors[0];
             }
         } else {
             riskEl.textContent = 'Unknown';
-            riskEl.className += ' bg-gray-500 text-white px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium';
+            riskEl.className += ' bg-gray-500/15 text-gray-400 border border-gray-500/30 px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium';
             entropyEl.textContent = '';
         }
         
@@ -196,24 +196,24 @@ function updateDriverStats() {
         let riskText, riskClass;
         // BYOVD perspective: Higher score = Better for exploitation
         if (avgRiskScore >= 75) {
-            riskText = 'Excellent';  // Was 'Critical'
-            riskClass = 'bg-green-600 text-white';  // Was red
+            riskText = 'Excellent';
+            riskClass = 'bg-green-500/15 text-green-300 border border-green-500/30';
         } else if (avgRiskScore >= 50) {
-            riskText = 'Good';  // Was 'High'
-            riskClass = 'bg-green-500 text-white';  // Was red
+            riskText = 'Good';
+            riskClass = 'bg-green-500/15 text-green-300 border border-green-500/30';
         } else if (avgRiskScore >= 25) {
-            riskText = 'Fair';  // Was 'Medium'
-            riskClass = 'bg-yellow-500 text-black';  // Keep yellow
+            riskText = 'Fair';
+            riskClass = 'bg-yellow-500/15 text-yellow-300 border border-yellow-500/30';
         } else {
-            riskText = 'Poor';  // Was 'Low'
-            riskClass = 'bg-red-500 text-white';  // Now red for low scores
+            riskText = 'Poor';
+            riskClass = 'bg-red-500/15 text-red-300 border border-red-500/30';
         }
-        
+
         elements.driverAverageRisk.textContent = `${riskText} BYOVD`;
         elements.driverAverageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium ' + riskClass;
     } else if (elements.driverAverageRisk) {
         elements.driverAverageRisk.textContent = '-';
-        elements.driverAverageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium bg-gray-500 text-white';
+        elements.driverAverageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium bg-gray-500/15 text-gray-400 border border-gray-500/30';
     }
 }
 
@@ -239,18 +239,19 @@ function renderDrivers() {
             
             // BYOVD-appropriate terminology and colors
             let byovdLabel, byovdClass;
+            const byovdBase = 'px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium ';
             if (score >= 75) {
                 byovdLabel = 'HolyGrail';
-                byovdClass = 'px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium bg-green-600 text-white';
+                byovdClass = byovdBase + 'bg-green-500/15 text-green-300 border border-green-500/30';
             } else if (score >= 50) {
                 byovdLabel = 'Good';
-                byovdClass = 'px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium bg-green-500 text-white';
+                byovdClass = byovdBase + 'bg-green-500/15 text-green-300 border border-green-500/30';
             } else if (score >= 25) {
                 byovdLabel = 'Fair';
-                byovdClass = 'px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium bg-yellow-500 text-black';
+                byovdClass = byovdBase + 'bg-yellow-500/15 text-yellow-300 border border-yellow-500/30';
             } else {
                 byovdLabel = 'Poor';
-                byovdClass = 'px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium bg-red-500 text-white';
+                byovdClass = byovdBase + 'bg-red-500/15 text-red-300 border border-red-500/30';
             }
             
             riskEl.textContent = `${byovdLabel} (${score}%)`;
@@ -302,18 +303,18 @@ function updateProcessStats() {
         let riskText, riskClass;
         if (avgRiskScore >= 75) {
             riskText = 'Critical';
-            riskClass = 'bg-red-900 text-white';
+            riskClass = 'bg-red-500/15 text-red-300 border border-red-500/30';
         } else if (avgRiskScore >= 50) {
             riskText = 'High';
-            riskClass = 'bg-red-500 text-white';
+            riskClass = 'bg-orange-500/15 text-orange-300 border border-orange-500/30';
         } else if (avgRiskScore >= 25) {
             riskText = 'Medium';
-            riskClass = 'bg-yellow-500 text-black';
+            riskClass = 'bg-yellow-500/15 text-yellow-300 border border-yellow-500/30';
         } else {
             riskText = 'Low';
-            riskClass = 'bg-green-500 text-white';
+            riskClass = 'bg-green-500/15 text-green-300 border border-green-500/30';
         }
-        
+
         elements.processAverageRisk.textContent = `${riskText} (${avgRiskScore.toFixed(1)}%)`;
         elements.processAverageRisk.className = 'px-2 py-1 text-sm rounded-lg inline-flex items-center justify-center font-medium ' + riskClass;
     }
@@ -347,13 +348,13 @@ function renderProcesses() {
             riskEl.className = 'px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium';
             
             if (score >= 75) {
-                riskEl.className += ' bg-red-900 text-white';
+                riskEl.className += ' bg-red-500/15 text-red-300 border border-red-500/30';
             } else if (score >= 50) {
-                riskEl.className += ' bg-red-500 text-white';
+                riskEl.className += ' bg-orange-500/15 text-orange-300 border border-orange-500/30';
             } else if (score >= 25) {
-                riskEl.className += ' bg-yellow-500 text-black';
+                riskEl.className += ' bg-yellow-500/15 text-yellow-300 border border-yellow-500/30';
             } else {
-                riskEl.className += ' bg-green-500 text-white';
+                riskEl.className += ' bg-green-500/15 text-green-300 border border-green-500/30';
             }
         }
         

@@ -3,12 +3,12 @@
 // scattered definitions in results.js, blender.js, holygrail.js.
 
 export const SeverityMap = {
-    CRITICAL: { color: 'text-red-500',    bg: 'bg-red-500/10',    border: 'border-red-500/20'    },
-    HIGH:     { color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-    MEDIUM:   { color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
-    MID:      { color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
-    LOW:      { color: 'text-blue-500',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20'   },
-    INFO:     { color: 'text-gray-400',   bg: 'bg-gray-500/10',   border: 'border-gray-500/20'   },
+    CRITICAL: { color: 'text-red-300',    bg: 'bg-red-500/8',     border: 'border-red-500/22'    },
+    HIGH:     { color: 'text-orange-300', bg: 'bg-orange-500/8',  border: 'border-orange-500/22' },
+    MEDIUM:   { color: 'text-yellow-300', bg: 'bg-yellow-500/8',  border: 'border-yellow-500/22' },
+    MID:      { color: 'text-yellow-300', bg: 'bg-yellow-500/8',  border: 'border-yellow-500/22' },
+    LOW:      { color: 'text-blue-300',   bg: 'bg-blue-500/8',    border: 'border-blue-500/22'   },
+    INFO:     { color: 'text-gray-400',   bg: 'bg-gray-500/8',    border: 'border-gray-500/22'   },
 };
 
 const NUMERIC_SEVERITY = { 100: 'CRITICAL', 80: 'HIGH', 50: 'MEDIUM', 20: 'LOW', 5: 'INFO' };

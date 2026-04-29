@@ -61,7 +61,7 @@ export default {
         html += panel('Memory Anomalies', `
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                 ${breakdown.map(item => `
-                    <div style="padding: 10px; border: 1px solid ${item.value > 0 ? 'rgba(239, 68, 68, 0.3)' : 'var(--lb-border)'};">
+                    <div style="padding: 10px; border: 1px solid ${item.value > 0 ? 'rgba(248, 113, 113, 0.22)' : 'var(--lb-border)'};">
                         <div class="lb-eyebrow" style="margin-bottom: 4px;">${escapeHtml(item.label)}</div>
                         <div class="lb-mono lb-strong" style="font-size: 16px; color: ${item.value > 0 ? 'var(--lb-accent)' : 'var(--lb-text)'};">${item.value || 0}</div>
                     </div>

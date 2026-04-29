@@ -14,7 +14,7 @@
     <div class="lb-panel-body">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div id="step1Circle" style="width: 28px; height: 28px; border: 1px solid rgba(239, 68, 68, 0.4); color: var(--lb-accent-soft); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: rgba(239, 68, 68, 0.05);">
+                <div id="step1Circle" style="width: 28px; height: 28px; border: 1px solid rgba(248, 113, 113, 0.28); color: var(--lb-accent-soft); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: rgba(248, 113, 113, 0.04);">
                     <span id="step1Text">1</span>
                 </div>
                 <div>
@@ -70,8 +70,8 @@
 
             <!-- Regular payload options -->
             <div id="regularAnalysisOptions" class="lb-grid-2">
-                <button onclick="selectAnalysisType('static')" class="lb-analysis-card" style="text-align: left; cursor: pointer; padding: 16px; background: var(--lb-bg); border: 1px solid var(--lb-border-hi); color: var(--lb-text); font-family: inherit; transition: border-color var(--lb-transition-fast);">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <button onclick="selectAnalysisType('static')" class="lb-analysis-card">
+                    <div class="lb-analysis-card-head">
                         <svg width="18" height="18" fill="none" stroke="var(--lb-text-dim)" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
@@ -81,15 +81,19 @@
                         </div>
                     </div>
                     <p class="lb-dim" style="font-size: 11px; margin-bottom: 10px;">Analyze payload content and structure without execution. Identifies signature-based patterns and static IOCs.</p>
-                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 11px; color: var(--lb-text-dim);">
+                    <ul style="list-style: none; padding: 0; margin: 0 0 12px 0; font-size: 11px; color: var(--lb-text-dim);">
                         <li class="lb-ok">YARA Pattern Matching</li>
                         <li class="lb-ok">CheckPlz</li>
                         <li class="lb-ok">Stringnalyzer</li>
                     </ul>
+                    <span class="lb-analysis-card-cta">
+                        Run Static Scan
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </span>
                 </button>
 
-                <button onclick="selectAnalysisType('dynamic')" class="lb-analysis-card" style="text-align: left; cursor: pointer; padding: 16px; background: var(--lb-bg); border: 1px solid var(--lb-border-hi); color: var(--lb-text); font-family: inherit; transition: border-color var(--lb-transition-fast);">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <button onclick="selectAnalysisType('dynamic')" class="lb-analysis-card">
+                    <div class="lb-analysis-card-head">
                         <svg width="18" height="18" fill="none" stroke="var(--lb-text-dim)" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -107,7 +111,7 @@
                         </span>
                     </div>
                     <p class="lb-dim" style="font-size: 11px; margin-bottom: 10px;">Execute and monitor payload behaviour with memory analysis.</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: var(--lb-text-dim);">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: var(--lb-text-dim); margin-bottom: 12px;">
                         <div class="lb-ok">YARA Rules</div>
                         <div class="lb-ok">RedEdr</div>
                         <div class="lb-ok">Moneta</div>
@@ -115,13 +119,17 @@
                         <div class="lb-ok">Hunt-Sleeping-Beacons</div>
                         <div class="lb-ok">Patriot</div>
                     </div>
+                    <span class="lb-analysis-card-cta lb-analysis-card-cta--warn">
+                        Run Dynamic Scan
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </span>
                 </button>
             </div>
 
             <!-- Driver options (only for .sys files) -->
             <div id="driverAnalysisOptions" class="hidden lb-grid-2">
-                <button onclick="selectAnalysisType('static')" class="lb-analysis-card" style="text-align: left; cursor: pointer; padding: 16px; background: var(--lb-bg); border: 1px solid var(--lb-border-hi); color: var(--lb-text); font-family: inherit; transition: border-color var(--lb-transition-fast);">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <button onclick="selectAnalysisType('static')" class="lb-analysis-card">
+                    <div class="lb-analysis-card-head">
                         <svg width="18" height="18" fill="none" stroke="var(--lb-text-dim)" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
@@ -131,15 +139,19 @@
                         </div>
                     </div>
                     <p class="lb-dim" style="font-size: 11px; margin-bottom: 10px;">Analyze driver content and structure without loading. Identifies signature-based patterns and static IOCs.</p>
-                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 11px; color: var(--lb-text-dim);">
+                    <ul style="list-style: none; padding: 0; margin: 0 0 12px 0; font-size: 11px; color: var(--lb-text-dim);">
                         <li class="lb-ok">YARA Pattern Matching</li>
                         <li class="lb-ok">Driver Structure Analysis</li>
                         <li class="lb-ok">Import Analysis</li>
                     </ul>
+                    <span class="lb-analysis-card-cta">
+                        Run Static Scan
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </span>
                 </button>
 
-                <button onclick="selectAnalysisType('holygrail')" class="lb-analysis-card" style="text-align: left; cursor: pointer; padding: 16px; background: var(--lb-bg); border: 1px solid var(--lb-border-hi); color: var(--lb-text); font-family: inherit; transition: border-color var(--lb-transition-fast);">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <button onclick="selectAnalysisType('holygrail')" class="lb-analysis-card">
+                    <div class="lb-analysis-card-head">
                         <svg width="18" height="18" fill="none" stroke="var(--lb-sev-medium)" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
@@ -160,12 +172,16 @@
                         </span>
                     </div>
                     <p class="lb-dim" style="font-size: 11px; margin-bottom: 10px;">Specialised analysis for kernel drivers — identifies BYOVD vulnerabilities and abuse vectors.</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: var(--lb-text-dim);">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: var(--lb-text-dim); margin-bottom: 12px;">
                         <div class="lb-ok">Microsoft Policy Validation</div>
                         <div class="lb-ok">Known Abused Imports</div>
                         <div class="lb-ok">Identify LoLDrivers</div>
                         <div class="lb-ok">Digital Signature Check</div>
                     </div>
+                    <span class="lb-analysis-card-cta lb-analysis-card-cta--warn">
+                        Run BYOVD Scan
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </span>
                 </button>
             </div>
 
@@ -330,7 +346,67 @@
 </script>
 
 <style>
-.lb-analysis-card:hover { border-color: rgba(239, 68, 68, 0.4); }
+.lb-analysis-card {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    cursor: pointer;
+    padding: 16px;
+    background: var(--lb-bg);
+    border: 1px solid var(--lb-border-hi);
+    color: var(--lb-text);
+    font-family: inherit;
+    transition: border-color var(--lb-transition-fast), background var(--lb-transition-fast), transform var(--lb-transition-fast);
+}
+.lb-analysis-card:hover,
+.lb-analysis-card:focus-visible {
+    border-color: var(--lb-accent);
+    background: var(--lb-bg-soft);
+    outline: none;
+}
+.lb-analysis-card:active { transform: translateY(1px); }
+.lb-analysis-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.lb-analysis-card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+    align-self: flex-start;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #60a5fa;
+    background: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    transition: background var(--lb-transition-fast), border-color var(--lb-transition-fast), color var(--lb-transition-fast);
+}
+.lb-analysis-card-cta--warn {
+    color: var(--lb-sev-medium);
+    background: rgba(250, 204, 21, 0.05);
+    border-color: rgba(250, 204, 21, 0.25);
+}
+.lb-analysis-card:hover .lb-analysis-card-cta,
+.lb-analysis-card:focus-visible .lb-analysis-card-cta {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+.lb-analysis-card:hover .lb-analysis-card-cta--warn,
+.lb-analysis-card:focus-visible .lb-analysis-card-cta--warn {
+    background: rgba(250, 204, 21, 0.12);
+    border-color: var(--lb-sev-medium);
+    color: var(--lb-sev-medium);
+}
+.lb-analysis-card-cta svg { transition: transform var(--lb-transition-fast); }
+.lb-analysis-card:hover .lb-analysis-card-cta svg,
+.lb-analysis-card:focus-visible .lb-analysis-card-cta svg { transform: translateX(3px); }
 </style>
 
 {% endblock %}

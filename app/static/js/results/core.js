@@ -53,12 +53,12 @@ class AnalysisCore {
         // as a no-op when the legacy elements aren't in the DOM.
         if (this.elements.stageLine) {
             this.elements.stageLine.classList.remove('bg-gray-800');
-            this.elements.stageLine.classList.add('bg-green-500/20');
+            this.elements.stageLine.classList.add('bg-green-500/15');
         }
         if (this.elements.analysisStage) {
             this.elements.analysisStage.innerHTML = `
-                <div class="w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 rounded-full bg-green-500/8 border border-green-500/35 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                 </div>
@@ -212,7 +212,7 @@ window.startHolyGrailScan = function() {
     function restoreHolyGrailButton() {
         if (button) {
             button.innerHTML = `
-                <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/>

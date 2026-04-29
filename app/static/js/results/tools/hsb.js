@@ -62,8 +62,8 @@ export default {
                     ${items.map(f => {
                         const sev = SEV_TO_TAG[f.severity] || 'info';
                         const borderColor =
-                            sev === 'critical' ? 'rgba(239, 68, 68, 0.3)' :
-                            sev === 'medium'   ? 'rgba(234, 179, 8, 0.3)' :
+                            sev === 'critical' ? 'rgba(248, 113, 113, 0.22)' :
+                            sev === 'medium'   ? 'rgba(250, 204, 21, 0.22)' :
                                                  'var(--lb-border-hi)';
                         return `
                             <div style="border: 1px solid ${borderColor}; padding: 10px; margin-bottom: 8px;">

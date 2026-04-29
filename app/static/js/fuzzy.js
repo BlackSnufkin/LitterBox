@@ -91,7 +91,7 @@ class FuzzyAnalyzer {
 
         // Reset all tabs
         const inactiveClasses = 'nav-tab px-4 py-2 -mb-px border-b-2 text-gray-400 border-transparent';
-        const activeClasses = 'nav-tab px-4 py-2 -mb-px border-b-2 active border-blue-500 text-blue-500';
+        const activeClasses = 'nav-tab px-4 py-2 -mb-px border-b-2 active border-blue-400 text-blue-300';
 
         Object.values(this.elements.tabs).forEach(tab => {
             if (tab) tab.className = inactiveClasses;

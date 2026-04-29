@@ -40,7 +40,7 @@ export default {
                 html += panel('Indicators By Type', `
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                         ${Object.entries(findingsByType).map(([type, count]) => `
-                            <div style="padding: 10px; border: 1px solid rgba(239, 68, 68, 0.3);">
+                            <div style="padding: 10px; border: 1px solid rgba(248, 113, 113, 0.22);">
                                 <div class="lb-eyebrow" style="margin-bottom: 4px;">${escapeHtml(type)}</div>
                                 <div class="lb-mono lb-strong" style="font-size: 16px; color: var(--lb-accent);">${count}</div>
                             </div>

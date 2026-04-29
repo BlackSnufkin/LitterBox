@@ -76,13 +76,13 @@
         {% set findings = stringnalyzer_results.findings if stringnalyzer_results.findings is defined else {} %}
 
         {% if findings.found_suspicious_strings and findings.found_suspicious_strings|length > 0 %}
-            <div style="border: 1px solid var(--lb-accent); padding: 10px; margin-bottom: 10px;">
-                <div class="lb-eyebrow" style="color: var(--lb-accent); margin-bottom: 6px;">
+            <div style="border: 1px solid rgba(248, 113, 113, 0.25); padding: 10px; margin-bottom: 10px;">
+                <div class="lb-eyebrow" style="color: var(--lb-accent-soft); margin-bottom: 6px;">
                     Notable Strings <span class="lb-muted">({{ findings.found_suspicious_strings|length }})</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 3px;">
                     {% for item in findings.found_suspicious_strings[:5] %}
-                        <div class="lb-mono" style="font-size: 11px; padding: 4px 8px; background: rgba(239, 68, 68, 0.04); border-left: 2px solid var(--lb-accent); color: var(--lb-accent-soft); word-break: break-all;">{{ item }}</div>
+                        <div class="lb-mono" style="font-size: 11px; padding: 4px 8px; background: rgba(248, 113, 113, 0.03); border-left: 2px solid rgba(248, 113, 113, 0.4); color: var(--lb-accent-soft); word-break: break-all;">{{ item }}</div>
                     {% endfor %}
                     {% if findings.found_suspicious_strings|length > 5 %}
                         <div class="lb-muted" style="font-size: 11px; font-style: italic;">… and {{ findings.found_suspicious_strings|length - 5 }} more</div>

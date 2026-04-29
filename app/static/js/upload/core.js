@@ -125,9 +125,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
         const colors = {
-            success: 'border-green-900/20 bg-green-500/10 text-green-500',
-            error: 'border-red-900/20 bg-red-500/10 text-red-500',
-            info: 'border-blue-900/20 bg-blue-500/10 text-blue-500'
+            success: 'border-green-500/25 bg-green-500/10 text-green-300',
+            error: 'border-red-500/25 bg-red-500/10 text-red-300',
+            info: 'border-blue-500/25 bg-blue-500/10 text-blue-300'
         };
 
         toast.className = `flex items-center space-x-2 p-4 rounded-lg border ${colors[type]} transform translate-y-2 opacity-0 transition-all duration-300 text-base`;
@@ -174,22 +174,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const stepText = step === 1 ? elements.step1Text : elements.step2Text;
 
         if (completed && step === 1) {
-            stepCircle.classList.remove('bg-red-500/10', 'border-red-500', 'bg-black/50', 'border-gray-700');
-            stepCircle.classList.add('bg-green-500/10', 'border-green-500');
+            stepCircle.classList.remove('bg-red-500/10', 'border-red-500', 'bg-red-500/8', 'border-red-500/40', 'bg-black/50', 'border-gray-700');
+            stepCircle.classList.add('bg-green-500/8', 'border-green-500/40');
 
             stepText.innerHTML = `
-                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
             `;
 
             elements.progressLine.classList.remove('to-gray-800');
-            elements.progressLine.classList.add('to-red-500/20');
+            elements.progressLine.classList.add('to-red-500/15');
 
             elements.step2Circle.classList.remove('bg-black/50', 'border-gray-700');
-            elements.step2Circle.classList.add('bg-red-500/10', 'border-red-500');
+            elements.step2Circle.classList.add('bg-red-500/8', 'border-red-500/40');
             elements.step2Text.classList.remove('text-gray-500');
-            elements.step2Text.classList.add('text-red-500');
+            elements.step2Text.classList.add('text-red-300');
         }
     }
 
@@ -214,9 +214,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getDetectionRiskColor(risk) {
         const colors = {
-            'High': 'bg-red-500/10 text-red-500',
-            'Medium': 'bg-yellow-500/10 text-yellow-500',
-            'Low': 'bg-green-500/10 text-green-500'
+            'High': 'bg-red-500/10 text-red-300 border border-red-500/25',
+            'Medium': 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/25',
+            'Low': 'bg-green-500/10 text-green-300 border border-green-500/25'
         };
         return colors[risk] || colors['Low'];
     }
@@ -226,13 +226,13 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.peInfo.classList.add('hidden');
         elements.officeInfo.classList.add('hidden');
         elements.suspiciousImports.classList.add('hidden');
-        
+
         if (fileInfo.entropy_analysis) {
             const entropyPercentage = (fileInfo.entropy / 8) * 100;
             elements.entropyBar.style.width = `${entropyPercentage}%`;
             elements.entropyBar.className = `absolute h-full transition-all duration-300 ${
-                fileInfo.entropy_analysis.detection_risk === 'High' ? 'bg-red-500' :
-                fileInfo.entropy_analysis.detection_risk === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                fileInfo.entropy_analysis.detection_risk === 'High' ? 'bg-red-400' :
+                fileInfo.entropy_analysis.detection_risk === 'Medium' ? 'bg-yellow-400' : 'bg-green-400'
             }`;
 
             elements.detectionRisk.className = `px-3 py-1 text-sm rounded-full ${
@@ -306,14 +306,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const isValid = pe.checksum_info.is_valid;
                 
                 if (isValid) {
-                    elements.checksumStatus.className = 'px-3 py-1 text-sm rounded-full bg-green-500/10 text-green-500';
+                    elements.checksumStatus.className = 'px-3 py-1 text-sm rounded-full bg-green-500/8 text-green-300 border border-green-500/22';
                     elements.checksumStatus.textContent = 'Valid';
                 } else if (buildWith) {
                     const runtimeConfig = getRuntimeConfig(buildWith);
                     elements.checksumStatus.className = `px-3 py-1 text-sm rounded-full ${runtimeConfig.checksumClass}`;
                     elements.checksumStatus.textContent = `${buildWith.charAt(0).toUpperCase() + buildWith.slice(1)} Binary`;
                 } else {
-                    elements.checksumStatus.className = 'px-3 py-1 text-sm rounded-full bg-red-500/10 text-red-500';
+                    elements.checksumStatus.className = 'px-3 py-1 text-sm rounded-full bg-red-500/8 text-red-300 border border-red-500/22';
                     elements.checksumStatus.textContent = 'Invalid';
                 }
                 
@@ -342,14 +342,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const office = fileInfo.office_info;
 
             elements.macroStatus.className = `px-3 py-1 text-sm rounded-full ${
-                office.has_macros ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'
+                office.has_macros ? 'bg-red-500/8 text-red-300 border border-red-500/22' : 'bg-green-500/8 text-green-300 border border-green-500/22'
             }`;
             elements.macroStatus.textContent = office.has_macros ? 'Macros Present' : 'No Macros';
 
             if (office.detection_notes && office.detection_notes.length > 0) {
                 elements.macroDetectionNotes.innerHTML = office.detection_notes.map(note => `
                     <div class="flex items-center space-x-2">
-                        <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                         </svg>
@@ -372,44 +372,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'API Imports Analysis (Go Runtime)',
                 badge: 'Go Runtime',
                 badgeLabel: 'Go Runtime',
-                countClass: 'bg-blue-500/10 text-blue-400',
-                dllColor: 'text-blue-400',
-                categoryBg: 'bg-blue-500/20',
-                categoryText: 'text-blue-400',
-                badgeBg: 'bg-gray-500/20',
+                countClass: 'bg-blue-500/5 text-blue-300',
+                dllColor: 'text-blue-300',
+                categoryBg: 'bg-blue-500/10',
+                categoryText: 'text-blue-300',
+                badgeBg: 'bg-gray-500/10',
                 badgeText: 'text-gray-400',
-                iconColor: 'text-blue-500',
-                checksumClass: 'bg-blue-500/10 text-blue-400',
+                iconColor: 'text-blue-400',
+                checksumClass: 'bg-blue-500/5 text-blue-300',
                 checksumNote: 'Go binaries typically have non-standard PE checksums - This is normal behavior'
             },
             'rust': {
                 title: 'API Imports Analysis (Rust Runtime)',
                 badge: 'Rust Runtime',
                 badgeLabel: 'Rust Runtime',
-                countClass: 'bg-purple-500/10 text-purple-400',
-                dllColor: 'text-purple-400',
-                categoryBg: 'bg-purple-500/20',
-                categoryText: 'text-purple-400',
-                badgeBg: 'bg-gray-500/20',
+                countClass: 'bg-purple-500/5 text-purple-300',
+                dllColor: 'text-purple-300',
+                categoryBg: 'bg-purple-500/10',
+                categoryText: 'text-purple-300',
+                badgeBg: 'bg-gray-500/10',
                 badgeText: 'text-gray-400',
-                iconColor: 'text-purple-500',
-                checksumClass: 'bg-purple-500/10 text-purple-400',
+                iconColor: 'text-purple-400',
+                checksumClass: 'bg-purple-500/5 text-purple-300',
                 checksumNote: 'Rust binaries may have non-standard PE checksums - This is normal behavior'
             }
         };
-        
+
         const defaultConfig = {
             title: 'Sensitive Imports Analysis',
             badge: null,
             badgeLabel: 'Sensitive',
-            countClass: 'bg-red-500/10 text-red-500',
-            dllColor: 'text-red-500',
-            categoryBg: 'bg-red-500/20',
-            categoryText: 'text-red-400',
-            badgeBg: 'bg-red-500/20',
-            badgeText: 'text-red-400',
-            iconColor: 'text-yellow-500',
-            checksumClass: 'bg-red-500/10 text-red-500',
+            countClass: 'bg-red-500/5 text-red-300',
+            dllColor: 'text-red-300',
+            categoryBg: 'bg-red-500/10',
+            categoryText: 'text-red-300',
+            badgeBg: 'bg-red-500/10',
+            badgeText: 'text-red-300',
+            iconColor: 'text-yellow-400',
+            checksumClass: 'bg-red-500/5 text-red-300',
             checksumNote: 'Invalid checksum - Common in packed/modified payloads'
         };
         
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${pe.sections.map(section => {
                             const isStandardSection = ['.text', '.data', '.bss', '.rdata', '.edata', '.idata', '.pdata', '.reloc', '.rsrc', '.tls', '.debug'].includes(section.name);
                             return `
-                                <span class="px-2 py-1 text-sm ${isStandardSection ? 'bg-gray-900/50 text-gray-400' : 'bg-red-500/10 text-red-500'} rounded-lg border ${isStandardSection ? 'border-gray-800' : 'border-red-900/20'}">
+                                <span class="px-2 py-1 text-sm ${isStandardSection ? 'bg-gray-900/50 text-gray-400' : 'bg-red-500/8 text-red-300'} rounded-lg border ${isStandardSection ? 'border-gray-800' : 'border-red-500/22'}">
                                     ${section.name}
                                 </span>
                             `;

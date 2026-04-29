@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderHolyGrailBanner() {
     return `
-      <div style="border: 1px solid var(--lb-sev-medium); padding: 12px 14px; display: flex; align-items: center; gap: 10px; background: rgba(234, 179, 8, 0.04);">
+      <div style="border: 1px solid var(--lb-sev-medium); padding: 12px 14px; display: flex; align-items: center; gap: 10px; background: rgba(250, 204, 21, 0.04);">
         <span class="lb-tag medium">⚑ HolyGrail</span>
         <div style="flex: 1;">
           <div class="lb-strong" style="font-size: 13px;">The Holy Grail Found</div>
@@ -488,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (block.blocked && block.blockingDetails) {
         const bd = block.blockingDetails;
         detailsHtml = `
-          <div style="margin-top: 10px; padding: 10px; border: 1px solid rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.04);">
+          <div style="margin-top: 10px; padding: 10px; border: 1px solid rgba(248, 113, 113, 0.18); background: rgba(248, 113, 113, 0.03);">
             <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
               ${bd.blocked_signer_id ? `<div><span class="lb-eyebrow">Rule ID</span> <span class="lb-mono lb-strong">${escapeHTML(bd.blocked_signer_id)}</span></div>` : ''}
               ${bd.publisher_info ? `<div><span class="lb-eyebrow">Publisher</span> <span class="lb-strong">${escapeHTML(bd.publisher_info)}</span></div>` : ''}
@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       return `
-        <div style="border: 1px solid ${block.blocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}; padding: 12px;">
+        <div style="border: 1px solid ${block.blocked ? 'rgba(248, 113, 113, 0.22)' : 'rgba(74, 222, 128, 0.22)'}; padding: 12px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span class="lb-strong" style="font-size: 13px;">${block.name}</span>
             <span class="lb-tag ${block.blocked ? 'critical' : 'clean'}">${block.blocked ? 'Blocked' : 'Allowed'}</span>

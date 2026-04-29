@@ -31,11 +31,11 @@
       --text-faint:   #71717a;
       --accent:       #ef4444;
 
-      --sev-critical: #ef4444;
-      --sev-high:     #f97316;
-      --sev-medium:   #eab308;
-      --sev-low:      #22c55e;
-      --sev-clean:    #22c55e;
+      --sev-critical: #f87171;   /* red-400, softened from red-500 */
+      --sev-high:     #fb923c;   /* orange-400 */
+      --sev-medium:   #facc15;   /* yellow-400 */
+      --sev-low:      #4ade80;   /* green-400 */
+      --sev-clean:    #4ade80;
 
       --radius-sm: 0;
       --radius:    0;
@@ -87,9 +87,9 @@
       flex-shrink: 0;
       border-radius: 12px;
       object-fit: contain;
-      background: rgba(239, 68, 68, 0.06);
+      background: rgba(248, 113, 113, 0.05);
       padding: 6px;
-      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.18);
+      box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.14);
     }
     .brand-text {
       display: inline-flex;
@@ -202,11 +202,11 @@
       border: 1px solid transparent;
       white-space: nowrap;
     }
-    .pill.critical { color: var(--sev-critical); background: rgba(239,68,68,0.1);  border-color: rgba(239,68,68,0.3); }
-    .pill.high     { color: var(--sev-high);     background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.3); }
-    .pill.medium   { color: var(--sev-medium);   background: rgba(234,179,8,0.1);  border-color: rgba(234,179,8,0.3); }
+    .pill.critical { color: var(--sev-critical); background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.22); }
+    .pill.high     { color: var(--sev-high);     background: rgba(251,146,60,0.08);  border-color: rgba(251,146,60,0.22); }
+    .pill.medium   { color: var(--sev-medium);   background: rgba(250,204,21,0.08);  border-color: rgba(250,204,21,0.22); }
     .pill.low,
-    .pill.clean    { color: var(--sev-low);      background: rgba(34,197,94,0.1);  border-color: rgba(34,197,94,0.3); }
+    .pill.clean    { color: var(--sev-low);      background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.22); }
     .pill.muted    { color: var(--text-muted);   background: rgba(255,255,255,0.04); border-color: var(--border); }
 
     /* Detection chips */
@@ -234,8 +234,8 @@
     }
     .chip.has-detections {
       color: var(--sev-critical);
-      background: rgba(239,68,68,0.07);
-      border-color: rgba(239,68,68,0.25);
+      background: rgba(248,113,113,0.06);
+      border-color: rgba(248,113,113,0.18);
     }
     .chip.has-detections strong { color: var(--sev-critical); }
 

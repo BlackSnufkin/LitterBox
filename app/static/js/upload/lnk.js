@@ -41,7 +41,7 @@ export function renderLnkInfo(lnkInfo) {
             <!-- Target Command (Most Important) -->
             <div class="bg-black/40 rounded-lg p-4 border-l-4 ${getTargetCommandBorderClass(riskLevel)}">
                 <div class="flex items-center space-x-2 mb-2">
-                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3"/>
                     </svg>
                     <span class="text-base font-medium text-gray-200">Target Command</span>
@@ -93,7 +93,7 @@ export function renderLnkInfo(lnkInfo) {
             ${machineTracking.machine_identifier ? `
                 <div class="bg-gray-800/30 rounded-lg p-4">
                     <div class="flex items-center space-x-2 mb-3">
-                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
                         <span class="text-base font-medium text-gray-200">Machine Tracking</span>
@@ -126,7 +126,7 @@ export function renderLnkInfo(lnkInfo) {
             <!-- Timestamps -->
             <div class="bg-gray-800/30 rounded-lg p-4">
                 <div class="flex items-center space-x-2 mb-3">
-                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <span class="text-base font-medium text-gray-200">Timestamps</span>
@@ -157,7 +157,7 @@ export function renderLnkInfo(lnkInfo) {
             ${volumeInfo.drive_type ? `
                 <div class="bg-gray-800/30 rounded-lg p-4">
                     <div class="flex items-center space-x-2 mb-3">
-                        <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
                         </svg>
                         <span class="text-base font-medium text-gray-200">Volume Information</span>
@@ -278,20 +278,20 @@ export function calculateLnkRisk(targetCommand) {
 
 export function getRiskLevelClass(riskLevel) {
     const classes = {
-        'Critical': 'bg-red-500/20 text-red-400 border border-red-900/20',
-        'High': 'bg-orange-500/20 text-orange-400 border border-orange-900/20',
-        'Medium': 'bg-yellow-500/20 text-yellow-400 border border-yellow-900/20',
-        'Low': 'bg-green-500/20 text-green-400 border border-green-900/20'
+        'Critical': 'bg-red-500/12 text-red-300 border border-red-500/25',
+        'High': 'bg-orange-500/12 text-orange-300 border border-orange-500/25',
+        'Medium': 'bg-yellow-500/12 text-yellow-300 border border-yellow-500/25',
+        'Low': 'bg-green-500/12 text-green-300 border border-green-500/25'
     };
     return classes[riskLevel] || classes['Low'];
 }
 
 export function getTargetCommandBorderClass(riskLevel) {
     const classes = {
-        'Critical': 'border-red-500',
-        'High': 'border-orange-500',
-        'Medium': 'border-yellow-500',
-        'Low': 'border-green-500'
+        'Critical': 'border-red-400',
+        'High': 'border-orange-400',
+        'Medium': 'border-yellow-400',
+        'Low': 'border-green-400'
     };
     return classes[riskLevel] || classes['Low'];
 }
