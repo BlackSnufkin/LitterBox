@@ -74,10 +74,6 @@ document.addEventListener('DOMContentLoaded', function() {
         suspiciousImportsCount: document.getElementById('suspiciousImportsCount'),
         suspiciousImportsSummary: document.getElementById('suspiciousImportsSummary'),
         suspiciousImportsTitle: document.getElementById('suspiciousImportsTitle'),
-        // Analysis option containers
-        regularAnalysisOptions: document.getElementById('regularAnalysisOptions'),
-        driverAnalysisOptions: document.getElementById('driverAnalysisOptions'),
-        argsInputContainer: document.getElementById('argsInputContainer')
     };
 
     let dragCounter = 0;
@@ -193,24 +189,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // File type detection and UI updates
+    // File type detection and UI updates.
+    //
+    // The analysis-mode selector is a single segmented control with one tab
+    // per mode (Static / Dynamic / each EDR profile / HolyGrail). Each tab
+    // is tagged data-family="regular" or "driver"; we only show the family
+    // matching the uploaded file. The first visible tab becomes active.
     function updateAnalysisOptions(fileExtension) {
         isDriverFile = fileExtension.toLowerCase() === 'sys';
-        
-        if (isDriverFile) {
-            // Show driver analysis options
-            elements.regularAnalysisOptions.classList.add('hidden');
-            elements.driverAnalysisOptions.classList.remove('hidden');
-            // Hide command line arguments for driver files
-            elements.argsInputContainer.classList.add('hidden');
-        } else {
-            // Show regular payload analysis options
-            elements.driverAnalysisOptions.classList.add('hidden');
-            elements.regularAnalysisOptions.classList.remove('hidden');
-            // Show command line arguments for regular payloads
-            elements.argsInputContainer.classList.remove('hidden');
+        const family = isDriverFile ? 'driver' : 'regular';
+
+        const tabs = document.querySelectorAll('#modeTabs .lb-tab');
+        const bodies = document.querySelectorAll('.lb-mode-body');
+
+        // Show only tabs for this file family; active state moves to first.
+        let firstVisible = null;
+        tabs.forEach(t => {
+            const matches = t.dataset.family === family;
+            t.classList.toggle('hidden', !matches);
+            t.classList.remove('active');
+            if (matches && !firstVisible) firstVisible = t;
+        });
+
+        if (firstVisible) {
+            firstVisible.classList.add('active');
+            // Hide all bodies, then show the one that matches.
+            bodies.forEach(b => b.classList.add('hidden'));
+            const target = document.querySelector(`.lb-mode-body[data-mode="${firstVisible.dataset.mode}"]`);
+            if (target) target.classList.remove('hidden');
         }
     }
+
+    // Wire tab clicks. Activating a tab swaps the active class and reveals
+    // the matching mode body.
+    document.getElementById('modeTabs').addEventListener('click', (e) => {
+        const tab = e.target.closest('.lb-tab');
+        if (!tab || tab.classList.contains('hidden')) return;
+        document.querySelectorAll('#modeTabs .lb-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.lb-mode-body').forEach(b => b.classList.add('hidden'));
+        const target = document.querySelector(`.lb-mode-body[data-mode="${tab.dataset.mode}"]`);
+        if (target) target.classList.remove('hidden');
+    });
 
     function getDetectionRiskColor(risk) {
         const colors = {
@@ -641,12 +661,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Get user-specified arguments for dynamic analysis
                 const argsInput = document.getElementById('analysisArgs').value;
                 const args = argsInput.split(' ').filter(arg => arg.trim() !== '');
-                
+
                 // Save arguments to localStorage
                 localStorage.setItem('analysisArgs', JSON.stringify(args));
-                
+
                 // Navigate to dynamic analysis
                 window.location.href = `/analyze/${type}/${currentFileHash}`;
+            } else if (type.startsWith('edr:')) {
+                // EDR profile dispatch: type is "edr:<profile_name>"
+                // Server-side route is /analyze/edr/<profile>/<hash>.
+                const profile = type.slice(4);
+                window.location.href = `/analyze/edr/${encodeURIComponent(profile)}/${currentFileHash}`;
             } else {
                 // Navigate to static analysis
                 window.location.href = `/analyze/${type}/${currentFileHash}`;
@@ -654,25 +679,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }, UPLOAD_CONFIG.transitionDelay);
     };
 
-    // Monitor dynamic analysis options visibility to show/hide args input
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                const target = mutation.target;
-                if (target.id === 'regularAnalysisOptions') {
-                    // Show args input only when regular analysis options are visible
-                    if (target.classList.contains('hidden')) {
-                        elements.argsInputContainer.classList.add('hidden');
-                    } else {
-                        elements.argsInputContainer.classList.remove('hidden');
-                    }
-                }
-            }
-        });
-    });
-    
-    // Observe changes to analysis options
-    if (elements.regularAnalysisOptions) {
-        observer.observe(elements.regularAnalysisOptions, { attributes: true });
-    }
 });

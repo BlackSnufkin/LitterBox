@@ -21,7 +21,7 @@ export function errorPanel(message, details) {
             <div style="display:flex; align-items:center; gap:8px;">
                 ${ICON.error}<span>${escapeHtml(message || 'Error')}</span>
             </div>
-            ${details ? `<pre class="lb-mono" style="margin-top:8px; font-size:11px; color:var(--lb-text-mute); white-space:pre-wrap;">${escapeHtml(JSON.stringify(details, null, 2))}</pre>` : ''}
+            ${details ? `<pre class="lb-mono" style="margin-top:8px; font-size: 12px; color:var(--lb-text-mute); white-space:pre-wrap;">${escapeHtml(JSON.stringify(details, null, 2))}</pre>` : ''}
         </div>`;
 }
 
@@ -32,7 +32,7 @@ export function cleanState(title, subtext) {
             <div style="display:flex; align-items:center; gap:8px;">
                 ${ICON.check}<span class="lb-strong">${escapeHtml(title)}</span>
             </div>
-            ${subtext ? `<span class="lb-muted" style="font-size:11px;">${escapeHtml(subtext)}</span>` : ''}
+            ${subtext ? `<span class="lb-muted" style="font-size: 12px;">${escapeHtml(subtext)}</span>` : ''}
         </div>`;
 }
 
@@ -43,7 +43,7 @@ export function threatState(title, subtext) {
             <div style="display:flex; align-items:center; gap:8px;">
                 ${ICON.warn}<span class="lb-strong">${escapeHtml(title)}</span>
             </div>
-            ${subtext ? `<span class="lb-muted" style="font-size:11px;">${escapeHtml(subtext)}</span>` : ''}
+            ${subtext ? `<span class="lb-muted" style="font-size: 12px;">${escapeHtml(subtext)}</span>` : ''}
         </div>`;
 }
 
@@ -96,7 +96,7 @@ export function kvGrid(pairs, cols = 2) {
             ${pairs.map(([label, value, mono]) => `
                 <div>
                     <div class="lb-eyebrow" style="margin-bottom:2px;">${escapeHtml(label)}</div>
-                    <div class="${mono === false ? 'lb-strong' : 'lb-strong lb-mono'}" style="font-size: 12px; word-break: break-all;">${escapeHtml(value ?? 'N/A')}</div>
+                    <div class="${mono === false ? 'lb-strong' : 'lb-strong lb-mono'}" style="font-size: 13px; word-break: break-all;">${escapeHtml(value ?? 'N/A')}</div>
                 </div>
             `).join('')}
         </div>`;
@@ -109,11 +109,11 @@ export function codeBlock(content, opts = {}) {
     return `
         <div style="border: 1px solid var(--lb-border); margin-top: 8px;">
             ${label ? `
-                <div style="display:flex; align-items:center; justify-content:space-between; padding: 6px 10px; background: var(--lb-bg-soft); border-bottom: 1px solid var(--lb-border); font-size: 11px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding: 6px 10px; background: var(--lb-bg-soft); border-bottom: 1px solid var(--lb-border); font-size: 12px;">
                     <span class="lb-eyebrow">${escapeHtml(label)}</span>
-                    ${copy ? `<button onclick="(function(b){const t=document.getElementById('${id}').textContent;navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500);})(this)" class="lb-btn lb-btn-ghost" style="padding: 1px 8px; font-size: 10px;">Copy</button>` : ''}
+                    ${copy ? `<button onclick="(function(b){const t=document.getElementById('${id}').textContent;navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500);})(this)" class="lb-btn lb-btn-ghost" style="padding: 1px 8px; font-size: 11px;">Copy</button>` : ''}
                 </div>` : ''}
-            <pre id="${id}" class="lb-mono" style="background: var(--lb-bg); padding: 10px; font-size: 11px; color: ${color}; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto; margin: 0;">${escapeHtml(content)}</pre>
+            <pre id="${id}" class="lb-mono" style="background: var(--lb-bg); padding: 10px; font-size: 12px; color: ${color}; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto; margin: 0;">${escapeHtml(content)}</pre>
         </div>`;
 }
 
@@ -124,7 +124,7 @@ export function summaryRow({ name, triggered, count, detail }) {
             <td>${escapeHtml(name)}</td>
             <td>${tag(triggered ? 'critical' : 'clean', triggered ? 'Detected' : 'Clean')}</td>
             <td class="lb-mono" style="color: ${triggered ? 'var(--lb-accent)' : 'var(--lb-text-mute)'};">${count}</td>
-            <td class="lb-muted" style="font-size: 11px;">${escapeHtml(detail)}</td>
+            <td class="lb-muted" style="font-size: 12px;">${escapeHtml(detail)}</td>
         </tr>`;
 }
 

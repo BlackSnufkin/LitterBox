@@ -10,7 +10,12 @@ upload_bp = Blueprint('upload', __name__)
 
 @upload_bp.route('/')
 def index():
-    return render_template('upload.html', config=current_app.config)
+    deps = current_app.extensions['litterbox']
+    return render_template(
+        'upload.html',
+        config=current_app.config,
+        edr_profiles=deps.edr_registry.list_profiles(),
+    )
 
 
 @upload_bp.route('/upload', methods=['POST'])

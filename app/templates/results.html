@@ -3,7 +3,7 @@
 {% block breadcrumb %}
     Results
     <span class="lb-tb-sep">›</span> <span class="lb-mono">{{ file_hash[:12] if file_hash else '' }}</span>
-    <span class="lb-tb-sep">›</span> {{ analysis_type|title }}
+    <span class="lb-tb-sep">›</span> {{ analysis_type|title }}{% if edr_profile %} <span class="lb-mono">({{ edr_profile }})</span>{% endif %}
 {% endblock %}
 
 {% block tabs %}
@@ -24,6 +24,19 @@
     <button class="lb-tab tab-button" data-tab="StringnalyzerResultsTab">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>
         Stringnalyzer
+    </button>
+    {% elif analysis_type == 'edr' %}
+    <button class="lb-tab tab-button active" data-tab="summaryTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Summary
+    </button>
+    <button class="lb-tab tab-button" data-tab="edrAlertsTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        Alerts
+    </button>
+    <button class="lb-tab tab-button" data-tab="edrExecutionTab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Execution
     </button>
     {% else %}
     <button class="lb-tab tab-button active" data-tab="summaryTab">
@@ -92,7 +105,7 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
             </div>
-            <div id="analysisStatus" class="lb-dim" style="font-size: 12px;">Initialising…</div>
+            <div id="analysisStatus" class="lb-dim" style="font-size: 13px;">Initialising…</div>
         </div>
     </div>
 </div>
@@ -111,7 +124,7 @@
             <div style="margin: 12px 0;">
                 <label for="dynamicAnalysisArgs" class="lb-eyebrow" style="display: block; margin-bottom: 6px;">Command-line Arguments (optional)</label>
                 <input type="text" id="dynamicAnalysisArgs" placeholder="Enter arguments separated by spaces" class="lb-input lb-mono"/>
-                <p class="lb-muted" style="margin-top: 6px; font-size: 11px;">Arguments passed to the payload at execution time.</p>
+                <p class="lb-muted" style="margin-top: 6px; font-size: 12px;">Arguments passed to the payload at execution time.</p>
             </div>
             <p style="color: var(--lb-sev-medium);">Are you sure you want to proceed?</p>
         </div>
@@ -163,7 +176,7 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>YARA Scan Results</div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Static pattern matching results.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Static pattern matching results.</p>
             <div id="yaraStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
             <div id="yaraResults"></div>
         </div>
@@ -174,7 +187,7 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>CheckPlz Scan Results</div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Windows Defender signature detection results.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Windows Defender signature detection results.</p>
             <div id="threatCheckStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
             <div id="threatCheckResults"></div>
         </div>
@@ -185,13 +198,13 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr">
             <span class="lb-glyph">▸</span>Stringnalyzer Scan Results
-            <button id="downloadResultsBtn" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;">
+            <button id="downloadResultsBtn" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Download
             </button>
         </div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Payload string analysis.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Payload string analysis.</p>
             <div id="StringnalyzerStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
             <div id="StringnalyzerResults"></div>
         </div>
@@ -233,7 +246,7 @@
 
     <!-- Process output (collapsible) -->
     <div class="lb-panel">
-        <button id="togglePayloadOutput" style="width: 100%; background: var(--lb-bg-soft); color: var(--lb-text); border: 0; border-bottom: 1px solid var(--lb-border); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-family: inherit; font-size: 12px; cursor: pointer;">
+        <button id="togglePayloadOutput" style="width: 100%; background: var(--lb-bg-soft); color: var(--lb-text); border: 0; border-bottom: 1px solid var(--lb-border); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-family: inherit; font-size: 13px; cursor: pointer;">
             <span style="display: flex; align-items: center; gap: 8px;">
                 <svg id="payloadChevron" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--lb-text-mute); transition: transform var(--lb-transition-fast);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -247,13 +260,13 @@
             <div class="lb-panel-body">
                 <div id="stdoutSection" class="hidden" style="margin-bottom: 12px;">
                     <div class="lb-eyebrow" style="margin-bottom: 6px;">Standard Output</div>
-                    <pre id="payloadStdout" class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-border); padding: 10px; font-size: 11px; color: var(--lb-text-dim); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;"></pre>
+                    <pre id="payloadStdout" class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-border); padding: 10px; font-size: 12px; color: var(--lb-text-dim); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;"></pre>
                 </div>
                 <div id="stderrSection" class="hidden">
                     <div class="lb-eyebrow" style="margin-bottom: 6px;">Standard Error</div>
-                    <pre id="payloadStderr" class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-accent); padding: 10px; font-size: 11px; color: var(--lb-accent-soft); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;"></pre>
+                    <pre id="payloadStderr" class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-accent); padding: 10px; font-size: 12px; color: var(--lb-accent-soft); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;"></pre>
                 </div>
-                <div id="payloadOutputInfo" class="lb-muted" style="font-size: 11px; font-style: italic;"></div>
+                <div id="payloadOutputInfo" class="lb-muted" style="font-size: 12px; font-style: italic;"></div>
             </div>
         </div>
     </div>
@@ -263,7 +276,7 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>YARA Memory Scan Results</div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Runtime pattern analysis.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Runtime pattern analysis.</p>
             <div id="yaraStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
             <div id="yaraResults"></div>
         </div>
@@ -274,7 +287,7 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>PE-sieve Scan Results</div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Process memory analysis.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Process memory analysis.</p>
             <div id="peSieveResults"></div>
         </div>
     </div>
@@ -284,7 +297,7 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Moneta Scan Results</div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Memory anomaly detection.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Memory anomaly detection.</p>
             <div id="monetaResults"></div>
         </div>
     </div>
@@ -294,7 +307,7 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Patriot Scan Results</div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Process memory integrity analysis.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Process memory integrity analysis.</p>
             <div id="patriotStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
             <div id="patriotResults"></div>
         </div>
@@ -305,7 +318,7 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Hunt-Sleeping-Beacons</div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Thread behaviour and sleeping beacon analysis.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Thread behaviour and sleeping beacon analysis.</p>
             <div id="hsbStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
             <div id="hsbResults"></div>
         </div>
@@ -316,9 +329,38 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>RedEdr Monitoring Results</div>
         <div class="lb-panel-body">
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">Windows ETW telemetry.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Windows ETW telemetry.</p>
             <div id="redEdrStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
             <div id="redEdrResults"></div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+{% if analysis_type == 'edr' %}
+
+{# EDR runs reuse the dynamic Summary tab (Scanner Results + Process
+   Output), populated from edr.execution.* by the JS layer. The two
+   EDR-specific tabs below add the Alerts and Execution panes. #}
+
+<div id="edrAlertsTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Detection Alerts</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Alerts raised by the EDR backend during the run window, filtered by hostname.</p>
+            <div id="edrAlertsStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+            <div id="edrAlertsResults"></div>
+        </div>
+    </div>
+</div>
+
+<div id="edrExecutionTab" class="tab-content hidden">
+    <div class="lb-panel">
+        <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Execution Output</div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">stdout/stderr captured by the Whiskers agent on the EDR VM.</p>
+            <div id="edrExecutionResults"></div>
         </div>
     </div>
 </div>

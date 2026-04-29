@@ -48,7 +48,7 @@
 
     body {
       font-family: var(--sans);
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.55;
       color: var(--text);
       background: var(--bg-deep);
@@ -78,7 +78,7 @@
     }
     .brand-meta {
       font-family: var(--mono);
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-faint);
     }
     .brand-logo {
@@ -103,7 +103,7 @@
       color: var(--text);
     }
     .brand-tag {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-faint);
       letter-spacing: 0.04em;
     }
@@ -125,7 +125,7 @@
       flex-wrap: wrap;
     }
     .hero-eyebrow {
-      font-size: 11px;
+      font-size: 12px;
       letter-spacing: 0.16em;
       text-transform: uppercase;
       color: var(--text-faint);
@@ -141,7 +141,7 @@
       word-break: break-all;
     }
     .hero-subtitle {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-muted);
       margin: 0;
     }
@@ -196,7 +196,7 @@
       gap: 6px;
       padding: 4px 10px;
       border-radius: 999px;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
       letter-spacing: 0.02em;
       border: 1px solid transparent;
@@ -224,7 +224,7 @@
       border-radius: 999px;
       background: rgba(255,255,255,0.03);
       border: 1px solid var(--border);
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-muted);
     }
     .chip strong {
@@ -268,12 +268,12 @@
     }
     h2.section-title .pill { margin-left: auto; }
     .section-sub {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-muted);
       margin: 0 0 18px;
     }
     .subsection-title {
-      font-size: 13px;
+      font-size: 14px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--text-muted);
@@ -306,7 +306,7 @@
       margin-bottom: 6px;
     }
     .scanner-meta {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-muted);
     }
 
@@ -315,7 +315,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-size: 13px;
+      font-size: 14px;
     }
     .clean-state  { color: var(--sev-low); }
     .threat-state { color: var(--sev-critical); }
@@ -336,7 +336,7 @@
     }
     dl.kv dt {
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
     }
     dl.kv dd {
@@ -386,7 +386,7 @@
       text-align: left;
       font-weight: 600;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 13px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       padding: 10px 14px;
@@ -421,7 +421,7 @@
     /* Hash row */
     .hash-row { display: grid; grid-template-columns: 80px 1fr; gap: 12px; margin-bottom: 8px; }
     .hash-row:last-child { margin-bottom: 0; }
-    .hash-label { color: var(--text-muted); font-size: 12px; padding-top: 2px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .hash-label { color: var(--text-muted); font-size: 13px; padding-top: 2px; letter-spacing: 0.04em; text-transform: uppercase; }
     .hash-value { font-family: var(--mono); font-size: 12.5px; color: var(--text); word-break: break-all; }
 
     /* Findings list */
@@ -440,7 +440,7 @@
       font-weight: 600;
       color: var(--accent);
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 14px;
     }
     .finding-meta {
       color: var(--text-muted);
@@ -454,7 +454,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 12px;
+      font-size: 13px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--text-muted);
@@ -471,7 +471,7 @@
       margin-top: 48px;
       padding-top: 24px;
       border-top: 1px solid var(--border);
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-faint);
       display: flex;
       justify-content: space-between;
@@ -1302,6 +1302,108 @@
           </div>
         </div>
       {% endif %}
+    </section>
+    {% endif %}
+
+    {# EDR analysis (one section per profile that ran) #}
+    {% if edr_results %}
+    <section class="card">
+      <h2 class="section-title">EDR Analysis</h2>
+      <p class="section-sub">Payload dispatched to one or more EDR-instrumented hosts. Alerts are pulled from the EDR backend, filtered by the agent's hostname and the run window.</p>
+
+      {% for profile_name, edr in edr_results.items() %}
+        {% set edr_status   = edr.status or 'unknown' %}
+        {% set edr_alerts   = edr.alerts or [] %}
+        {% set edr_summary  = edr.summary or {} %}
+        {% set edr_exec     = edr.execution or {} %}
+        {% set edr_agent    = edr.agent_info or {} %}
+        {% set edr_display  = edr.display_name or profile_name %}
+        {% set high_count   = edr_summary.high_severity_alerts if edr_summary.high_severity_alerts is defined else (edr_alerts|selectattr('severity', 'in', ['high', 'critical'])|list|length) %}
+        {% set is_threat    = (high_count or 0) > 0 or edr_status == 'blocked_by_av' %}
+
+        <div class="scanner">
+          <div class="scanner-name">{{ edr_display }}</div>
+          <div class="scanner-body">
+            <div class="scanner-headline">
+              {% if is_threat %}
+                <span class="threat-state">
+                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1l7 14H1L8 1zm0 5v4m0 2v.5"/></svg>
+                  {% if edr_status == 'blocked_by_av' %}
+                    Blocked by AV before execution
+                  {% else %}
+                    {{ high_count }} high/critical alert{{ 's' if high_count != 1 else '' }}
+                  {% endif %}
+                </span>
+              {% elif edr_alerts %}
+                <span class="threat-state">
+                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1l7 14H1L8 1zm0 5v4m0 2v.5"/></svg>
+                  {{ edr_alerts|length }} alert{{ 's' if edr_alerts|length != 1 else '' }} raised
+                </span>
+              {% elif edr_status == 'completed' %}
+                <span class="clean-state">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>
+                  No alerts raised
+                </span>
+              {% else %}
+                <span class="muted">{{ edr_status|replace('_', ' ')|title }}</span>
+              {% endif %}
+              <span class="scanner-meta">
+                Host {{ edr.hostname or edr_agent.hostname or '—' }}
+                {% if edr_agent.os_version %} · {{ edr_agent.os_version }}{% endif %}
+                {% if edr_summary.wait_seconds_for_alerts is defined %} · {{ edr_summary.wait_seconds_for_alerts }}s correlation{% endif %}
+              </span>
+            </div>
+
+            {% if edr_status in ('agent_unreachable', 'error', 'partial') %}
+              <p class="muted mt-12">
+                <strong>{{ edr_status|replace('_', ' ')|title }}:</strong>
+                {{ edr.error or edr.sub_status or 'No additional detail.' }}
+              </p>
+            {% endif %}
+
+            {% if edr_alerts %}
+              <h4 class="subsection-title mt-12">Detection Alerts ({{ edr_alerts|length }})</h4>
+              <table class="report-table">
+                <thead><tr><th>Severity</th><th>Rule</th><th>Rule ID</th><th>Detected</th></tr></thead>
+                <tbody>
+                  {% for a in edr_alerts[:25] %}
+                    {% set sev = (a.severity or 'unknown')|lower %}
+                    {% set sev_class = 'critical' if sev in ('high', 'critical') else ('medium' if sev == 'medium' else 'muted') %}
+                    <tr>
+                      <td><span class="pill {{ sev_class }}">{{ sev|upper }}</span></td>
+                      <td>{{ a.title or 'Unknown alert' }}</td>
+                      <td class="mono muted">{{ a.rule_id or '—' }}</td>
+                      <td class="mono muted">{{ a.detected_at or '—' }}</td>
+                    </tr>
+                  {% endfor %}
+                  {% if edr_alerts|length > 25 %}
+                    <tr><td colspan="4" class="center">… and {{ edr_alerts|length - 25 }} more</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            {% endif %}
+
+            {% if edr_exec.stdout or edr_exec.stderr or edr_exec.message %}
+              <h4 class="subsection-title mt-12">Execution Output</h4>
+              {% if edr_exec.message %}
+                <p class="muted">{{ edr_exec.message }}</p>
+              {% endif %}
+              {% if edr_exec.stdout %}
+                <div class="stream-block">
+                  <div class="stream-label"><span class="dot"></span> stdout (PID {{ edr_exec.pid or '?' }}, exit {{ edr_exec.exit_code if edr_exec.exit_code is not none else '?' }})</div>
+                  <pre class="code">{{ edr_exec.stdout|truncate(4000, true) }}</pre>
+                </div>
+              {% endif %}
+              {% if edr_exec.stderr %}
+                <div class="stream-block stderr">
+                  <div class="stream-label"><span class="dot"></span> stderr</div>
+                  <pre class="code">{{ edr_exec.stderr|truncate(4000, true) }}</pre>
+                </div>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
     </section>
     {% endif %}
 

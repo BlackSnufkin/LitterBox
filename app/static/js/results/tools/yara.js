@@ -29,8 +29,8 @@ export default {
 
         if (results.scan_info?.target) {
             html += panel('Target', `
-                <div class="lb-mono lb-strong" style="font-size: 12px; word-break: break-all;">${escapeHtml(results.scan_info.target)}</div>
-                ${results.scan_info.rules_file ? `<div class="lb-muted" style="font-size: 11px; margin-top: 4px;">Rules: ${escapeHtml(results.scan_info.rules_file)}</div>` : ''}
+                <div class="lb-mono lb-strong" style="font-size: 13px; word-break: break-all;">${escapeHtml(results.scan_info.target)}</div>
+                ${results.scan_info.rules_file ? `<div class="lb-muted" style="font-size: 12px; margin-top: 4px;">Rules: ${escapeHtml(results.scan_info.rules_file)}</div>` : ''}
             `);
         }
 
@@ -79,11 +79,11 @@ export default {
                                 ${strings.map(str => `
                                     <div style="border: 1px solid var(--lb-border); padding: 8px;">
                                         <div style="display:flex; align-items:center; gap:8px; margin-bottom: 4px;">
-                                            <span class="lb-mono lb-muted" style="font-size: 11px;">${escapeHtml(str.offset || '')}</span>
+                                            <span class="lb-mono lb-muted" style="font-size: 12px;">${escapeHtml(str.offset || '')}</span>
                                             ${str.identifier ? `<span class="lb-tag muted">${escapeHtml(str.identifier)}</span>` : ''}
                                             ${str.data_type ? `<span class="lb-tag muted">${escapeHtml(str.data_type)}</span>` : ''}
                                         </div>
-                                        <pre class="lb-mono" style="background: var(--lb-bg); padding: 6px 8px; font-size: 11px; color: var(--lb-text-dim); white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow: auto; margin: 0;">${escapeHtml(str.data || '')}</pre>
+                                        <pre class="lb-mono" style="background: var(--lb-bg); padding: 6px 8px; font-size: 12px; color: var(--lb-text-dim); white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow: auto; margin: 0;">${escapeHtml(str.data || '')}</pre>
                                     </div>
                                 `).join('')}
                             </div>

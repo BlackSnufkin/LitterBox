@@ -129,6 +129,58 @@ Find undetected legitimate drivers for BYOVD attacks:
 - **Dangerous Import Analysis**: Detection of privileged functions commonly exploited in BYOVD attacks
 - **BYOVD Score Calculation**: Risk assessment based on exploitation potential and defensive controls
 
+### Elastic EDR Integration
+
+Dispatch a payload to a separate, EDR-instrumented Windows VM and pull the
+correlated detection alerts back into the LitterBox results page. Built around
+two new components:
+
+- **Whiskers** — single-binary Rust agent (`Whiskers/`) that runs on the EDR VM
+  and exposes a small HTTP API: lock acquire/release, multipart payload upload,
+  process spawn + kill, stdout/stderr/exit-code capture, agent self-identification
+  (auto-discovered hostname). Single-occupancy by design; no parallel runs.
+- **ElasticEdrAnalyzer** — orchestrator on the LitterBox side that dispatches a
+  payload to a registered EDR profile and queries the operator's self-hosted
+  Elastic stack for alerts raised against the run.
+
+Capabilities include:
+
+- **Two-phase orchestration** — Phase 1 (lock + exec + log fetch on the agent)
+  returns in ~1-7s; Phase 2 (Elastic correlation) polls in the background with
+  early-return on first hit and an 8-second settle window for related-alert
+  bursts. Lock is released after Phase 1 so back-to-back dispatches don't queue.
+- **Per-payload alert correlation** — query is scoped by `host.name` (case-
+  insensitive) AND filename match across `file.name` / `process.name` /
+  `file.path` / `process.executable`, so concurrent dispatches don't mix alerts.
+- **AV-block detection** — Whiskers tags the run as `virus` when Defend
+  intercepts on file write or spawn; orchestrator surfaces the prevention
+  alert as a distinct `blocked_by_av` outcome.
+- **EDR-kill detection** — when the agent didn't issue the kill but the process
+  exited non-zero, the run is labeled "killed by EDR behavior protection".
+- **Rich alert detail** — per-alert expandable panel with rule reason, rule
+  description, MITRE ATT&CK tactic/technique chips, triggering API + behaviors,
+  memory region + protection flags, full call stack with module provenance,
+  final user module callout, process tree (spawned + parent), Defend's response
+  actions (kill targets, tree kills), user identity, raw `_source`.
+- **Detection-Score contribution** — high/critical EDR alerts add up to +50 to
+  the file's overall Detection Score; AV blocks add +35.
+
+The integration is profile-driven — drop one or more `Config/edr_profiles/*.yml`
+files (gitignored; ship-as `*.example.yml`) and each registered profile gets
+its own "Run with X" tab on the upload page. Deployment is operator-managed:
+
+- **Elastic stack** — LitterBox does not deploy or manage it. Point at a
+  self-hosted instance you stood up via
+  [elastic-container-project](https://www.elastic.co/security-labs/the-elastic-container-project).
+- **EDR VM** — bring your own Windows VM with Elastic Agent + Elastic Defend
+  enrolled to your stack. Drop `Whiskers.exe` on it, allow inbound port 8080,
+  optionally register as a Windows service.
+
+Default index pattern queried:
+`.ds-logs-endpoint.alerts-default-*,.internal.alerts-security.alerts-default-*`
+(Elastic 9.x layout). Override per-profile with `elastic_index_pattern` if your
+deployment differs.
+
 ### Doppelganger Analysis
 
 #### Blender Module
@@ -160,6 +212,10 @@ Delivers code similarity analysis through:
 - [Hunt-Sleeping-Beacons](https://github.com/thefLink/Hunt-Sleeping-Beacons) - C2 beacon analyzer
 - [Hollows-Hunter](https://github.com/hasherezade/hollows_hunter) - Process hollowing detection
 
+### EDR Integration Suite
+- **Whiskers** (this repo, `Whiskers/`) - Single-binary Rust HTTP agent for EDR-VM dispatch
+- [Elastic Defend](https://www.elastic.co/security/endpoint-security) - EDR backend (operator-deployed via [elastic-container-project](https://www.elastic.co/security-labs/the-elastic-container-project))
+
 
 ## API Reference
 
@@ -171,9 +227,11 @@ GET    /files                     # Retrieve processed file list
 
 ### Analysis Endpoints
 ```http
-GET    /analyze/static/<hash>     # Execute static analysis
-POST   /analyze/dynamic/<hash>    # Perform dynamic file analysis  
-POST   /analyze/dynamic/<pid>     # Conduct process analysis
+GET    /analyze/static/<hash>            # Execute static analysis
+POST   /analyze/dynamic/<hash>           # Perform dynamic file analysis  
+POST   /analyze/dynamic/<pid>            # Conduct process analysis
+GET    /analyze/edr/<profile>/<hash>     # Render EDR results page (uses analysis_type=edr)
+POST   /analyze/edr/<profile>/<hash>     # Dispatch payload to EDR profile (Phase 1 sync, Phase 2 background)
 ```
 
 ### HolyGrail BYOVD Analysis
@@ -197,11 +255,14 @@ POST   /doppelganger                            # Generate database with {"type"
 
 ### Results Retrieval (JSON)
 ```http
-GET    /api/results/<hash>/info      # Retrieve file metadata
-GET    /api/results/<hash>/static    # Access static analysis results
-GET    /api/results/<hash>/dynamic   # Obtain dynamic analysis data
-GET    /api/results/<pid>/dynamic    # Retrieve process analysis data
-GET    /api/results/<hash>/holygrail # Access BYOVD analysis results
+GET    /api/results/<hash>/info             # Retrieve file metadata
+GET    /api/results/<hash>/static           # Access static analysis results
+GET    /api/results/<hash>/dynamic          # Obtain dynamic analysis data
+GET    /api/results/<pid>/dynamic           # Retrieve process analysis data
+GET    /api/results/<hash>/holygrail        # Access BYOVD analysis results
+GET    /api/results/<hash>/edr              # List EDR profiles run for this hash
+GET    /api/results/<hash>/edr/<profile>    # Read saved findings for a specific EDR profile (used by Phase-2 polling)
+GET    /api/edr/profiles                    # List registered EDR profiles
 ```
 
 ### HTML Report Generation
@@ -315,6 +376,66 @@ All settings are stored in `config/config.yml`. Edit this file to:
 - Set allowed file types
 - Configure analysis tools
 - Adjust timeouts
+
+### Elastic EDR Setup (optional)
+
+The Elastic EDR integration is opt-in — drop one or more profile YAMLs under
+`Config/edr_profiles/` and the upload page picks them up at boot. End-to-end
+the workflow has three pieces, all operator-managed:
+
+**1. Stand up an Elastic stack** — LitterBox does not deploy or manage one. The
+fastest path is [elastic-container-project](https://www.elastic.co/security-labs/the-elastic-container-project)
+which gives you Elasticsearch + Kibana + Fleet locally. Once it's up:
+
+- Enable the **Elastic Defend** integration on a Fleet policy
+- Enroll your EDR Windows VM into that policy
+- Optionally enable Detection-Engine rules in Kibana → Security → Manage → Rules
+- Create an API key under **Stack Management → API keys** with read access to
+  `.alerts-security.alerts-*`, `.internal.alerts-security.alerts-*`, and
+  `.ds-logs-endpoint.alerts-*`. Copy the **encoded** value.
+
+**2. Deploy Whiskers on the EDR VM** — `Whiskers.exe` is a single-binary Rust
+agent (~1.5 MB, no runtime deps). See [Whiskers/README.md](Whiskers/README.md)
+for the full deployment guide. Quick version:
+
+```powershell
+# on the EDR VM (Windows VM with Elastic Defend enrolled)
+mkdir C:\Tools -Force
+# copy Whiskers.exe into C:\Tools\
+
+New-NetFirewallRule -DisplayName "Whiskers Agent" -Direction Inbound `
+    -Protocol TCP -LocalPort 8080 -Action Allow
+
+C:\Tools\Whiskers.exe --port 8080
+# OR register as a service
+sc.exe create Whiskers binPath= "C:\Tools\Whiskers.exe --port 8080" start= auto
+sc.exe start Whiskers
+```
+
+You'll likely need to add `Whiskers.exe` as a Trusted Application in Defend's
+policy (Kibana → Security → Manage → Trusted Applications), since the agent
+spawns arbitrary payloads.
+
+**3. Configure the LitterBox profile** — copy
+`Config/edr_profiles/elastic.yml.example` to `elastic.yml` (the real file is
+gitignored) and fill in:
+
+```yaml
+name: "elastic"
+display_name: "Elastic Defend"
+agent_url: "http://<edr-vm-ip>:8080"
+elastic_url: "https://<elastic-stack-ip>:9200"
+elastic_apikey: "<base64-encoded-key-from-step-1>"
+elastic_verify_tls: false              # self-signed cert from elastic-container-project
+wait_seconds_for_alerts: 90            # max poll window for successful execs
+av_block_wait_seconds: 60              # max poll window for AV-block events
+exec_timeout_seconds: 60               # how long to let the payload run
+```
+
+`hostname` is **not** configured — the agent self-reports it via
+`GET /api/info`, so moving the agent to a different VM is transparent. Restart
+LitterBox after editing the YAML; the upload page will gain a "Run with X"
+tab per registered profile.
 
 ## Client Libraries
 

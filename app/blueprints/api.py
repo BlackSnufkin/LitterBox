@@ -101,6 +101,51 @@ def api_byovd_info(target):
         return jsonify(json.load(f))
 
 
+@api_bp.route('/api/edr/profiles', methods=['GET'])
+@error_handler
+def api_edr_profiles():
+    """List the EDR profiles loaded at boot. The upload page uses this to
+    render one 'Run with X' button per profile. Secrets (apikey) are never
+    surfaced — see registry.list_profiles()."""
+    deps = _deps()
+    return jsonify({'profiles': deps.edr_registry.list_profiles()})
+
+
+@api_bp.route('/api/results/<target>/edr/<profile>', methods=['GET'])
+@error_handler
+def api_edr_results(target, profile):
+    """Read the saved findings for a specific EDR profile run on `target`."""
+    app = current_app
+    app.logger.debug(f"Fetching EDR results for target={target} profile={profile}")
+    result_path = path_manager.find_file_by_hash(target, app.config['utils']['result_folder'])
+    if not result_path:
+        return jsonify({'error': 'Results not found'}), 404
+
+    edr_path = os.path.join(result_path, f'edr_{profile}_results.json')
+    if not os.path.exists(edr_path):
+        return jsonify({'error': f'EDR results for profile {profile!r} not found'}), 404
+
+    with open(edr_path, 'r') as f:
+        return jsonify(json.load(f))
+
+
+@api_bp.route('/api/results/<target>/edr', methods=['GET'])
+@error_handler
+def api_edr_index(target):
+    """List which EDR profiles have saved results for `target`."""
+    app = current_app
+    result_path = path_manager.find_file_by_hash(target, app.config['utils']['result_folder'])
+    if not result_path:
+        return jsonify({'profiles': []})
+
+    profiles = []
+    prefix, suffix = 'edr_', '_results.json'
+    for entry in os.listdir(result_path):
+        if entry.startswith(prefix) and entry.endswith(suffix):
+            profiles.append(entry[len(prefix):-len(suffix)])
+    return jsonify({'profiles': sorted(profiles)})
+
+
 @api_bp.route('/api/results/<target>/risk', methods=['GET'])
 @error_handler
 def api_risk_assessment(target):
@@ -142,6 +187,7 @@ def generate_report(target):
         static_results=data['static_results'],
         dynamic_results=data['dynamic_results'],
         byovd_results=data.get('byovd_results'),
+        edr_results=data.get('edr_results'),
         pid=data['pid'],
     )
 

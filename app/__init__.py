@@ -43,11 +43,19 @@ def create_app():
 
     # Wire shared dependencies once; blueprints read them via current_app.extensions
     from .analyzers.manager import AnalysisManager
+    from .analyzers.edr import registry as edr_registry
     from .helpers import RouteHelpers
+
+    # Load EDR profiles from Config/edr_profiles/*.yml so the upload page can
+    # render one button per profile and the dispatcher knows which profiles
+    # are valid. Missing/invalid profiles are logged and skipped — they don't
+    # prevent the rest of LitterBox from starting.
+    edr_registry.init(app.config)
 
     app.extensions['litterbox'] = SimpleNamespace(
         manager=AnalysisManager(app.config, logger=app.logger),
         helpers=RouteHelpers(app.config, app.logger),
+        edr_registry=edr_registry,
         config=app.config,
     )
 

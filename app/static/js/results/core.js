@@ -22,7 +22,11 @@ class AnalysisCore {
 
         const pathParts = window.location.pathname.split('/');
         this.analysisType = pathParts[2];
-        this.fileHash = pathParts[3];
+        // Static/dynamic: /analyze/<type>/<hash>           — hash at index 3.
+        // EDR:           /analyze/edr/<profile>/<hash>     — hash at index 4
+        // and profile at index 3 (used by the renderer to label the run).
+        this.fileHash = pathParts[pathParts.length - 1];
+        this.edrProfile = this.analysisType === 'edr' ? pathParts[3] : null;
     }
 
     updateTimer() {
@@ -76,9 +80,12 @@ class AnalysisCore {
             const savedArgs = localStorage.getItem('analysisArgs');
             const args = savedArgs ? JSON.parse(savedArgs) : []; // Default to an empty array if no args are saved
 
-            const response = await fetch(`/analyze/${this.analysisType}/${this.fileHash}`, {
+            // POST to the same path the page was loaded from. This naturally
+            // handles the EDR case (/analyze/edr/<profile>/<hash>) without
+            // a special branch.
+            const response = await fetch(window.location.pathname, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -110,12 +117,25 @@ class AnalysisCore {
                 return;
             }
             
-            // Normal completion flow
+            // Normal completion flow.
+            //
+            // Special-case EDR runs that are still in their Phase-2 alert
+            // polling window: the page isn't actually done yet, so leave
+            // the duration timer running and don't flip the status to
+            // "Analysis completed". The EDR poll handler will stop the
+            // timer + flip status when Phase 2 lands a terminal result.
+            const edrPolling = !!(data.results && data.results.edr && (
+                data.results.edr.status === 'polling_alerts' ||
+                data.results.edr.status === 'blocked_polling_alerts'
+            ));
+
             this.updateTimer();
-            this.stopTimer();
-            this.updateStatusIcon('complete');
-            this.elements.analysisStatus.textContent = 'Analysis completed';
-            this.updateStageToComplete();
+            if (!edrPolling) {
+                this.stopTimer();
+                this.updateStatusIcon('complete');
+                this.elements.analysisStatus.textContent = 'Analysis completed';
+                this.updateStageToComplete();
+            }
 
             // First update the summary with all results
             if (tools.summary && data.results) {
@@ -237,6 +257,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize modal and analysis handlers
     const modal = new ModalHandler();
     const analysis = new AnalysisCore();
+    // Expose so EDR's Phase-2 poll handler can stop the timer + flip the
+    // status when correlation finishes — the duration chip should keep
+    // ticking through Phase 2, not freeze when Phase 1 returns.
+    window.__analysisCore = analysis;
 
     // Initialize PayloadManager
     const payloadManager = new PayloadManager();

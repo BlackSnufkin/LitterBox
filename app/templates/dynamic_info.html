@@ -14,19 +14,19 @@
     <div class="lb-panel-hdr">
         <span class="lb-glyph">▸</span>Dynamic Analysis Summary
         {% if file_info %}
-            <button onclick="window.location.href='/results/{{ file_info.md5 }}/info'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;" aria-label="Navigate back to file information">
+            <button onclick="window.location.href='/results/{{ file_info.md5 }}/info'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;" aria-label="Navigate back to file information">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
                 Back to File Info
             </button>
         {% else %}
-            <button onclick="window.location.href='/summary'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;" aria-label="Navigate back to summary">
+            <button onclick="window.location.href='/summary'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;" aria-label="Navigate back to summary">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
                 Back to Summary
             </button>
         {% endif %}
     </div>
     <div class="lb-panel-body">
-        <p class="lb-muted" style="font-size: 11px; margin-bottom: 8px;">Comprehensive overview of all scan results.</p>
+        <p class="lb-muted" style="font-size: 12px; margin-bottom: 8px;">Comprehensive overview of all scan results.</p>
         {% if analysis_results.moneta and analysis_results.moneta.findings.process_info %}
             {% set info = analysis_results.moneta.findings.process_info %}
             <div class="lb-hash-row">
@@ -63,7 +63,7 @@
                 <td>PE-sieve</td>
                 {{ scanner_status_cell(pesieve_detections) }}
                 {{ scanner_count_cell(pesieve_detections) }}
-                <td style="font-size: 11px; color: var(--lb-text-dim);">
+                <td style="font-size: 12px; color: var(--lb-text-dim);">
                     {% if pesieve_detections %}
                         {% set findings = analysis_results.pe_sieve.findings %}
                         {% if findings.total_scanned > 0 %}<div>Total Scanned: {{ findings.total_scanned }}</div>{% endif %}
@@ -89,7 +89,7 @@
                 <td>Moneta</td>
                 {{ scanner_status_cell(moneta_detections) }}
                 {{ scanner_count_cell(moneta_detections) }}
-                <td style="font-size: 11px; color: var(--lb-text-dim);">
+                <td style="font-size: 12px; color: var(--lb-text-dim);">
                     {% if moneta_detections %}
                         {% for key, value in analysis_results.moneta.findings.items() %}
                             {% if value is number and value > 0 and key != 'scan_duration' %}
@@ -120,7 +120,7 @@
                 <td>Patriot</td>
                 {{ scanner_status_cell(patriot_detections) }}
                 {{ scanner_count_cell(patriot_detections) }}
-                <td style="font-size: 11px; color: var(--lb-text-dim);">
+                <td style="font-size: 12px; color: var(--lb-text-dim);">
                     {% if patriot_detections %}
                         {% for finding in analysis_results.patriot.findings.findings %}
                             <div>{{ finding.type }} <span class="lb-muted">({{ finding.level }})</span></div>
@@ -136,7 +136,7 @@
                 <td>Hunt-SB</td>
                 {{ scanner_status_cell(hsb_detections) }}
                 {{ scanner_count_cell(hsb_detections) }}
-                <td style="font-size: 11px; color: var(--lb-text-dim);">
+                <td style="font-size: 12px; color: var(--lb-text-dim);">
                     {% if hsb_detections %}
                         {% for detection in analysis_results.hsb.findings.detections %}
                             {% for finding in detection.findings %}
@@ -224,7 +224,7 @@
 
 <!-- Process Output -->
 <div class="lb-panel">
-    <button id="togglePayloadOutput" style="width: 100%; background: var(--lb-bg-soft); color: var(--lb-text); border: 0; border-bottom: 1px solid var(--lb-border); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-family: inherit; font-size: 12px; cursor: pointer;">
+    <button id="togglePayloadOutput" style="width: 100%; background: var(--lb-bg-soft); color: var(--lb-text); border: 0; border-bottom: 1px solid var(--lb-border); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-family: inherit; font-size: 13px; cursor: pointer;">
         <span style="display: flex; align-items: center; gap: 8px;">
             <svg id="payloadChevron" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--lb-text-mute); transition: transform var(--lb-transition-fast);">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -241,17 +241,17 @@
             {% if analysis_results.get('process_output', {}).get('stdout') %}
             <div style="margin-bottom: 12px;">
                 <div class="lb-eyebrow" style="margin-bottom: 6px;">Standard Output</div>
-                <pre class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-border); padding: 10px; font-size: 11px; color: var(--lb-text-dim); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;">{{ analysis_results.get('process_output', {}).get('stdout') }}</pre>
+                <pre class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-border); padding: 10px; font-size: 12px; color: var(--lb-text-dim); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;">{{ analysis_results.get('process_output', {}).get('stdout') }}</pre>
             </div>
             {% endif %}
             {% if analysis_results.get('process_output', {}).get('stderr') %}
             <div style="margin-bottom: 12px;">
                 <div class="lb-eyebrow" style="margin-bottom: 6px;">Standard Error</div>
-                <pre class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-accent); padding: 10px; font-size: 11px; color: var(--lb-accent-soft); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;">{{ analysis_results.get('process_output', {}).get('stderr') }}</pre>
+                <pre class="lb-mono" style="background: var(--lb-bg); border: 1px solid var(--lb-accent); padding: 10px; font-size: 12px; color: var(--lb-accent-soft); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto;">{{ analysis_results.get('process_output', {}).get('stderr') }}</pre>
             </div>
             {% endif %}
             {% if analysis_results.get('process_output', {}) %}
-            <div class="lb-muted" style="font-size: 11px; font-style: italic;">
+            <div class="lb-muted" style="font-size: 12px; font-style: italic;">
                 {% if analysis_results.get('process_output', {}).get('output_truncated') %}
                     Output was truncated due to size limitations{% if analysis_results.get('process_output', {}).get('exit_code') is not none %} · {% endif %}
                 {% endif %}

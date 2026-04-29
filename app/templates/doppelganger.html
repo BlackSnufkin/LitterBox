@@ -13,13 +13,13 @@
     <div class="lb-panel-hdr">
         <span class="lb-glyph">▸</span>Doppelganger Analysis
         <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
-            <span class="lb-muted" style="font-size: 11px;">
+            <span class="lb-muted" style="font-size: 12px;">
                 Last {% if analysis_type == 'blender' %}scan: {{ last_modified }}{% else %}update: {{ db_stats.last_updated }}{% endif %}
             </span>
         </div>
     </div>
     <div class="lb-panel-body">
-        <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">
+        <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">
             {% if analysis_type == 'blender' %}
             Analyse and compare system processes with payloads to find shared IOCs.
             {% else %}
@@ -44,11 +44,11 @@
     <div style="display: flex; border-bottom: 1px solid var(--lb-border);">
         <!-- Blender Tabs -->
         <div id="blenderTabs" class="{% if analysis_type != 'blender' %}hidden{% endif %}" style="display: flex;">
-            <button id="scanView" onclick="blenderAnalyzer.switchView('scan')" class="nav-tab active" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid var(--lb-accent); color: var(--lb-accent); font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <button id="scanView" onclick="blenderAnalyzer.switchView('scan')" class="nav-tab active" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid var(--lb-accent); color: var(--lb-accent); font-family: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 System Scan
             </button>
-            <button id="compareView" onclick="blenderAnalyzer.switchView('compare')" class="nav-tab" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--lb-text-dim); font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <button id="compareView" onclick="blenderAnalyzer.switchView('compare')" class="nav-tab" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--lb-text-dim); font-family: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 Payloads List
             </button>
@@ -56,11 +56,11 @@
 
         <!-- Fuzzy Tabs -->
         <div id="fuzzyTabs" class="{% if analysis_type != 'fuzzy' %}hidden{% endif %}" style="display: flex;">
-            <button id="createDbView" onclick="fuzzyAnalyzer.switchView('create_db')" class="nav-tab active" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid var(--lb-accent); color: var(--lb-accent); font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <button id="createDbView" onclick="fuzzyAnalyzer.switchView('create_db')" class="nav-tab active" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid var(--lb-accent); color: var(--lb-accent); font-family: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 FuzzyHash Database
             </button>
-            <button id="analyzeView" onclick="fuzzyAnalyzer.switchView('analyze')" class="nav-tab" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--lb-text-dim); font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <button id="analyzeView" onclick="fuzzyAnalyzer.switchView('analyze')" class="nav-tab" style="padding: 8px 14px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--lb-text-dim); font-family: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 Payloads List
             </button>

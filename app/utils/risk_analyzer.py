@@ -150,8 +150,16 @@ def get_entropy_risk_level(entropy):
 
 def calculate_risk(analysis_type='process', file_info=None,
                    static_results=None, dynamic_results=None,
-                   byovd_results=None):
-    """Unified risk calculation for file, process, and driver analyses."""
+                   byovd_results=None, edr_results=None):
+    """Unified risk calculation for file, process, and driver analyses.
+
+    `edr_results` is a dict keyed by profile name → orchestrator findings
+    (see app/analyzers/edr/elastic_edr_analyzer.py). When non-empty, the
+    file's score gains a contribution scaled by the most severe alert any
+    profile raised. The contribution is additive (not weighted) — high-
+    severity EDR alerts are a strong runtime signal that should bump the
+    score regardless of what static/dynamic found.
+    """
     risk_score = 0
     risk_factors = []
 
@@ -183,6 +191,14 @@ def calculate_risk(analysis_type='process', file_info=None,
         dynamic_risk, dynamic_factors = _calculate_dynamic_risk(dynamic_results, analysis_type)
         risk_factors.extend([f"Dynamic: {factor}" for factor in dynamic_factors])
         risk_score += (dynamic_risk / 100) * weights['dynamic'] * 100
+
+    # EDR runs (Elastic Defend, etc.) feed in as a separate signal — they
+    # involve actually executing the binary on a real EDR-instrumented host,
+    # which is a stronger ground truth than any local heuristic.
+    if analysis_type == 'file' and edr_results:
+        edr_score, edr_factors = _calculate_edr_risk(edr_results)
+        risk_factors.extend([f"EDR: {factor}" for factor in edr_factors])
+        risk_score += edr_score
 
     risk_score = _normalize_risk_score(risk_score, analysis_type, dynamic_results, risk_factors)
 
@@ -331,6 +347,74 @@ def _calculate_dynamic_risk(dynamic_results, analysis_type):
     dynamic_risk += _calculate_rededr_risk(dynamic_results, analysis_type, risk_factors)
 
     return dynamic_risk, risk_factors
+
+
+_EDR_HIGH_SEVERITY = {'high', 'critical'}
+
+
+def _calculate_edr_risk(edr_results):
+    """Score contribution from Elastic-EDR (or similar) runs.
+
+    `edr_results` is a {profile_name: findings_dict} mapping. We aggregate
+    across profiles by taking the strongest signal — if any profile's EDR
+    raised a high/critical alert, that's the file's contribution. A
+    "blocked_by_av" status without any alerts still counts (the AV
+    intercepted the payload at write/spawn — a real-world detection).
+
+    Cap is +50, mirroring the Defender-at-runtime branch in
+    `_calculate_rededr_risk`. The two are intentionally similar in weight
+    because they describe the same kind of event from different vantage
+    points (local Defender ETW vs. EDR backend correlation).
+    """
+    if not edr_results:
+        return 0, []
+
+    best_score = 0
+    factors = []
+
+    for profile_name, findings in edr_results.items():
+        if not isinstance(findings, dict):
+            continue
+
+        status = findings.get('status') or ''
+        alerts = findings.get('alerts') or []
+        summary = findings.get('summary') or {}
+        display = findings.get('display_name') or profile_name
+
+        high_severity_count = summary.get('high_severity_alerts')
+        if high_severity_count is None:
+            high_severity_count = sum(
+                1 for a in alerts
+                if isinstance(a, dict)
+                and str(a.get('severity', '')).lower() in _EDR_HIGH_SEVERITY
+            )
+
+        contribution = 0
+        if status == 'blocked_by_av':
+            # AV intercepted on write or spawn. The payload never ran, but
+            # this is itself a strong real-world detection.
+            contribution = 35
+            factors.append(
+                f"{display} blocked the binary at write/spawn time (AV intercept)"
+            )
+        elif high_severity_count > 0:
+            contribution = 50
+            factors.append(
+                f"Critical: {display} raised {high_severity_count} high/critical "
+                f"detection alert{'s' if high_severity_count != 1 else ''}"
+            )
+        elif len(alerts) > 0:
+            # Lower-severity alerts still count — but as a moderate signal.
+            contribution = 15
+            factors.append(
+                f"{display} raised {len(alerts)} low/medium detection alert"
+                f"{'s' if len(alerts) != 1 else ''}"
+            )
+
+        if contribution > best_score:
+            best_score = contribution
+
+    return best_score, factors
 
 
 def _calculate_rededr_risk(dynamic_results, analysis_type, risk_factors):

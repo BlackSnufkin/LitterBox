@@ -204,7 +204,7 @@ const NotificationSystem = {
             background: var(--lb-panel); color: var(--lb-text);
             border: 1px solid ${color}; border-left: 3px solid ${color};
             padding: 10px 14px; max-width: 400px; z-index: 200;
-            font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
             transition: opacity ${CONFIG.fadeDelay}ms ease;
         `;
         const wrap = document.createElement('div');

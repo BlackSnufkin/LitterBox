@@ -10,6 +10,15 @@ All notable changes to this project will be documented in this file.
 - Command-line arguments input on the dynamic-analysis warning modal (pre-populated from last run)
 - RedEdr now captures Microsoft-Windows-Kernel-File / -Network / -Audit-API-Calls / Antimalware-Engine ETW events; new tabs surface File Ops / Network / Audit API / Defender with Process Tree panel and ETW Provider Diagnostics
 - Defender threat verdicts at runtime contribute +50 to the Detection Score (only verdicts; scan activity stays descriptive)
+- Whiskers — single-binary Rust HTTP agent (`Whiskers/`) for dispatching payloads to a separate EDR-instrumented Windows VM
+- Elastic EDR integration via per-profile YAMLs under `Config/edr_profiles/`; each profile gets a "Run with X" tab on the upload page
+- Two-phase EDR orchestration: Phase 1 (exec) returns sync, Phase 2 (Elastic alert poll) runs in a background thread and updates the saved JSON when done
+- Per-payload alert correlation — query scoped by `host.name` + filename across `file.name`/`process.name`/`file.path`/`process.executable`
+- AV-block detection from Whiskers (`status:"virus"` on Windows errno 225/995/1234) surfaces as `blocked_by_av`
+- EDR-kill detection — non-zero exit without an agent-issued kill is labeled "killed by EDR behavior protection"
+- Per-alert detail panel: Reason, Rule Description, MITRE chips, Triggering API, Memory Region, Call Stack with module provenance, Final User Module, Process / Parent / EDR Response cards
+- High/critical EDR alerts contribute up to +50 to the Detection Score (AV blocks +35; multi-profile takes the max)
+- New endpoints: `GET /api/edr/profiles`, `GET /api/results/<hash>/edr[/<profile>]`, `GET/POST /analyze/edr/<profile>/<hash>`
 
 ### Changed
 - Backend split into Flask blueprints, services, and a `utils/` package; subprocess analyzers consolidated under `BaseSubprocessAnalyzer`
@@ -28,6 +37,9 @@ All notable changes to this project will be documented in this file.
 - Module-load timeline deduplicates PEB-snapshot DLLs against ETW image_loads; kernel device paths stripped to basenames
 - ETW timestamps shown as `HH:MM:SS.mmm` (FILETIME → local time) instead of raw 64-bit values
 - Defender events split into threat / scan / internal categories; the noise table is collapsed by default with a verdict line summarizing what Defender did
+- Upload page analysis selector — stack of cards replaced with a segmented tab strip + per-mode body
+- Global font-size bump (10/11/12/13px → 11/12/13/14px)
+- Upload pipeline ~4× faster on multi-MB PEs: `Counter`-based entropy, `pefile` fast_load + lazy import parse, single checksum pass
 
 ### Fixed
 - XSS hardening at user-data interpolation sites in results-page renderers
@@ -46,7 +58,8 @@ All notable changes to this project will be documented in this file.
 - `etw_wait_time` config key (replaced by event-driven readiness signal)
 
 ### Notes
-- No new dependencies; setup unchanged
+- New runtime dependency: `requests==2.32.3`
+- Whiskers binary not committed — build via `cargo build --release` (see `Whiskers/BUILD.md`)
 - No public API / endpoint changes; existing JS DOM-ID contracts preserved
 
 

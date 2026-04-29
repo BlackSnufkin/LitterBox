@@ -46,6 +46,7 @@ class RouteHelpers:
             'static_results': None,
             'dynamic_results': dynamic_results,
             'byovd_results': None,
+            'edr_results': None,
         }, None, False
 
     def _load_file_data(self, file_hash):
@@ -69,6 +70,17 @@ class RouteHelpers:
         dynamic_results = json_helpers.load_json_file(dynamic_path) if os.path.exists(dynamic_path) else None
         byovd_results = json_helpers.load_json_file(byovd_path) if os.path.exists(byovd_path) else None
 
+        # Discover all per-profile EDR result files (edr_<profile>_results.json).
+        # A file may have been run against multiple profiles — load them all.
+        edr_results = {}
+        prefix, suffix = 'edr_', '_results.json'
+        for entry in os.listdir(result_path):
+            if entry.startswith(prefix) and entry.endswith(suffix):
+                profile_name = entry[len(prefix):-len(suffix)]
+                loaded = json_helpers.load_json_file(os.path.join(result_path, entry))
+                if loaded:
+                    edr_results[profile_name] = loaded
+
         return {
             'is_pid': False,
             'pid': None,
@@ -77,6 +89,7 @@ class RouteHelpers:
             'static_results': static_results,
             'dynamic_results': dynamic_results,
             'byovd_results': byovd_results,
+            'edr_results': edr_results or None,
         }, None, False
 
     def calculate_and_add_risk(self, data):
@@ -91,6 +104,7 @@ class RouteHelpers:
                 file_info=data['file_info'],
                 static_results=data['static_results'],
                 dynamic_results=data['dynamic_results'],
+                edr_results=data.get('edr_results'),
             )
 
         risk_level = risk_analyzer.get_risk_level(risk_score)

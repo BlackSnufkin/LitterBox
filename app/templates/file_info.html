@@ -13,15 +13,15 @@
         <span class="lb-glyph">▸</span>{{ file_info.original_name }}
         <span class="lb-panel-badge">FILE</span>
         <div style="margin-left: auto; display: flex; gap: 6px;">
-            <button onclick="window.location.href='/summary'" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 11px;">
+            <button onclick="window.location.href='/summary'" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 12px;">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
                 Back
             </button>
-            <button onclick="window.location.href='/results/{{ file_info.md5 }}/static'" class="lb-btn lb-btn-primary" style="padding: 2px 10px; font-size: 11px;">
+            <button onclick="window.location.href='/results/{{ file_info.md5 }}/static'" class="lb-btn lb-btn-primary" style="padding: 2px 10px; font-size: 12px;">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Static Analysis
             </button>
-            <button onclick="window.location.href='/results/{{ file_info.md5 }}/dynamic'" class="lb-btn" style="padding: 2px 10px; font-size: 11px; color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);" title="Dynamic analysis executes the payload">
+            <button onclick="window.location.href='/results/{{ file_info.md5 }}/dynamic'" class="lb-btn" style="padding: 2px 10px; font-size: 12px; color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);" title="Dynamic analysis executes the payload">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Dynamic Analysis
             </button>
@@ -66,7 +66,7 @@
         <div class="lb-eyebrow" style="margin-bottom: 8px;">Triggering Indicators</div>
         <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;">
             {% for factor in file_info.risk_assessment.factors %}
-            <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid rgba(248, 113, 113, 0.4); font-size: 12px;">
+            <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid rgba(248, 113, 113, 0.4); font-size: 13px;">
                 <span style="color: var(--lb-accent-soft);">!</span>
                 <span class="lb-dim">{{ factor }}</span>
             </li>
@@ -98,19 +98,19 @@
         <div class="lb-grid-3">
             <div>
                 <div class="lb-eyebrow">File Size</div>
-                <div class="lb-strong" style="font-size: 13px;">{{ file_info.size|filesizeformat }}</div>
+                <div class="lb-strong" style="font-size: 14px;">{{ file_info.size|filesizeformat }}</div>
             </div>
             <div>
                 <div class="lb-eyebrow">File Type</div>
-                <div class="lb-strong" style="font-size: 13px;">{{ file_info.mime_type }}</div>
+                <div class="lb-strong" style="font-size: 14px;">{{ file_info.mime_type }}</div>
             </div>
             <div>
                 <div class="lb-eyebrow">Extension</div>
-                <div class="lb-strong lb-mono" style="font-size: 13px;">{{ file_info.extension }}</div>
+                <div class="lb-strong lb-mono" style="font-size: 14px;">{{ file_info.extension }}</div>
             </div>
             <div>
                 <div class="lb-eyebrow">Upload Time</div>
-                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.upload_time }}</div>
+                <div class="lb-strong lb-mono" style="font-size: 13px;">{{ file_info.upload_time }}</div>
             </div>
         </div>
     </div>
@@ -134,28 +134,28 @@
         <div class="lb-grid-3" style="margin-bottom: 16px;">
             <div>
                 <div class="lb-eyebrow">File Type</div>
-                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.file_type }}</div>
+                <div class="lb-strong lb-mono" style="font-size: 13px;">{{ file_info.pe_info.file_type }}</div>
             </div>
             <div>
                 <div class="lb-eyebrow">Machine</div>
-                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.machine_type }}</div>
+                <div class="lb-strong lb-mono" style="font-size: 13px;">{{ file_info.pe_info.machine_type }}</div>
             </div>
             <div>
                 <div class="lb-eyebrow">Subsystem</div>
-                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.subsystem }}</div>
+                <div class="lb-strong lb-mono" style="font-size: 13px;">{{ file_info.pe_info.subsystem }}</div>
             </div>
             <div>
                 <div class="lb-eyebrow">Compile Time</div>
-                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.compile_time }}</div>
+                <div class="lb-strong lb-mono" style="font-size: 13px;">{{ file_info.pe_info.compile_time }}</div>
             </div>
             <div>
                 <div class="lb-eyebrow">Entry Point</div>
-                <div class="lb-strong lb-mono" style="font-size: 12px;">{{ file_info.pe_info.entry_point }}</div>
+                <div class="lb-strong lb-mono" style="font-size: 13px;">{{ file_info.pe_info.entry_point }}</div>
             </div>
             {% if file_info.pe_info.checksum_info %}
             <div>
                 <div class="lb-eyebrow">PE Checksum</div>
-                <div class="lb-mono" style="font-size: 12px;">
+                <div class="lb-mono" style="font-size: 13px;">
                     {% if file_info.pe_info.checksum_info.is_valid %}
                         <span class="lb-tag clean">Valid</span>
                     {% elif file_info.pe_info.checksum_info.build_with %}
@@ -174,7 +174,7 @@
             <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;">
                 {% for note in file_info.pe_info.detection_notes %}
                 {% set is_runtime = file_info.pe_info.build_with and ('runtime' in note.lower() or file_info.pe_info.build_with in note.lower()) %}
-                <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid {% if is_runtime %}var(--lb-text-mute){% else %}rgba(248, 113, 113, 0.4){% endif %}; font-size: 12px;">
+                <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid {% if is_runtime %}var(--lb-text-mute){% else %}rgba(248, 113, 113, 0.4){% endif %}; font-size: 13px;">
                     <span style="color: {% if is_runtime %}var(--lb-text-mute){% else %}var(--lb-accent-soft){% endif %};">!</span>
                     <span class="lb-dim">{{ note }}</span>
                 </li>
@@ -190,16 +190,16 @@
                 {% if build_with %}{{ build_with.upper() }} Binary Checksum{% else %}Checksum Mismatch{% endif %}
             </div>
             {% if build_with %}
-            <p class="lb-muted" style="font-size: 11px; margin-bottom: 10px;">{{ build_with|capitalize }} binaries typically have non-standard PE checksums — this is normal behavior.</p>
+            <p class="lb-muted" style="font-size: 12px; margin-bottom: 10px;">{{ build_with|capitalize }} binaries typically have non-standard PE checksums — this is normal behavior.</p>
             {% endif %}
             <div class="lb-grid-2">
                 <div>
-                    <div class="lb-muted" style="font-size: 11px;">Stored</div>
-                    <div class="lb-mono lb-strong" style="font-size: 12px;">{{ file_info.pe_info.checksum_info.stored_checksum }}</div>
+                    <div class="lb-muted" style="font-size: 12px;">Stored</div>
+                    <div class="lb-mono lb-strong" style="font-size: 13px;">{{ file_info.pe_info.checksum_info.stored_checksum }}</div>
                 </div>
                 <div>
-                    <div class="lb-muted" style="font-size: 11px;">Calculated</div>
-                    <div class="lb-mono lb-strong" style="font-size: 12px;">{{ file_info.pe_info.checksum_info.calculated_checksum }}</div>
+                    <div class="lb-muted" style="font-size: 12px;">Calculated</div>
+                    <div class="lb-mono lb-strong" style="font-size: 13px;">{{ file_info.pe_info.checksum_info.calculated_checksum }}</div>
                 </div>
             </div>
         </div>
@@ -219,7 +219,7 @@
                     <td class="lb-mono" style="color: {% if section.entropy > 7.2 %}var(--lb-sev-critical){% elif section.entropy > 6.8 %}var(--lb-sev-medium){% else %}var(--lb-text-dim){% endif %};">{{ "%.2f"|format(section.entropy) }}</td>
                     <td>
                         {% for note in section.detection_notes %}
-                        <div class="lb-accent" style="font-size: 11px;">{{ note }}</div>
+                        <div class="lb-accent" style="font-size: 12px;">{{ note }}</div>
                         {% endfor %}
                     </td>
                 </tr>
@@ -239,7 +239,7 @@
 
         {% if build_with %}
         <div style="border: 1px solid var(--lb-border-hi); padding: 10px; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 11px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
                 <span class="lb-tag info">{{ build_with|upper }} Binary Detected</span>
                 <span class="lb-muted">
                     {% if suspicious_imports %}
@@ -260,16 +260,16 @@
             {% if dll_runtime_imports %}
             <div style="border: 1px solid var(--lb-border-hi); padding: 10px;">
                 <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-                    <span class="lb-mono lb-strong" style="font-size: 12px;">{{ dll }}</span>
+                    <span class="lb-mono lb-strong" style="font-size: 13px;">{{ dll }}</span>
                     <span class="lb-tag info">{{ build_with|upper if build_with else 'INFO' }} Runtime</span>
                 </div>
                 {% for import in dll_runtime_imports %}
                 <div style="padding-left: 10px; border-left: 1px solid var(--lb-border-hi); margin-bottom: 4px;">
-                    <div class="lb-mono lb-dim" style="font-size: 11px;">
+                    <div class="lb-mono lb-dim" style="font-size: 12px;">
                         {{ import.function }} <span class="lb-muted">[{{ import.category }}]</span>
-                        {% if import.hint is not none %}<span class="lb-muted" style="font-size: 10px;" title="Import hint">Hint: {{ import.hint }}</span>{% endif %}
+                        {% if import.hint is not none %}<span class="lb-muted" style="font-size: 11px;" title="Import hint">Hint: {{ import.hint }}</span>{% endif %}
                     </div>
-                    <div class="lb-muted" style="font-size: 11px;">{{ import.note }}</div>
+                    <div class="lb-muted" style="font-size: 12px;">{{ import.note }}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -277,14 +277,14 @@
 
             {% if dll_suspicious_imports %}
             <div style="border: 1px solid rgba(248, 113, 113, 0.25); padding: 10px;">
-                <div class="lb-mono lb-strong" style="font-size: 12px; color: var(--lb-accent-soft); margin-bottom: 6px;">{{ dll }}</div>
+                <div class="lb-mono lb-strong" style="font-size: 13px; color: var(--lb-accent-soft); margin-bottom: 6px;">{{ dll }}</div>
                 {% for import in dll_suspicious_imports %}
                 <div style="padding-left: 10px; border-left: 1px solid rgba(248, 113, 113, 0.3); margin-bottom: 4px;">
-                    <div class="lb-mono" style="font-size: 11px;">
+                    <div class="lb-mono" style="font-size: 12px;">
                         {{ import.function }} <span class="lb-accent">[{{ import.category }}]</span>
-                        {% if import.hint is not none %}<span class="lb-muted" style="font-size: 10px;" title="Import hint">Hint: {{ import.hint }}</span>{% endif %}
+                        {% if import.hint is not none %}<span class="lb-muted" style="font-size: 11px;" title="Import hint">Hint: {{ import.hint }}</span>{% endif %}
                     </div>
-                    <div class="lb-muted" style="font-size: 11px;">{{ import.note }}</div>
+                    <div class="lb-muted" style="font-size: 12px;">{{ import.note }}</div>
                 </div>
                 {% endfor %}
             </div>

@@ -1,5 +1,6 @@
 # app/blueprints/analysis.py
 """PID validation, static/dynamic analysis dispatch, BYOVD driver analysis."""
+import logging
 import os
 
 from flask import Blueprint, current_app, jsonify, render_template, request
@@ -10,6 +11,10 @@ from ..services.rendering import is_kernel_driver_file
 from ..utils import file_io, path_manager, validators
 
 analysis_bp = Blueprint('analysis', __name__)
+
+# Module-level logger for use in background-thread callbacks where the
+# Flask app context (and thus current_app.logger) isn't available.
+_bg_logger = logging.getLogger(__name__)
 
 
 def _deps():
@@ -159,6 +164,93 @@ def _handle_analysis_results(results, result_path, results_filename):
 
     app.logger.debug("Analysis completed successfully.")
     return jsonify({'status': 'success', 'results': results})
+
+
+@analysis_bp.route('/analyze/edr/<profile>/<target>', methods=['GET', 'POST'])
+@error_handler
+def analyze_edr(profile, target):
+    """Dispatch a payload to a registered EDR profile.
+
+    GET  -> render results.html with analysis_type='edr' (the JS then POSTs).
+    POST -> call edr_registry.dispatch(profile, file_path), save the result
+            as edr_<profile>_results.json under the file's result folder, and
+            return the findings JSON.
+    """
+    app = current_app
+    deps = _deps()
+    app.logger.debug(f"Received EDR analysis request — profile={profile} target={target}")
+
+    if request.method == 'GET':
+        return render_template(
+            'results.html',
+            analysis_type='edr',
+            file_hash=target,
+            edr_profile=profile,
+        )
+
+    if not deps.edr_registry.get_profile(profile):
+        app.logger.warning(f"Unknown EDR profile: {profile}")
+        return jsonify({'error': f'Unknown EDR profile: {profile}'}), 404
+
+    if target.isdigit():
+        return jsonify({'error': 'EDR analysis requires a file (not a PID)'}), 400
+
+    file_path = path_manager.find_file_by_hash(target, app.config['utils']['upload_folder'])
+    if not file_path:
+        app.logger.debug(f"File with hash {target} not found in upload folder.")
+        return jsonify({'error': 'File not found'}), 404
+
+    result_path = path_manager.find_file_by_hash(target, app.config['utils']['result_folder'])
+    if not result_path:
+        app.logger.warning(f"Result path not found for hash: {target}")
+        return jsonify({'error': 'Result path not found'}), 404
+
+    app.logger.debug(f"Dispatching to EDR profile {profile!r} with payload {file_path}")
+    results_filename = f'edr_{profile}_results.json'
+
+    # Phase 2 callback — runs on a background thread when alerts arrive.
+    # Captures `result_path` / `results_filename` / `helpers` via closure.
+    # We log via `_bg_logger` (stdlib logging) instead of `app.logger`
+    # because the Flask LocalProxy requires an app context that the
+    # background thread doesn't have.
+    helpers = deps.helpers
+    def _on_phase_2_done(phase_2_result):
+        try:
+            helpers.save_analysis_results(
+                phase_2_result, result_path, results_filename
+            )
+            _bg_logger.debug(
+                "EDR Phase 2 complete for %s/%s: status=%s alerts=%s",
+                profile, target,
+                phase_2_result.get('status'),
+                phase_2_result.get('summary', {}).get('total_alerts'),
+            )
+        except Exception:
+            _bg_logger.exception(
+                "Failed to save EDR Phase 2 result for %s/%s", profile, target
+            )
+
+    try:
+        results = deps.edr_registry.dispatch_split(
+            profile, file_path, app.config, _on_phase_2_done
+        )
+    except Exception as e:
+        app.logger.error(f"EDR dispatch failed: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+    # Persist the Phase 1 snapshot. If Phase 2 is in flight, the background
+    # thread will overwrite this file when it completes; the frontend polls
+    # the GET endpoint to pick up the final state.
+    deps.helpers.save_analysis_results(results, result_path, results_filename)
+
+    payload = {'edr': results}
+    status = results.get('status', 'completed')
+    if status in ('error', 'agent_unreachable'):
+        return jsonify({'status': status, 'results': payload}), 502
+    if status == 'busy':
+        return jsonify({'status': status, 'results': payload}), 409
+
+    return jsonify({'status': 'success', 'results': payload})
 
 
 @analysis_bp.route('/holygrail', methods=['GET', 'POST'])

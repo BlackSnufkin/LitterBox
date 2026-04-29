@@ -1,0 +1,45 @@
+[package]
+name = "whiskers"
+version = "0.1.0"
+edition = "2021"
+description = "Whiskers — LitterBox's sensor agent. Single-binary Windows execution runner that receives a payload over HTTP, executes it on the host, and reports stdout/stderr/PID. Designed to run on a user-managed Windows VM that has an EDR (e.g. Elastic Defend) installed alongside it; LitterBox queries the EDR's backend separately for the verdict."
+license = "MIT"
+
+# Ship a single self-contained binary that drops onto any Windows VM.
+# No runtime deps, no installer, no service manager required.
+# Crate name stays lowercase (Rust convention); binary name is capitalized
+# to match the LitterBox / GrumpyCats family naming.
+[[bin]]
+name = "Whiskers"
+path = "src/main.rs"
+
+[dependencies]
+# HTTP server — minimal, modern, async.
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "io-util", "sync", "signal", "fs", "time"] }
+
+# Serialization for request/response bodies.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Self-reported identity for /api/info.
+gethostname = "0.5"
+os_info = "3"
+
+# CLI args (--port, --bind).
+clap = { version = "4", features = ["derive"] }
+
+# Logging.
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Time handling for lock auto-expiry / stale lock cleanup.
+chrono = { version = "0.4", features = ["serde"] }
+
+# Release profile — optimize for size, strip symbols, single static binary.
+[profile.release]
+opt-level = "z"      # optimize for size
+lto = true           # link-time optimization
+codegen-units = 1    # better optimization at the cost of compile time
+strip = true         # strip symbols
+panic = "abort"      # smaller binary, no unwinding tables

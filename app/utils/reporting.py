@@ -58,7 +58,8 @@ def _calculate_byovd_score(byovd_results):
 
 
 def generate_html_report(file_info=None, static_results=None,
-                         dynamic_results=None, byovd_results=None, pid=None):
+                         dynamic_results=None, byovd_results=None,
+                         edr_results=None, pid=None):
     """Render the report.html template with risk + detection summary.
 
     `byovd_results` is the parsed contents of byovd_results.json from a
@@ -67,6 +68,11 @@ def generate_html_report(file_info=None, static_results=None,
     the hero risk card and the chip row for BYOVD-specific equivalents
     (HolyGrail score + LOLDrivers/Win10/Win11/critical-import chips) and
     promotes the BYOVD section above the File Information section.
+
+    `edr_results` is a {profile_name: findings_dict} mapping populated when
+    the file has been dispatched to one or more EDR profiles. When set,
+    the report adds a per-profile EDR section listing the alerts raised
+    and the execution output captured by the Whiskers agent.
     """
     is_process_analysis = pid is not None and not file_info
     analysis_type = 'process' if is_process_analysis else 'file'
@@ -76,6 +82,7 @@ def generate_html_report(file_info=None, static_results=None,
         file_info=file_info,
         static_results=static_results,
         dynamic_results=dynamic_results,
+        edr_results=edr_results,
     )
     risk_level = get_risk_level(risk_score)
 
@@ -108,6 +115,7 @@ def generate_html_report(file_info=None, static_results=None,
         static_results=static_results,
         dynamic_results=dynamic_results,
         byovd_results=byovd_results,
+        edr_results=edr_results,
         is_driver_report=is_driver_report,
         byovd_score=byovd_score,
         byovd_label=byovd_label,

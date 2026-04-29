@@ -48,7 +48,7 @@ export default {
         let html = `
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                 <span class="lb-strong" style="color: var(--lb-accent);">${escapeHtml(processName)}</span>
-                <span class="lb-muted" style="font-size: 11px;">(PID ${escapeHtml(String(processPid))})</span>
+                <span class="lb-muted" style="font-size: 12px;">(PID ${escapeHtml(String(processPid))})</span>
             </div>
         `;
 
@@ -68,10 +68,10 @@ export default {
                         return `
                             <div style="border: 1px solid ${borderColor}; padding: 10px; margin-bottom: 8px;">
                                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 6px;">
-                                    <span class="lb-strong" style="font-size: 12px;">${escapeHtml(f.type)}</span>
+                                    <span class="lb-strong" style="font-size: 13px;">${escapeHtml(f.type)}</span>
                                     ${tag(sev, f.severity || 'INFO')}
                                 </div>
-                                ${f.description ? `<div class="lb-dim" style="font-size: 11px; margin-bottom: 6px;">${escapeHtml(f.description)}</div>` : ''}
+                                ${f.description ? `<div class="lb-dim" style="font-size: 12px; margin-bottom: 6px;">${escapeHtml(f.description)}</div>` : ''}
                                 ${f.details && Object.keys(f.details).length ? kvGrid(
                                     Object.entries(f.details)
                                         .filter(([k]) => k !== 'issue' && k !== 'condition')

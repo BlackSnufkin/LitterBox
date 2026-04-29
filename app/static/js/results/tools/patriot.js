@@ -56,7 +56,7 @@ export default {
                         <span class="lb-mono" style="color: var(--lb-accent);">#${f.finding_number} ${escapeHtml(f.type)}</span>
                         <span style="margin-left:auto; display:flex; gap:6px; align-items:center;">
                             ${tag(f.level === 'CRITICAL' || f.level === 'HIGH' ? 'critical' : 'medium', f.level || 'INFO')}
-                            <span class="lb-muted" style="font-size: 11px;">${escapeHtml(f.timestamp || '')}</span>
+                            <span class="lb-muted" style="font-size: 12px;">${escapeHtml(f.timestamp || '')}</span>
                         </span>
                     </div>
                     <div class="lb-panel-body">
@@ -66,7 +66,7 @@ export default {
                         ], 2)}
                         <div style="margin-top: 10px;">
                             <div class="lb-eyebrow" style="margin-bottom: 4px;">Details</div>
-                            <div class="lb-mono lb-dim" style="font-size: 11px; padding: 6px 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); word-break: break-all;">${escapeHtml(f.details || '')}</div>
+                            <div class="lb-mono lb-dim" style="font-size: 12px; padding: 6px 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); word-break: break-all;">${escapeHtml(f.details || '')}</div>
                         </div>
                         ${f.parsed_details ? `
                             <div style="margin-top: 10px;">

@@ -13,13 +13,13 @@
 <div class="lb-panel">
     <div class="lb-panel-hdr">
         <span class="lb-glyph">▸</span>Static Analysis Summary
-        <button onclick="window.location.href='/results/{{ file_info.md5 }}/info'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;" aria-label="Navigate back to file information">
+        <button onclick="window.location.href='/results/{{ file_info.md5 }}/info'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;" aria-label="Navigate back to file information">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
             Back to File Info
         </button>
     </div>
     <div class="lb-panel-body">
-        <p class="lb-muted" style="font-size: 11px; margin-bottom: 8px;">Comprehensive overview of all scan results.</p>
+        <p class="lb-muted" style="font-size: 12px; margin-bottom: 8px;">Comprehensive overview of all scan results.</p>
         <div class="lb-hash-row">
             <div class="lb-hash-label">Path</div>
             <div class="lb-hash-value lb-mono">{{ analysis_results.checkplz.findings.scan_results.file_path if analysis_results.checkplz else file_info.original_name }}</div>
@@ -41,7 +41,7 @@
                 <td>CheckPlz</td>
                 {{ scanner_status_cell(checkplz_detections) }}
                 {{ scanner_count_cell(checkplz_detections) }}
-                <td class="lb-muted" style="font-size: 11px;">
+                <td class="lb-muted" style="font-size: 12px;">
                     {{ analysis_results.checkplz.findings.initial_threat if checkplz_detections else 'No signatures triggered' }}
                 </td>
             </tr>
@@ -63,10 +63,10 @@
                     <div class="lb-eyebrow" style="margin-bottom: 6px;">{{ title }} <span class="lb-muted">({{ items|length }})</span></div>
                     <div style="display: flex; flex-direction: column; gap: 3px;">
                         {% for item in items[:5] %}
-                            <div class="lb-mono lb-dim" style="font-size: 11px; padding: 4px 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); word-break: break-all;">{{ item }}</div>
+                            <div class="lb-mono lb-dim" style="font-size: 12px; padding: 4px 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); word-break: break-all;">{{ item }}</div>
                         {% endfor %}
                         {% if items|length > 5 %}
-                            <div class="lb-muted" style="font-size: 11px; font-style: italic;">… and {{ items|length - 5 }} more</div>
+                            <div class="lb-muted" style="font-size: 12px; font-style: italic;">… and {{ items|length - 5 }} more</div>
                         {% endif %}
                     </div>
                 </div>
@@ -82,10 +82,10 @@
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 3px;">
                     {% for item in findings.found_suspicious_strings[:5] %}
-                        <div class="lb-mono" style="font-size: 11px; padding: 4px 8px; background: rgba(248, 113, 113, 0.03); border-left: 2px solid rgba(248, 113, 113, 0.4); color: var(--lb-accent-soft); word-break: break-all;">{{ item }}</div>
+                        <div class="lb-mono" style="font-size: 12px; padding: 4px 8px; background: rgba(248, 113, 113, 0.03); border-left: 2px solid rgba(248, 113, 113, 0.4); color: var(--lb-accent-soft); word-break: break-all;">{{ item }}</div>
                     {% endfor %}
                     {% if findings.found_suspicious_strings|length > 5 %}
-                        <div class="lb-muted" style="font-size: 11px; font-style: italic;">… and {{ findings.found_suspicious_strings|length - 5 }} more</div>
+                        <div class="lb-muted" style="font-size: 12px; font-style: italic;">… and {{ findings.found_suspicious_strings|length - 5 }} more</div>
                     {% endif %}
                 </div>
             </div>

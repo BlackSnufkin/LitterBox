@@ -45,12 +45,12 @@ export function renderSection(title, items) {
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>${escapeHtml(title)} <span class="lb-panel-badge">${items.length}</span></div>
         <div class="lb-panel-body" style="display: flex; flex-direction: column; gap: 4px;">
             ${displayItems.map(item => `
-                <div class="lb-mono lb-dim" style="font-size: 11px; padding: 4px 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); word-break: break-all;">
+                <div class="lb-mono lb-dim" style="font-size: 12px; padding: 4px 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); word-break: break-all;">
                     ${escapeHtml(item)}
                 </div>
             `).join('')}
             ${remainingCount > 0 ? `
-                <div class="lb-muted" style="font-size: 11px; font-style: italic; padding: 4px 8px;">
+                <div class="lb-muted" style="font-size: 12px; font-style: italic; padding: 4px 8px;">
                     … and ${remainingCount} more
                 </div>
             ` : ''}

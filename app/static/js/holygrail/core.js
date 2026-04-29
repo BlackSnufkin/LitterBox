@@ -376,8 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="border: 1px solid var(--lb-sev-medium); padding: 12px 14px; display: flex; align-items: center; gap: 10px; background: rgba(250, 204, 21, 0.04);">
         <span class="lb-tag medium">⚑ HolyGrail</span>
         <div style="flex: 1;">
-          <div class="lb-strong" style="font-size: 13px;">The Holy Grail Found</div>
-          <div class="lb-muted" style="font-size: 11px;">Critical imports observed · Not on LOLDrivers · Not blocked</div>
+          <div class="lb-strong" style="font-size: 14px;">The Holy Grail Found</div>
+          <div class="lb-muted" style="font-size: 12px;">Critical imports observed · Not on LOLDrivers · Not blocked</div>
         </div>
       </div>
     `;
@@ -413,9 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     return `
       <div style="border: 1px solid ${borderColor}; padding: 12px 14px;">
-        <div class="lb-strong" style="font-size: 13px; margin-bottom: 4px;">${title}</div>
-        <div class="lb-dim" style="font-size: 11px; margin-bottom: 6px;">${description}</div>
-        <div class="lb-muted lb-mono" style="font-size: 10px;">${statusDetails.join(' · ')}</div>
+        <div class="lb-strong" style="font-size: 14px; margin-bottom: 4px;">${title}</div>
+        <div class="lb-dim" style="font-size: 12px; margin-bottom: 6px;">${description}</div>
+        <div class="lb-muted lb-mono" style="font-size: 11px;">${statusDetails.join(' · ')}</div>
       </div>
     `;
   }
@@ -489,15 +489,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const bd = block.blockingDetails;
         detailsHtml = `
           <div style="margin-top: 10px; padding: 10px; border: 1px solid rgba(248, 113, 113, 0.18); background: rgba(248, 113, 113, 0.03);">
-            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
+            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
               ${bd.blocked_signer_id ? `<div><span class="lb-eyebrow">Rule ID</span> <span class="lb-mono lb-strong">${escapeHTML(bd.blocked_signer_id)}</span></div>` : ''}
               ${bd.publisher_info ? `<div><span class="lb-eyebrow">Publisher</span> <span class="lb-strong">${escapeHTML(bd.publisher_info)}</span></div>` : ''}
               ${bd.matched_certificate?.thumbprint ? `<div><span class="lb-eyebrow">Cert Thumbprint</span> <code class="lb-mono lb-dim">${escapeHTML(bd.matched_certificate.thumbprint)}</code></div>` : ''}
               ${bd.matched_certificate?.tbs_sha1 ? `<div><span class="lb-eyebrow">TBS SHA1</span> <code class="lb-mono lb-dim">${escapeHTML(bd.matched_certificate.tbs_sha1)}</code></div>` : ''}
               ${bd.detailed_explanation ? `
                 <details style="margin-top: 6px;">
-                  <summary class="lb-accent" style="cursor: pointer; font-size: 11px;">Show detailed explanation</summary>
-                  <pre class="lb-mono lb-dim" style="margin-top: 6px; font-size: 11px; white-space: pre-wrap; word-break: break-all;">${escapeHTML(bd.detailed_explanation)}</pre>
+                  <summary class="lb-accent" style="cursor: pointer; font-size: 12px;">Show detailed explanation</summary>
+                  <pre class="lb-mono lb-dim" style="margin-top: 6px; font-size: 12px; white-space: pre-wrap; word-break: break-all;">${escapeHTML(bd.detailed_explanation)}</pre>
                 </details>
               ` : ''}
             </div>
@@ -508,10 +508,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <div style="border: 1px solid ${block.blocked ? 'rgba(248, 113, 113, 0.22)' : 'rgba(74, 222, 128, 0.22)'}; padding: 12px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <span class="lb-strong" style="font-size: 13px;">${block.name}</span>
+            <span class="lb-strong" style="font-size: 14px;">${block.name}</span>
             <span class="lb-tag ${block.blocked ? 'critical' : 'clean'}">${block.blocked ? 'Blocked' : 'Allowed'}</span>
           </div>
-          <div class="lb-muted" style="font-size: 11px;">${escapeHTML(block.reason)}</div>
+          <div class="lb-muted" style="font-size: 12px;">${escapeHTML(block.reason)}</div>
           ${detailsHtml}
         </div>
       `;
@@ -783,7 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.style.cssText = `
       background: var(--lb-panel); color: var(--lb-text);
       border: 1px solid ${accent}; border-left: 3px solid ${accent};
-      padding: 10px 14px; max-width: 360px; font-size: 12px;
+      padding: 10px 14px; max-width: 360px; font-size: 13px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.5);
       display: flex; align-items: center; gap: 10px;
       transition: opacity 0.3s ease;

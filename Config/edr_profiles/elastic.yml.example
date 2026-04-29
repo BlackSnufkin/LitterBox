@@ -1,0 +1,59 @@
+# Elastic Defend EDR profile for LitterBox.
+#
+# Copy this file to `elastic.yml` (drop the .example) and fill in your values.
+# Real profiles (*.yml without .example) are gitignored.
+#
+# Architecture:
+#   payload --> Whiskers.exe (your EDR VM, port 8080) --> spawned process
+#                     |
+#                     +-> Elastic Agent + Elastic Defend (you installed this)
+#                              |
+#                              v
+#                     Your local Elastic stack (you deployed this)
+#                              ^
+#                              |
+#                     LitterBox queries .siem-signals-* for alerts
+#
+# Stack setup: see https://www.elastic.co/security-labs/the-elastic-container-project
+# Whiskers install: see Whiskers/README.md
+
+name: "elastic"
+display_name: "Elastic Defend"
+
+# Whiskers agent on the EDR VM. The agent self-reports its hostname via
+# GET /api/info — you do NOT configure hostname here. Move the agent to a
+# different VM and the integration follows it automatically.
+agent_url: "http://192.168.1.100:8080"
+
+# Your self-hosted Elasticsearch endpoint. Typical
+# elastic-container-project deployment exposes this on :9200.
+elastic_url: "https://192.168.1.50:9200"
+
+# Base64-encoded API key with read access to .siem-signals-*. Create one in
+# Kibana: Stack Management -> API keys -> Create API key.
+elastic_apikey: "REPLACE_ME_BASE64_API_KEY"
+
+# Set to false if your Elastic stack uses a self-signed certificate (typical
+# for elastic-container-project local deployments).
+elastic_verify_tls: false
+
+# How long to wait after a SUCCESSFUL payload exit before querying Elastic
+# for alerts. Detection-Engine rules run on a 60s cycle by default — 90s is
+# the safe minimum to catch the first scheduled run with margin.
+wait_seconds_for_alerts: 90
+
+# Max polling window for the AV-block path. When Elastic Defend blocks the
+# payload at write/spawn time, the orchestrator polls Elastic every 2s and
+# early-returns as soon as the prevention alert is indexed. The bound is
+# dominated by the elastic-agent shipping cadence (30s default) — 60s
+# covers the slow tail but the typical case completes in 5-15s.
+av_block_wait_seconds: 60
+
+# Hard cap on payload runtime. The agent kills the process after this
+# many seconds and the analyzer collects whatever stdout/stderr was
+# captured up to that point.
+exec_timeout_seconds: 60
+
+# Optional: where on the EDR VM to drop the payload before executing.
+# If unset, Whiskers writes to its own temp directory.
+# drop_path: "C:\\Users\\Public\\sample.exe"

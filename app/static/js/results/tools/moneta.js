@@ -85,7 +85,7 @@ export default {
             html += panel('Triggering Indicators', `
                 <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px;">
                     ${warnings.map(w => `
-                        <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid ${w.sev === 'critical' ? 'var(--lb-accent)' : 'var(--lb-sev-medium)'}; font-size: 12px;">
+                        <li style="display: flex; gap: 8px; padding: 6px 10px; background: var(--lb-bg); border-left: 2px solid ${w.sev === 'critical' ? 'var(--lb-accent)' : 'var(--lb-sev-medium)'}; font-size: 13px;">
                             <span style="color: ${w.sev === 'critical' ? 'var(--lb-accent)' : 'var(--lb-sev-medium)'};">!</span>
                             <span class="lb-dim">${escapeHtml(w.msg)}</span>
                         </li>

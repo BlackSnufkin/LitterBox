@@ -25,6 +25,7 @@ import monetaTool        from './tools/moneta.js';
 import patriotTool       from './tools/patriot.js';
 import hsbTool           from './tools/hsb.js';
 import rededrTool        from './tools/rededr.js';
+import edrTool           from './tools/edr.js';
 import summaryTool       from './tools/summary.js';
 
 const modules = [
@@ -36,6 +37,7 @@ const modules = [
     patriotTool,
     hsbTool,
     rededrTool,
+    edrTool,
     summaryTool,
 ];
 

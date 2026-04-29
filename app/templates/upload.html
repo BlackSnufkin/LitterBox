@@ -14,22 +14,22 @@
     <div class="lb-panel-body">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div id="step1Circle" style="width: 28px; height: 28px; border: 1px solid rgba(248, 113, 113, 0.28); color: var(--lb-accent-soft); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: rgba(248, 113, 113, 0.04);">
+                <div id="step1Circle" style="width: 28px; height: 28px; border: 1px solid rgba(248, 113, 113, 0.28); color: var(--lb-accent-soft); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: rgba(248, 113, 113, 0.04);">
                     <span id="step1Text">1</span>
                 </div>
                 <div>
-                    <div id="step1Label" class="lb-strong" style="font-size: 12px;">Upload</div>
-                    <div class="lb-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Select Payload</div>
+                    <div id="step1Label" class="lb-strong" style="font-size: 13px;">Upload</div>
+                    <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">Select Payload</div>
                 </div>
             </div>
             <div id="progressLine" style="flex: 1; height: 1px; background: var(--lb-border-hi);"></div>
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div id="step2Circle" style="width: 28px; height: 28px; border: 1px solid var(--lb-border-hi); color: var(--lb-text-mute); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">
+                <div id="step2Circle" style="width: 28px; height: 28px; border: 1px solid var(--lb-border-hi); color: var(--lb-text-mute); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600;">
                     <span id="step2Text">2</span>
                 </div>
                 <div>
-                    <div class="lb-dim" style="font-size: 12px;">Analysis</div>
-                    <div class="lb-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Choose Type</div>
+                    <div class="lb-dim" style="font-size: 13px;">Analysis</div>
+                    <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">Choose Type</div>
                 </div>
             </div>
         </div>
@@ -63,137 +63,139 @@
 <!-- Analysis selection + file info (revealed after upload) -->
 <div id="fileAnalysisArea" class="hidden lb-fade-in">
 
-    <!-- Analysis type selector -->
+    <!-- Analysis type selector — segmented control + per-mode body -->
     <div class="lb-panel">
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Choose Analysis Type</div>
+
+        <!-- Segmented control. Tabs are filtered by file family (regular vs
+             driver) at runtime by updateAnalysisOptions(). EDR profile tabs
+             are appended server-side, one per registered profile. -->
+        <div class="lb-tabs" id="modeTabs">
+            <button type="button" class="lb-tab" data-mode="static" data-family="regular">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Static
+            </button>
+            <button type="button" class="lb-tab" data-mode="dynamic" data-family="regular">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Dynamic
+            </button>
+            {% for profile in edr_profiles %}
+            <button type="button" class="lb-tab" data-mode="edr:{{ profile.name }}" data-family="regular">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg>
+                {{ profile.display_name }}
+            </button>
+            {% endfor %}
+            <button type="button" class="lb-tab" data-mode="static-driver" data-family="driver">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Static
+            </button>
+            <button type="button" class="lb-tab" data-mode="holygrail" data-family="driver">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/></svg>
+                HolyGrail BYOVD
+                <span class="lb-tag medium" style="margin-left: 4px;">⚠</span>
+            </button>
+        </div>
+
+        <!-- Per-mode body. updateModeBody(mode) toggles which one is visible. -->
         <div class="lb-panel-body">
 
-            <!-- Regular payload options -->
-            <div id="regularAnalysisOptions" class="lb-grid-2">
-                <button onclick="selectAnalysisType('static')" class="lb-analysis-card">
-                    <div class="lb-analysis-card-head">
-                        <svg width="18" height="18" fill="none" stroke="var(--lb-text-dim)" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                        <div>
-                            <div class="lb-strong" style="font-size: 13px;">Static Analysis</div>
-                            <div class="lb-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">No Execution Required</div>
-                        </div>
-                    </div>
-                    <p class="lb-dim" style="font-size: 11px; margin-bottom: 10px;">Analyze payload content and structure without execution. Identifies signature-based patterns and static IOCs.</p>
-                    <ul style="list-style: none; padding: 0; margin: 0 0 12px 0; font-size: 11px; color: var(--lb-text-dim);">
-                        <li class="lb-ok">YARA Pattern Matching</li>
-                        <li class="lb-ok">CheckPlz</li>
-                        <li class="lb-ok">Stringnalyzer</li>
-                    </ul>
-                    <span class="lb-analysis-card-cta">
-                        Run Static Scan
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </span>
-                </button>
-
-                <button onclick="selectAnalysisType('dynamic')" class="lb-analysis-card">
-                    <div class="lb-analysis-card-head">
-                        <svg width="18" height="18" fill="none" stroke="var(--lb-text-dim)" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div style="flex: 1;">
-                            <div class="lb-strong" style="font-size: 13px;">Dynamic Analysis</div>
-                            <div class="lb-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Runtime Behaviour</div>
-                        </div>
-                        <span class="lb-tag medium" style="position: relative;"
-                              onmouseover="document.getElementById('dynamicTooltip').classList.remove('hidden')"
-                              onmouseout="document.getElementById('dynamicTooltip').classList.add('hidden')">⚠
-                            <span id="dynamicTooltip" class="hidden" style="position: absolute; bottom: 100%; right: 0; margin-bottom: 6px; background: var(--lb-bg); border: 1px solid var(--lb-sev-medium); padding: 6px 10px; font-size: 10px; color: var(--lb-sev-medium); white-space: nowrap; text-transform: none; letter-spacing: normal; z-index: 5;">
-                                Will execute the payload
-                            </span>
-                        </span>
-                    </div>
-                    <p class="lb-dim" style="font-size: 11px; margin-bottom: 10px;">Execute and monitor payload behaviour with memory analysis.</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: var(--lb-text-dim); margin-bottom: 12px;">
-                        <div class="lb-ok">YARA Rules</div>
-                        <div class="lb-ok">RedEdr</div>
-                        <div class="lb-ok">Moneta</div>
-                        <div class="lb-ok">PE-Sieve</div>
-                        <div class="lb-ok">Hunt-Sleeping-Beacons</div>
-                        <div class="lb-ok">Patriot</div>
-                    </div>
-                    <span class="lb-analysis-card-cta lb-analysis-card-cta--warn">
-                        Run Dynamic Scan
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </span>
+            <div class="lb-mode-body" data-mode="static">
+                {{ _mode_header('Static Analysis', 'No Execution Required') if false }}
+                <div class="lb-mode-head">
+                    <div class="lb-strong" style="font-size: 14px;">Static Analysis</div>
+                    <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">No Execution Required</div>
+                </div>
+                <p class="lb-dim" style="font-size: 12px;">Analyze payload content and structure without execution. Identifies signature-based patterns and static IOCs.</p>
+                <ul class="lb-mode-features">
+                    <li class="lb-ok">YARA Pattern Matching</li>
+                    <li class="lb-ok">CheckPlz</li>
+                    <li class="lb-ok">Stringnalyzer</li>
+                </ul>
+                <button type="button" onclick="selectAnalysisType('static')" class="lb-mode-cta">
+                    Run Static Scan
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
             </div>
 
-            <!-- Driver options (only for .sys files) -->
-            <div id="driverAnalysisOptions" class="hidden lb-grid-2">
-                <button onclick="selectAnalysisType('static')" class="lb-analysis-card">
-                    <div class="lb-analysis-card-head">
-                        <svg width="18" height="18" fill="none" stroke="var(--lb-text-dim)" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                        <div>
-                            <div class="lb-strong" style="font-size: 13px;">Static Analysis</div>
-                            <div class="lb-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Driver Structure</div>
-                        </div>
-                    </div>
-                    <p class="lb-dim" style="font-size: 11px; margin-bottom: 10px;">Analyze driver content and structure without loading. Identifies signature-based patterns and static IOCs.</p>
-                    <ul style="list-style: none; padding: 0; margin: 0 0 12px 0; font-size: 11px; color: var(--lb-text-dim);">
-                        <li class="lb-ok">YARA Pattern Matching</li>
-                        <li class="lb-ok">Driver Structure Analysis</li>
-                        <li class="lb-ok">Import Analysis</li>
-                    </ul>
-                    <span class="lb-analysis-card-cta">
-                        Run Static Scan
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </span>
-                </button>
-
-                <button onclick="selectAnalysisType('holygrail')" class="lb-analysis-card">
-                    <div class="lb-analysis-card-head">
-                        <svg width="18" height="18" fill="none" stroke="var(--lb-sev-medium)" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 9v2a5 5 0 0010 0V9"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h12"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16v3"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19h6"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9h-1a1 1 0 000 2h1M18 9h1a1 1 0 010 2h-1"/>
-                        </svg>
-                        <div style="flex: 1;">
-                            <div class="lb-strong" style="font-size: 13px;">HolyGrail BYOVD</div>
-                            <div class="lb-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;">Driver Vulnerability</div>
-                        </div>
-                        <span class="lb-tag info" style="position: relative;"
-                              onmouseover="document.getElementById('holygrailTooltip').classList.remove('hidden')"
-                              onmouseout="document.getElementById('holygrailTooltip').classList.add('hidden')">i
-                            <span id="holygrailTooltip" class="hidden" style="position: absolute; bottom: 100%; right: 0; margin-bottom: 6px; background: var(--lb-bg); border: 1px solid var(--lb-border-hi); padding: 6px 10px; font-size: 10px; color: var(--lb-text-dim); white-space: nowrap; text-transform: none; letter-spacing: normal; z-index: 5;">
-                                Bring Your Own Vulnerable Driver
-                            </span>
-                        </span>
-                    </div>
-                    <p class="lb-dim" style="font-size: 11px; margin-bottom: 10px;">Specialised analysis for kernel drivers — identifies BYOVD vulnerabilities and abuse vectors.</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: var(--lb-text-dim); margin-bottom: 12px;">
-                        <div class="lb-ok">Microsoft Policy Validation</div>
-                        <div class="lb-ok">Known Abused Imports</div>
-                        <div class="lb-ok">Identify LoLDrivers</div>
-                        <div class="lb-ok">Digital Signature Check</div>
-                    </div>
-                    <span class="lb-analysis-card-cta lb-analysis-card-cta--warn">
-                        Run BYOVD Scan
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </span>
+            <div class="lb-mode-body hidden" data-mode="dynamic">
+                <div class="lb-mode-head">
+                    <div class="lb-strong" style="font-size: 14px;">Dynamic Analysis</div>
+                    <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">Runtime Behaviour</div>
+                </div>
+                <p class="lb-dim" style="font-size: 12px;">Execute and monitor payload behaviour with memory analysis.</p>
+                <ul class="lb-mode-features lb-mode-features-2col">
+                    <li class="lb-ok">YARA Rules</li>
+                    <li class="lb-ok">RedEdr</li>
+                    <li class="lb-ok">Moneta</li>
+                    <li class="lb-ok">PE-Sieve</li>
+                    <li class="lb-ok">Hunt-Sleeping-Beacons</li>
+                    <li class="lb-ok">Patriot</li>
+                </ul>
+                <div id="argsInputContainer">
+                    <label for="analysisArgs" class="lb-eyebrow" style="display: block; margin-bottom: 6px;">Command-line Arguments</label>
+                    <input type="text" id="analysisArgs" placeholder="Enter arguments separated by spaces" class="lb-input lb-mono"/>
+                    <p class="lb-muted" style="margin-top: 6px; font-size: 12px;">Arguments passed to the payload at execution time.</p>
+                </div>
+                <button type="button" onclick="selectAnalysisType('dynamic')" class="lb-mode-cta">
+                    Run Dynamic Scan
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
             </div>
 
-            <!-- Command-line arguments (dynamic only) -->
-            <div id="argsInputContainer" style="margin-top: 16px;">
-                <label for="analysisArgs" class="lb-eyebrow" style="display: block; margin-bottom: 6px;">Command-line Arguments</label>
-                <input type="text"
-                       id="analysisArgs"
-                       placeholder="Enter arguments separated by spaces"
-                       class="lb-input lb-mono"/>
-                <p class="lb-muted" style="margin-top: 6px; font-size: 11px;">Provide arguments for the payload (Dynamic Analysis only).</p>
+            {% for profile in edr_profiles %}
+            <div class="lb-mode-body hidden" data-mode="edr:{{ profile.name }}">
+                <div class="lb-mode-head">
+                    <div class="lb-strong" style="font-size: 14px;">{{ profile.display_name }}</div>
+                    <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">EDR Detonation</div>
+                </div>
+                <p class="lb-dim" style="font-size: 12px;">Dispatches the payload to <span class="lb-mono">{{ profile.agent_url }}</span> via the Whiskers agent and pulls detection alerts from the configured backend.</p>
+                <ul class="lb-mode-features">
+                    <li class="lb-ok">Whiskers Agent Dispatch</li>
+                    <li class="lb-ok">EDR Alert Correlation</li>
+                    <li class="lb-ok">Execution Log Capture</li>
+                </ul>
+                <button type="button" onclick="selectAnalysisType('edr:{{ profile.name }}')" class="lb-mode-cta">
+                    Run with {{ profile.display_name }}
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
             </div>
+            {% endfor %}
+
+            <div class="lb-mode-body hidden" data-mode="static-driver">
+                <div class="lb-mode-head">
+                    <div class="lb-strong" style="font-size: 14px;">Static Analysis</div>
+                    <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">Driver Structure</div>
+                </div>
+                <p class="lb-dim" style="font-size: 12px;">Analyze driver content and structure without loading. Identifies signature-based patterns and static IOCs.</p>
+                <ul class="lb-mode-features">
+                    <li class="lb-ok">YARA Pattern Matching</li>
+                    <li class="lb-ok">Driver Structure Analysis</li>
+                    <li class="lb-ok">Import Analysis</li>
+                </ul>
+                <button type="button" onclick="selectAnalysisType('static')" class="lb-mode-cta">
+                    Run Static Scan
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+
+            <div class="lb-mode-body hidden" data-mode="holygrail">
+                <div class="lb-mode-head">
+                    <div class="lb-strong" style="font-size: 14px;">HolyGrail BYOVD <span class="lb-tag info" title="Bring Your Own Vulnerable Driver">i</span></div>
+                    <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">Driver Vulnerability</div>
+                </div>
+                <p class="lb-dim" style="font-size: 12px;">Specialised analysis for kernel drivers — identifies BYOVD vulnerabilities and abuse vectors.</p>
+                <ul class="lb-mode-features lb-mode-features-2col">
+                    <li class="lb-ok">Microsoft Policy Validation</li>
+                    <li class="lb-ok">Known Abused Imports</li>
+                    <li class="lb-ok">Identify LoLDrivers</li>
+                    <li class="lb-ok">Digital Signature Check</li>
+                </ul>
+                <button type="button" onclick="selectAnalysisType('holygrail')" class="lb-mode-cta lb-mode-cta--warn">
+                    Run BYOVD Scan
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -201,7 +203,7 @@
     <div class="lb-panel">
         <div class="lb-panel-hdr">
             <span class="lb-glyph">▸</span>File Metadata
-            <button onclick="location.reload()" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;">
+            <button onclick="location.reload()" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114-5M20 14a8 8 0 01-14 5"/>
                 </svg>
@@ -216,10 +218,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 <div style="flex: 1; min-width: 0;">
-                    <div id="fileName" class="lb-strong" style="font-size: 13px; word-break: break-all;"></div>
+                    <div id="fileName" class="lb-strong" style="font-size: 14px; word-break: break-all;"></div>
                     <div style="display: flex; gap: 12px; margin-top: 2px;">
-                        <span id="fileSize" class="lb-dim" style="font-size: 11px;"></span>
-                        <span id="fileType" class="lb-muted" style="font-size: 11px;"></span>
+                        <span id="fileSize" class="lb-dim" style="font-size: 12px;"></span>
+                        <span id="fileType" class="lb-muted" style="font-size: 12px;"></span>
                     </div>
                 </div>
             </div>
@@ -251,28 +253,28 @@
                     <span id="detectionRisk" class="lb-tag muted"></span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <span class="lb-muted" style="font-size: 11px;">Overall</span>
-                    <div id="fileEntropy" class="lb-strong lb-mono" style="font-size: 13px;"></div>
+                    <span class="lb-muted" style="font-size: 12px;">Overall</span>
+                    <div id="fileEntropy" class="lb-strong lb-mono" style="font-size: 14px;"></div>
                 </div>
                 <div style="position: relative; height: 4px; background: var(--lb-bg); border: 1px solid var(--lb-border); overflow: hidden;">
                     <div id="entropyBar" style="position: absolute; top: 0; left: 0; height: 100%; transition: width var(--lb-transition); background: var(--lb-accent);"></div>
                 </div>
-                <div id="entropyNotes" style="margin-top: 6px; font-size: 11px; color: var(--lb-text-dim);"></div>
+                <div id="entropyNotes" style="margin-top: 6px; font-size: 12px; color: var(--lb-text-dim);"></div>
             </div>
 
             <!-- Basic info grid -->
             <div class="lb-grid-3" style="margin-bottom: 12px;">
                 <div style="border: 1px solid var(--lb-border); padding: 10px;">
                     <div class="lb-eyebrow" style="margin-bottom: 4px;">Type</div>
-                    <div id="fileCategory" class="lb-strong" style="font-size: 12px;"></div>
+                    <div id="fileCategory" class="lb-strong" style="font-size: 13px;"></div>
                 </div>
                 <div style="border: 1px solid var(--lb-border); padding: 10px;">
                     <div class="lb-eyebrow" style="margin-bottom: 4px;">Upload Time</div>
-                    <div id="uploadTime" class="lb-strong" style="font-size: 12px;"></div>
+                    <div id="uploadTime" class="lb-strong" style="font-size: 13px;"></div>
                 </div>
                 <div style="border: 1px solid var(--lb-border); padding: 10px;">
                     <div class="lb-eyebrow" style="margin-bottom: 4px;">Format</div>
-                    <div id="fileFormat" class="lb-strong" style="font-size: 12px;"></div>
+                    <div id="fileFormat" class="lb-strong" style="font-size: 13px;"></div>
                 </div>
             </div>
 
@@ -284,15 +286,15 @@
                 </div>
                 <div class="lb-grid-2">
                     <div>
-                        <div class="lb-muted" style="font-size: 11px; margin-bottom: 2px;">Stored</div>
-                        <div id="storedChecksum" class="lb-strong lb-mono" style="font-size: 11px;"></div>
+                        <div class="lb-muted" style="font-size: 12px; margin-bottom: 2px;">Stored</div>
+                        <div id="storedChecksum" class="lb-strong lb-mono" style="font-size: 12px;"></div>
                     </div>
                     <div>
-                        <div class="lb-muted" style="font-size: 11px; margin-bottom: 2px;">Calculated</div>
-                        <div id="calculatedChecksum" class="lb-strong lb-mono" style="font-size: 11px;"></div>
+                        <div class="lb-muted" style="font-size: 12px; margin-bottom: 2px;">Calculated</div>
+                        <div id="calculatedChecksum" class="lb-strong lb-mono" style="font-size: 12px;"></div>
                     </div>
                 </div>
-                <div id="checksumNotes" style="margin-top: 8px; font-size: 11px; color: var(--lb-text-dim);"></div>
+                <div id="checksumNotes" style="margin-top: 8px; font-size: 12px; color: var(--lb-text-dim);"></div>
             </div>
 
             <!-- Sensitive imports -->
@@ -302,7 +304,7 @@
                     <span id="suspiciousImportsCount" class="lb-tag critical"></span>
                 </div>
                 <div id="suspiciousImportsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
-                <div style="border-top: 1px solid var(--lb-border); padding-top: 8px; margin-top: 8px; font-size: 11px; color: var(--lb-text-dim); display: flex; align-items: center; gap: 6px;">
+                <div style="border-top: 1px solid var(--lb-border); padding-top: 8px; margin-top: 8px; font-size: 12px; color: var(--lb-text-dim); display: flex; align-items: center; gap: 6px;">
                     <span style="color: var(--lb-sev-medium);">⚠</span>
                     <span id="suspiciousImportsSummary"></span>
                 </div>
@@ -314,7 +316,7 @@
                 <div id="sectionsList" style="display: flex; flex-direction: column; gap: 6px;"></div>
                 <div style="border-top: 1px solid var(--lb-border); padding-top: 8px; margin-top: 8px;">
                     <div class="lb-eyebrow" style="margin-bottom: 6px;">Detection Notes</div>
-                    <div id="detectionNotes" style="font-size: 11px; color: var(--lb-text-dim); display: flex; flex-direction: column; gap: 4px;"></div>
+                    <div id="detectionNotes" style="font-size: 12px; color: var(--lb-text-dim); display: flex; flex-direction: column; gap: 4px;"></div>
                 </div>
             </div>
 
@@ -324,12 +326,12 @@
                     <span class="lb-eyebrow">Macro Analysis</span>
                     <span id="macroStatus" class="lb-tag muted"></span>
                 </div>
-                <div id="macroDetectionNotes" style="font-size: 11px; color: var(--lb-text-dim); margin-bottom: 6px;"></div>
-                <div id="macroInfo" style="font-size: 11px; color: var(--lb-text-dim);"></div>
+                <div id="macroDetectionNotes" style="font-size: 12px; color: var(--lb-text-dim); margin-bottom: 6px;"></div>
+                <div id="macroInfo" style="font-size: 12px; color: var(--lb-text-dim);"></div>
             </div>
 
             <!-- File-specific info -->
-            <div id="fileSpecificInfo" style="font-size: 12px; color: var(--lb-text-dim);"></div>
+            <div id="fileSpecificInfo" style="font-size: 13px; color: var(--lb-text-dim);"></div>
         </div>
     </div>
 </div>
@@ -346,67 +348,71 @@
 </script>
 
 <style>
-.lb-analysis-card {
+/* Segmented mode-selector inside the upload page. The .lb-tabs/.lb-tab
+   primitives are defined globally; we just need the per-mode body styling
+   and the CTA button styling for the chosen mode. */
+.lb-mode-body {
     display: flex;
     flex-direction: column;
-    text-align: left;
-    cursor: pointer;
-    padding: 16px;
-    background: var(--lb-bg);
-    border: 1px solid var(--lb-border-hi);
-    color: var(--lb-text);
-    font-family: inherit;
-    transition: border-color var(--lb-transition-fast), background var(--lb-transition-fast), transform var(--lb-transition-fast);
+    gap: 10px;
+    padding-top: 4px;
 }
-.lb-analysis-card:hover,
-.lb-analysis-card:focus-visible {
-    border-color: var(--lb-accent);
-    background: var(--lb-bg-soft);
-    outline: none;
-}
-.lb-analysis-card:active { transform: translateY(1px); }
-.lb-analysis-card-head {
+.lb-mode-head {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
 }
-.lb-analysis-card-cta {
+.lb-mode-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+    color: var(--lb-text-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.lb-mode-features-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+}
+.lb-mode-cta {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-top: auto;
     align-self: flex-start;
-    padding: 6px 12px;
-    font-size: 11px;
+    margin-top: 4px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    cursor: pointer;
     color: #60a5fa;
-    background: rgba(59, 130, 246, 0.06);
+    background: rgba(59, 130, 246, 0.08);
     border: 1px solid rgba(59, 130, 246, 0.35);
     transition: background var(--lb-transition-fast), border-color var(--lb-transition-fast), color var(--lb-transition-fast);
 }
-.lb-analysis-card-cta--warn {
+.lb-mode-cta--warn {
     color: var(--lb-sev-medium);
-    background: rgba(250, 204, 21, 0.05);
-    border-color: rgba(250, 204, 21, 0.25);
+    background: rgba(250, 204, 21, 0.06);
+    border-color: rgba(250, 204, 21, 0.30);
 }
-.lb-analysis-card:hover .lb-analysis-card-cta,
-.lb-analysis-card:focus-visible .lb-analysis-card-cta {
+.lb-mode-cta:hover, .lb-mode-cta:focus-visible {
     background: rgba(59, 130, 246, 0.18);
     border-color: #3b82f6;
     color: #93c5fd;
+    outline: none;
 }
-.lb-analysis-card:hover .lb-analysis-card-cta--warn,
-.lb-analysis-card:focus-visible .lb-analysis-card-cta--warn {
-    background: rgba(250, 204, 21, 0.12);
+.lb-mode-cta--warn:hover, .lb-mode-cta--warn:focus-visible {
+    background: rgba(250, 204, 21, 0.14);
     border-color: var(--lb-sev-medium);
     color: var(--lb-sev-medium);
 }
-.lb-analysis-card-cta svg { transition: transform var(--lb-transition-fast); }
-.lb-analysis-card:hover .lb-analysis-card-cta svg,
-.lb-analysis-card:focus-visible .lb-analysis-card-cta svg { transform: translateX(3px); }
+.lb-mode-cta svg { transition: transform var(--lb-transition-fast); }
+.lb-mode-cta:hover svg, .lb-mode-cta:focus-visible svg { transform: translateX(3px); }
 </style>
 
 {% endblock %}

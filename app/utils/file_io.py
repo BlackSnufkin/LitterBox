@@ -178,17 +178,31 @@ def detect_file_type(filepath):
 
 
 def get_pe_info(filepath, malapi_path):
-    """Build a PE metadata dict including imports, sections, and risk notes."""
+    """Build a PE metadata dict including imports, sections, and risk notes.
+
+    Uses pefile's fast_load mode to skip directories we don't surface
+    (resources, security, debug, TLS, …) — the resource directory in
+    particular can be tens of MB on signed user-mode binaries and parsing
+    it adds 10+ seconds with nothing to show for it. We then explicitly
+    parse just the import directory, which is what the analyzer reads.
+    """
     try:
-        pe = pefile.PE(filepath)
+        pe = pefile.PE(filepath, fast_load=True)
+        pe.parse_data_directories(directories=[
+            pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_IMPORT'],
+        ])
         analyzer = get_security_analyzer(malapi_path)
 
         suspicious_imports, build_with = analyzer.analyze_pe_imports(pe)
         sections_info = analyzer.analyze_pe_sections(pe, calculate_entropy)
 
-        is_valid_checksum = pe.verify_checksum()
+        # `pe.verify_checksum()` internally calls `pe.generate_checksum()`,
+        # which scans the full PE in pure Python — ~2s on a 12 MB binary.
+        # Calling both means doing the work twice. Compute once, derive
+        # the boolean.
         calculated_checksum = pe.generate_checksum()
         stored_checksum = pe.OPTIONAL_HEADER.CheckSum
+        is_valid_checksum = (calculated_checksum == stored_checksum)
 
         malware_categories = {}
         if suspicious_imports:

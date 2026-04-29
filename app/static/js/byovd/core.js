@@ -390,7 +390,7 @@ class ByovdApp {
           <span class="lb-glyph">▸</span>${this.escapeHtml(data.driverName)}
           <span style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
             <span class="lb-tag ${sev}">${statusText}</span>
-            <span class="lb-muted lb-mono" style="font-size: 11px;">${this.escapeHtml(timestamp)}</span>
+            <span class="lb-muted lb-mono" style="font-size: 12px;">${this.escapeHtml(timestamp)}</span>
           </span>
         </div>
       </div>
@@ -404,7 +404,7 @@ class ByovdApp {
           <span class="lb-tag medium">⚑ HolyGrail</span>
           <div style="flex: 1;">
             <div class="lb-strong" style="font-size: 14px;">The Holy Grail Found</div>
-            <div class="lb-muted" style="font-size: 11px;">Critical imports observed · Not on LOLDrivers · Not blocked</div>
+            <div class="lb-muted" style="font-size: 12px;">Critical imports observed · Not on LOLDrivers · Not blocked</div>
           </div>
         </div>
       `;
@@ -438,9 +438,9 @@ class ByovdApp {
 
     return `
       <div style="border: 1px solid ${borderColor}; padding: 12px 14px;">
-        <div class="lb-strong" style="font-size: 13px; margin-bottom: 4px;">${title}</div>
-        <div class="lb-dim" style="font-size: 11px; margin-bottom: 6px;">${description}</div>
-        <div class="lb-muted lb-mono" style="font-size: 10px;">${statusDetails.join(' · ')}</div>
+        <div class="lb-strong" style="font-size: 14px; margin-bottom: 4px;">${title}</div>
+        <div class="lb-dim" style="font-size: 12px; margin-bottom: 6px;">${description}</div>
+        <div class="lb-muted lb-mono" style="font-size: 11px;">${statusDetails.join(' · ')}</div>
       </div>
     `;
   }
@@ -460,7 +460,7 @@ class ByovdApp {
         <div class="lb-panel-body">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
             <span class="lb-eyebrow">BYOVD Score</span>
-            <span style="font-size: 11px; color: ${scoreColor};">Potential: ${label}</span>
+            <span style="font-size: 12px; color: ${scoreColor};">Potential: ${label}</span>
           </div>
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
             <div id="scoreValue" class="lb-mono lb-strong" style="font-size: 28px; line-height: 1; color: ${scoreColor};">0</div>
@@ -494,13 +494,13 @@ class ByovdApp {
     };
     
     const copyButton = sha !== 'Unknown'
-      ? `<button class="lb-btn lb-btn-ghost" style="padding: 2px 8px; font-size: 10px;" data-copy="${sha}">Copy</button>`
+      ? `<button class="lb-btn lb-btn-ghost" style="padding: 2px 8px; font-size: 11px;" data-copy="${sha}">Copy</button>`
       : '';
 
     const field = (label, value, mono = true, span = false) => `
       <div${span ? ' style="grid-column: span 2;"' : ''}>
         <div class="lb-eyebrow" style="margin-bottom: 2px;">${label}</div>
-        <div class="lb-strong${mono ? ' lb-mono' : ''}" style="font-size: 12px; word-break: break-all;">${value}</div>
+        <div class="lb-strong${mono ? ' lb-mono' : ''}" style="font-size: 13px; word-break: break-all;">${value}</div>
       </div>
     `;
 
@@ -517,7 +517,7 @@ class ByovdApp {
             <div style="grid-column: span 2;">
               <div class="lb-eyebrow" style="margin-bottom: 2px;">SHA-256</div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <code class="lb-mono lb-strong" style="flex: 1; padding: 6px 8px; background: var(--lb-bg); border: 1px solid var(--lb-border); font-size: 11px; word-break: break-all;">${escapedData.sha}</code>
+                <code class="lb-mono lb-strong" style="flex: 1; padding: 6px 8px; background: var(--lb-bg); border: 1px solid var(--lb-border); font-size: 12px; word-break: break-all;">${escapedData.sha}</code>
                 ${copyButton}
               </div>
             </div>
@@ -542,7 +542,7 @@ class ByovdApp {
 
     const content = chips.length
       ? `<div style="display: flex; flex-wrap: wrap; gap: 6px;">${chips.join('')}</div>`
-      : '<div class="lb-muted" style="font-size: 11px;">No offensive primitives observed.</div>';
+      : '<div class="lb-muted" style="font-size: 12px;">No offensive primitives observed.</div>';
 
     return `
       <div class="lb-panel">
@@ -557,7 +557,7 @@ class ByovdApp {
       ? data.imports.map(imp =>
           `<span class="lb-tag muted lb-mono">${this.escapeHtml(imp)}</span>`
         ).join(' ')
-      : '<span class="lb-muted" style="font-size: 11px;">No critical imports reported.</span>';
+      : '<span class="lb-muted" style="font-size: 12px;">No critical imports reported.</span>';
 
     return `
       <div class="lb-panel">
@@ -567,7 +567,7 @@ class ByovdApp {
         </div>
         <div class="lb-panel-body">
           <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">${chips}</div>
-          <div class="lb-muted" style="font-size: 10px;">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</div>
+          <div class="lb-muted" style="font-size: 11px;">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</div>
         </div>
       </div>
     `;
@@ -577,13 +577,13 @@ class ByovdApp {
     const buildBlock = (name, blocked, reason, details) => {
       const detailsHtml = blocked && details ? `
         <details style="margin-top: 8px;">
-          <summary class="lb-accent" style="cursor: pointer; font-size: 11px;">Show rule details</summary>
-          <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
+          <summary class="lb-accent" style="cursor: pointer; font-size: 12px;">Show rule details</summary>
+          <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
             ${details.matched_rule?.id ? `<div><span class="lb-eyebrow">Rule ID</span> <span class="lb-mono lb-strong">${this.escapeHtml(details.matched_rule.id)}</span></div>` : ''}
             ${details.matched_rule?.friendly_name ? `<div><span class="lb-eyebrow">Rule</span> <span class="lb-strong">${this.escapeHtml(details.matched_rule.friendly_name)}</span></div>` : ''}
             ${details.matched_rule?.file_name ? `<div><span class="lb-eyebrow">File</span> <span class="lb-mono lb-strong">${this.escapeHtml(details.matched_rule.file_name)}</span></div>` : ''}
             ${details.matched_rule?.maximum_file_version ? `<div><span class="lb-eyebrow">Max Version</span> <span class="lb-mono lb-strong">${this.escapeHtml(details.matched_rule.maximum_file_version)}</span></div>` : ''}
-            ${details.detailed_explanation ? `<pre class="lb-mono lb-dim" style="margin-top: 6px; padding: 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); font-size: 11px; white-space: pre-wrap; word-break: break-all;">${this.escapeHtml(details.detailed_explanation)}</pre>` : ''}
+            ${details.detailed_explanation ? `<pre class="lb-mono lb-dim" style="margin-top: 6px; padding: 8px; background: var(--lb-bg); border-left: 1px solid var(--lb-border-hi); font-size: 12px; white-space: pre-wrap; word-break: break-all;">${this.escapeHtml(details.detailed_explanation)}</pre>` : ''}
           </div>
         </details>
       ` : '';
@@ -591,10 +591,10 @@ class ByovdApp {
       return `
         <div style="border: 1px solid ${blocked ? 'rgba(248, 113, 113, 0.22)' : 'rgba(74, 222, 128, 0.22)'}; padding: 12px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <span class="lb-strong" style="font-size: 13px;">${this.escapeHtml(name)}</span>
+            <span class="lb-strong" style="font-size: 14px;">${this.escapeHtml(name)}</span>
             <span class="lb-tag ${blocked ? 'critical' : 'clean'}">${blocked ? 'Blocked' : 'Allowed'}</span>
           </div>
-          <div class="lb-muted" style="font-size: 11px;">${this.escapeHtml(reason || 'Status unknown')}</div>
+          <div class="lb-muted" style="font-size: 12px;">${this.escapeHtml(reason || 'Status unknown')}</div>
           ${detailsHtml}
         </div>
       `;
@@ -616,7 +616,7 @@ class ByovdApp {
   buildRunSection() {
     return `
       <div style="text-align: center; padding: 16px;">
-        <div class="lb-muted" style="font-size: 11px; margin-bottom: 10px;">Need to (re)run HolyGrail on this driver?</div>
+        <div class="lb-muted" style="font-size: 12px; margin-bottom: 10px;">Need to (re)run HolyGrail on this driver?</div>
         <a href="/holygrail?hash=${encodeURIComponent(this.driverHash)}" class="lb-btn lb-btn-primary">
           Run HolyGrail Analysis
         </a>
@@ -642,7 +642,7 @@ class ByovdApp {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <div class="lb-strong" style="margin-bottom: 4px;">Error Loading Results</div>
-        <div class="lb-muted" style="font-size: 11px;">${this.escapeHtml(message)}</div>
+        <div class="lb-muted" style="font-size: 12px;">${this.escapeHtml(message)}</div>
       </div>
     `);
   }

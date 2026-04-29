@@ -18,7 +18,7 @@
   .hg-step-circle {
     width: 28px; height: 28px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 600;
+    font-size: 13px; font-weight: 600;
     border: 1px solid var(--lb-border-hi);
     color: var(--lb-text-mute);
     transition: all var(--lb-transition);
@@ -40,7 +40,7 @@
   .hg-console-log {
     background: var(--lb-bg); border: 1px solid var(--lb-border);
     padding: 10px; max-height: 280px; overflow-y: auto;
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
     color: var(--lb-text-dim);
   }
   .hg-console-log ul { list-style: none; padding: 0; margin: 0; }
@@ -57,7 +57,7 @@
 <div class="lb-panel">
     <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>HolyGrail BYOVD Hunter</div>
     <div class="lb-panel-body">
-        <p class="lb-muted" style="font-size: 11px; margin-bottom: 12px;">
+        <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">
             Driver Imports · LoLDrivers · Microsoft Driver Block Policy
         </p>
 
@@ -65,17 +65,17 @@
         <div id="stepper" class="hg-stepper">
             <div class="hg-step">
                 <div id="s1" class="hg-step-circle active">1</div>
-                <span style="font-size: 11px;">Upload Driver</span>
+                <span style="font-size: 12px;">Upload Driver</span>
             </div>
             <div class="hg-step-connector"></div>
             <div class="hg-step">
                 <div id="s2" class="hg-step-circle">2</div>
-                <span style="font-size: 11px;">Analyze</span>
+                <span style="font-size: 12px;">Analyze</span>
             </div>
             <div class="hg-step-connector"></div>
             <div class="hg-step">
                 <div id="s3" class="hg-step-circle">3</div>
-                <span style="font-size: 11px;">Review Results</span>
+                <span style="font-size: 12px;">Review Results</span>
             </div>
         </div>
     </div>
@@ -110,7 +110,7 @@
 <div id="consoleCard" class="hidden lb-panel lb-fade-in">
     <div class="lb-panel-hdr">
         <span class="lb-glyph">▸</span><span id="consoleTitle">Driver Analysis</span>
-        <button id="cancelBtn" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;">Cancel</button>
+        <button id="cancelBtn" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;">Cancel</button>
     </div>
     <div class="lb-panel-body">
         <div class="hg-progress" style="margin-bottom: 10px;">
@@ -130,15 +130,15 @@
         <div class="lb-panel-hdr">
             <span class="lb-glyph">▸</span>Analysis Complete
             <div style="margin-left: auto; display: flex; gap: 8px;">
-                <button id="resetBtn" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 11px;">
+                <button id="resetBtn" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 12px;">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="1,4 1,10 7,10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                     Reset
                 </button>
-                <button id="staticScanBtn" onclick="runStaticScan()" class="lb-btn" style="padding: 2px 10px; font-size: 11px;">
+                <button id="staticScanBtn" onclick="runStaticScan()" class="lb-btn" style="padding: 2px 10px; font-size: 12px;">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     Run Static Scan
                 </button>
-                <label class="lb-btn lb-btn-primary" style="padding: 2px 10px; font-size: 11px; cursor: pointer;">
+                <label class="lb-btn lb-btn-primary" style="padding: 2px 10px; font-size: 12px; cursor: pointer;">
                     <input type="file" id="fileInputSmall" class="hidden" accept=".sys"/>
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/><line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round" stroke-width="1.5"/></svg>
                     Upload Another
@@ -159,15 +159,15 @@
             <div class="lb-chip-row" style="margin-top: 12px;">
                 <div class="lb-chip">
                     <div class="lb-chip-name">LOLDrivers</div>
-                    <div id="lolBadge" class="lb-chip-count" style="font-size: 13px;">Checking…</div>
+                    <div id="lolBadge" class="lb-chip-count" style="font-size: 14px;">Checking…</div>
                 </div>
                 <div class="lb-chip">
                     <div class="lb-chip-name">Windows 10</div>
-                    <div id="w10Badge" class="lb-chip-count" style="font-size: 13px;">Checking…</div>
+                    <div id="w10Badge" class="lb-chip-count" style="font-size: 14px;">Checking…</div>
                 </div>
                 <div class="lb-chip">
                     <div class="lb-chip-name">Windows 11</div>
-                    <div id="w11Badge" class="lb-chip-count" style="font-size: 13px;">Checking…</div>
+                    <div id="w11Badge" class="lb-chip-count" style="font-size: 14px;">Checking…</div>
                 </div>
             </div>
         </div>
@@ -183,13 +183,13 @@
                 <div class="hg-progress" style="margin-top: 10px; margin-bottom: 8px;">
                     <div id="scoreBar" class="hg-progress-bar" style="width: 0%"></div>
                 </div>
-                <div id="scoreLabel" class="lb-muted" style="font-size: 11px;">Calculating…</div>
+                <div id="scoreLabel" class="lb-muted" style="font-size: 12px;">Calculating…</div>
             </div>
             <div class="lb-col" style="flex: 2;">
                 <div class="lb-hero-label">SHA256</div>
                 <div style="display: flex; align-items: flex-start; gap: 8px; margin-top: 6px;">
-                    <code id="sha256Full" class="lb-mono lb-strong" style="flex: 1; font-size: 11px; word-break: break-all; padding: 6px 8px; background: var(--lb-bg); border: 1px solid var(--lb-border);">Unknown</code>
-                    <button id="copyShaBtn" class="lb-btn lb-btn-ghost" style="padding: 4px 8px; font-size: 11px;">
+                    <code id="sha256Full" class="lb-mono lb-strong" style="flex: 1; font-size: 12px; word-break: break-all; padding: 6px 8px; background: var(--lb-bg); border: 1px solid var(--lb-border);">Unknown</code>
+                    <button id="copyShaBtn" class="lb-btn lb-btn-ghost" style="padding: 4px 8px; font-size: 12px;">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="1.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                         Copy
                     </button>
@@ -205,23 +205,23 @@
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
                 <div>
                     <div class="lb-eyebrow">File Version</div>
-                    <div id="fileVersion" class="lb-strong lb-mono" style="font-size: 12px;">Unknown</div>
+                    <div id="fileVersion" class="lb-strong lb-mono" style="font-size: 13px;">Unknown</div>
                 </div>
                 <div>
                     <div class="lb-eyebrow">File Size</div>
-                    <div id="fileSizePretty" class="lb-strong" style="font-size: 12px;">Unknown</div>
+                    <div id="fileSizePretty" class="lb-strong" style="font-size: 13px;">Unknown</div>
                 </div>
                 <div>
                     <div class="lb-eyebrow">Architecture</div>
-                    <div id="arch" class="lb-strong lb-mono" style="font-size: 12px;">Unknown</div>
+                    <div id="arch" class="lb-strong lb-mono" style="font-size: 13px;">Unknown</div>
                 </div>
                 <div>
                     <div class="lb-eyebrow">Original Filename</div>
-                    <div id="originalFilename" class="lb-strong lb-mono" style="font-size: 12px; word-break: break-all;">Unknown</div>
+                    <div id="originalFilename" class="lb-strong lb-mono" style="font-size: 13px; word-break: break-all;">Unknown</div>
                 </div>
                 <div>
                     <div class="lb-eyebrow">Compile Time</div>
-                    <div id="compileTime" class="lb-strong lb-mono" style="font-size: 12px;">Unknown</div>
+                    <div id="compileTime" class="lb-strong lb-mono" style="font-size: 13px;">Unknown</div>
                 </div>
             </div>
         </div>
@@ -232,7 +232,7 @@
         <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Critical Imports</div>
         <div class="lb-panel-body">
             <div id="importsWrap" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;"></div>
-            <div class="lb-muted" style="font-size: 10px;">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</div>
+            <div class="lb-muted" style="font-size: 11px;">Heuristics identify privileged primitives commonly exploited in BYOVD attacks.</div>
         </div>
     </div>
 

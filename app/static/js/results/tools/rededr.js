@@ -126,14 +126,14 @@ export default {
         if (childProcesses.length) {
             const escapedRoot = escapeHtml(proc.image_path?.split('\\').pop() || proc.commandline || 'Target');
             html += panel('Process Tree', `
-                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
                     <div>
                         <span class="lb-mono lb-strong">${escapedRoot}</span>
                         <span class="lb-muted" style="margin-left: 8px;">PID ${escapeHtml(String(proc.pid ?? '?'))}</span>
                     </div>
                     <ul style="list-style: none; margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px;">
                         ${childProcesses.map(c => `
-                            <li style="font-size: 11px;">
+                            <li style="font-size: 12px;">
                                 <span class="lb-muted">└─</span>
                                 <span class="lb-mono lb-strong" style="margin-left: 4px;">${escapeHtml((c.image_name || '').split('\\').pop() || 'Unknown')}</span>
                                 <span class="lb-muted" style="margin-left: 6px;">PID ${escapeHtml(String(c.pid ?? '?'))}</span>
@@ -181,13 +181,13 @@ export default {
             }
 
             const breakdownLine = `
-                <div class="lb-muted" style="font-size: 11px; margin-top: 4px;">
+                <div class="lb-muted" style="font-size: 12px; margin-top: 4px;">
                     Threats ${defenderThreats.length} · Scan activity ${defenderScans.length} · Internal ${defenderInternal.length}${defenderOther.length > 0 ? ' · Other ' + defenderOther.length : ''}
                 </div>`;
 
             const verdictBlock = `
                 <div style="margin-bottom: 12px; padding: 10px 12px; border-left: 2px solid ${verdictColor}; background: var(--lb-bg);">
-                    <div class="lb-strong" style="color: ${verdictColor}; font-size: 12px;">${escapeHtml(verdictLine)}</div>
+                    <div class="lb-strong" style="color: ${verdictColor}; font-size: 13px;">${escapeHtml(verdictLine)}</div>
                     ${breakdownLine}
                 </div>`;
 
@@ -200,13 +200,13 @@ export default {
                     <thead><tr><th>Provider</th><th>Event</th><th>Scan Target</th><th>Verdict</th><th>Time</th></tr></thead>
                     <tbody>${renderDefenderRows(interestingEvents.slice(0, 50))}</tbody>
                   </table>
-                  ${interestingEvents.length > 50 ? `<div class="lb-muted" style="font-size: 11px; padding: 6px 0; font-style: italic;">… and ${interestingEvents.length - 50} more</div>` : ''}`
+                  ${interestingEvents.length > 50 ? `<div class="lb-muted" style="font-size: 12px; padding: 6px 0; font-style: italic;">… and ${interestingEvents.length - 50} more</div>` : ''}`
                 : '';
 
             const internalEvents = [...defenderInternal, ...defenderOther];
             const internalToggle = internalEvents.length > 0
                 ? `<div style="margin-top: 12px; border-top: 1px dashed var(--lb-border); padding-top: 10px;">
-                    <span id="defenderNoiseToggle" style="cursor: pointer; text-decoration: underline; color: var(--lb-text-dim); font-size: 11px;">
+                    <span id="defenderNoiseToggle" style="cursor: pointer; text-decoration: underline; color: var(--lb-text-dim); font-size: 12px;">
                         Show ${internalEvents.length} internal Defender event${internalEvents.length === 1 ? '' : 's'} (Bm* state plumbing)
                     </span>
                     <div id="defenderNoiseTable" class="hidden" style="margin-top: 8px;">
@@ -214,7 +214,7 @@ export default {
                             <thead><tr><th>Provider</th><th>Event</th><th>Scan Target</th><th>Verdict</th><th>Time</th></tr></thead>
                             <tbody>${renderDefenderRows(internalEvents.slice(0, 50))}</tbody>
                         </table>
-                        ${internalEvents.length > 50 ? `<div class="lb-muted" style="font-size: 11px; padding: 6px 0; font-style: italic;">… and ${internalEvents.length - 50} more</div>` : ''}
+                        ${internalEvents.length > 50 ? `<div class="lb-muted" style="font-size: 12px; padding: 6px 0; font-style: italic;">… and ${internalEvents.length - 50} more</div>` : ''}
                     </div>
                   </div>`
                 : '';
@@ -231,7 +231,7 @@ export default {
             html += panel('Event Timeline', `
                 <div style="display: flex; flex-direction: column;">
                     ${timeline.map(event => `
-                        <div style="display: grid; grid-template-columns: 110px 130px 1fr; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--lb-border); font-size: 11px;">
+                        <div style="display: grid; grid-template-columns: 110px 130px 1fr; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--lb-border); font-size: 12px;">
                             <span class="lb-mono lb-muted">${escapeHtml(formatEtwTime(event.time))}</span>
                             <span class="lb-strong">${escapeHtml(event.type || '')}</span>
                             <span class="lb-dim">${escapeHtml(event.details || '')}</span>
@@ -284,10 +284,10 @@ export default {
                     <div class="lb-panel-hdr">
                         <span class="lb-glyph">▸</span>ETW Provider Diagnostics
                         <span class="lb-panel-badge">${providerEntries.length} provider${providerEntries.length === 1 ? '' : 's'}</span>
-                        <button id="rededrDiagToggle" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;">Show</button>
+                        <button id="rededrDiagToggle" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;">Show</button>
                     </div>
                     <div id="rededrDiagBody" class="lb-panel-body hidden">
-                        <p class="lb-muted" style="font-size: 11px; margin-bottom: 10px;">
+                        <p class="lb-muted" style="font-size: 12px; margin-bottom: 10px;">
                             Per-provider event counts. A subscribed provider with <code>0</code>
                             events usually means ETW delivered events but RedEdr filtered them
                             out (e.g. Kernel-Network often attributes outbound TCP to System
@@ -317,7 +317,7 @@ export default {
 
         // DLLs / Images / Threads / Network / File Ops / Audit API sub-tabs
         const tabBtn = (name, label, count, active) => {
-            const baseStyle = 'padding: 8px 14px; background: transparent; border: 0; font-family: inherit; font-size: 12px; cursor: pointer;';
+            const baseStyle = 'padding: 8px 14px; background: transparent; border: 0; font-family: inherit; font-size: 13px; cursor: pointer;';
             const activeStyle = 'color: var(--lb-text); border-bottom: 2px solid var(--lb-accent-soft);';
             const inactiveStyle = 'color: var(--lb-text-dim); border-bottom: 2px solid transparent;';
             return `<button onclick="switchInnerTab('${name}')" class="tab-button${active ? ' active' : ''}" style="${baseStyle} ${active ? activeStyle : inactiveStyle}">${label} (${count})</button>`;
@@ -353,8 +353,8 @@ export default {
                 <div id="images-tab" class="tab-content hidden">
                     <div class="lb-panel-body">
                         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                            <button onclick="filterImages('loads')" class="lb-btn" style="padding: 4px 10px; font-size: 11px;">Loads (${imageLoads.length})</button>
-                            <button onclick="filterImages('unloads')" class="lb-btn" style="padding: 4px 10px; font-size: 11px;">Unloads (${imageUnloads.length})</button>
+                            <button onclick="filterImages('loads')" class="lb-btn" style="padding: 4px 10px; font-size: 12px;">Loads (${imageLoads.length})</button>
+                            <button onclick="filterImages('unloads')" class="lb-btn" style="padding: 4px 10px; font-size: 12px;">Unloads (${imageUnloads.length})</button>
                         </div>
                         <div id="image-loads">
                             <table class="lb-table">
@@ -408,7 +408,7 @@ export default {
                 <div id="network-tab" class="tab-content hidden">
                     <div class="lb-panel-body">
                         ${networkActivity.length === 0
-                            ? '<div class="lb-muted" style="padding: 8px 0; font-size: 11px;">No network activity observed.</div>'
+                            ? '<div class="lb-muted" style="padding: 8px 0; font-size: 12px;">No network activity observed.</div>'
                             : `<table class="lb-table">
                                 <thead><tr><th>Proto</th><th>Local</th><th>Remote</th><th>Op</th><th>Size</th><th>Time</th></tr></thead>
                                 <tbody>
@@ -430,7 +430,7 @@ export default {
                 <div id="fileops-tab" class="tab-content hidden">
                     <div class="lb-panel-body">
                         ${fileOps.length === 0
-                            ? '<div class="lb-muted" style="padding: 8px 0; font-size: 11px;">No file operations observed.</div>'
+                            ? '<div class="lb-muted" style="padding: 8px 0; font-size: 12px;">No file operations observed.</div>'
                             : `<table class="lb-table">
                                 <thead><tr><th>Path</th><th>Operation</th><th>Thread</th><th>Time</th></tr></thead>
                                 <tbody>
@@ -450,7 +450,7 @@ export default {
                 <div id="auditapi-tab" class="tab-content hidden">
                     <div class="lb-panel-body">
                         ${auditApi.length === 0
-                            ? '<div class="lb-muted" style="padding: 8px 0; font-size: 11px;">No audit-API calls observed.</div>'
+                            ? '<div class="lb-muted" style="padding: 8px 0; font-size: 12px;">No audit-API calls observed.</div>'
                             : `<table class="lb-table">
                                 <thead><tr><th>API</th><th>Target PID</th><th>Target TID</th><th>Caller PID/TID</th><th>Time</th></tr></thead>
                                 <tbody>
