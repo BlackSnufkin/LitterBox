@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 - `/api/results/<target>/risk` endpoint and matching `grumpycat.get_risk_assessment()` client method
 - `GrumpyCats/install_mcp.py` — installer for six MCP clients with auto-detected venv Python
 - Command-line arguments input on the dynamic-analysis warning modal (pre-populated from last run)
+- RedEdr now captures Microsoft-Windows-Kernel-File / -Network / -Audit-API-Calls / Antimalware-Engine ETW events; new tabs surface File Ops / Network / Audit API / Defender with Process Tree panel and ETW Provider Diagnostics
+- Defender threat verdicts at runtime contribute +50 to the Detection Score (only verdicts; scan activity stays descriptive)
 
 ### Changed
 - Backend split into Flask blueprints, services, and a `utils/` package; subprocess analyzers consolidated under `BaseSubprocessAnalyzer`
@@ -21,6 +23,11 @@ All notable changes to this project will be documented in this file.
 - UI terminology reframed for operator-first reading: Detection Score, Triggering Indicators, Sensitive Imports, Signature triggered, Critical Imports, Payload Analysis
 - Color palette softened across the app — severity tokens shifted -500 → -400, summary risk badges converted from solid bg to outlined chips, heavy rgba alphas tightened
 - Analysis-type cards now show explicit `Run X Scan →` CTAs with stronger hover state
+- RedEdr launch line is now `--etw --show --with-antimalwareengine --with-defendertrace --trace ...` (replaces broken `-e --trace` which RedEdr's cxxopts schema didn't recognize)
+- Payload now fires as soon as RedEdr signals ETW-providers-attached (1-3s typical) instead of a fixed 15s sleep
+- Module-load timeline deduplicates PEB-snapshot DLLs against ETW image_loads; kernel device paths stripped to basenames
+- ETW timestamps shown as `HH:MM:SS.mmm` (FILETIME → local time) instead of raw 64-bit values
+- Defender events split into threat / scan / internal categories; the noise table is collapsed by default with a verdict line summarizing what Defender did
 
 ### Fixed
 - XSS hardening at user-data interpolation sites in results-page renderers
@@ -28,11 +35,15 @@ All notable changes to this project will be documented in this file.
 - Per-tool render failures no longer suppress the rest of the rendering
 - Office macro upload no longer throws on missing `macroDetectionNotes` element (upstream issue)
 - `LitterBoxMCP.py` startup crash — broken import, removed `mcp.serve(...)` API, and stdout-corrupting logging all fixed
+- RedEdr parser was reading PascalCase ETW field names (ProcessID, ImageName, ThreadID, etc.) but RedEdr lowercases all field names; Threads / Images / Child Processes / CPU Priority tabs now populate with real data instead of nulls
+- Audit-API events now show `OpenProcess` / `OpenThread` (mapped from `etw_event_id`) instead of the placeholder task name `Info`
+- RedEdr is now always cleaned up on dynamic-analysis failure paths (early termination, payload crash, analyzer exception); previously left orphaned subprocesses
 
 ### Removed
 - Pre-redesign Tailwind utility chains and inline cyber-themed `<style>` blocks
 - Tailwind CDN runtime dependency from `report.html`
 - Dead code in `grumpycat.py` and `LitterBoxMCP.py` (cache, unused imports, exception envelope, lazy client wrapper)
+- `etw_wait_time` config key (replaced by event-driven readiness signal)
 
 ### Notes
 - No new dependencies; setup unchanged

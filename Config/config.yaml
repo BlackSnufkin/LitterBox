@@ -103,9 +103,12 @@ analysis:
 
     rededr:
       enabled: true
-      etw_wait_time: 15  # Time in seconds to wait for ETW setup
       tool_path: ".\\Scanners\\RedEdr\\RedEdr.exe"
-      command: "{tool_path} -e --trace {process_name}"
+      # --etw: consume Kernel-Process / -File / -Network / -Audit-API ETW providers
+      # --show: emit JSON events to stdout (otherwise only the web/file output is on)
+      # --with-antimalwareengine: tap Microsoft-Antimalware-Engine ETW (Defender scan verdicts on our payload)
+      # --with-defendertrace: also track msmpeng.exe events touching the target process
+      command: "{tool_path} --etw --show --with-antimalwareengine --with-defendertrace --trace {process_name}"
       timeout: 120
 
 

@@ -1149,21 +1149,131 @@
 
       {# RedEdr #}
       {% set re_ = dynamic_results.rededr %}
+      {% set re_findings = re_.findings if re_ and re_.findings else None %}
+      {% set re_summary = re_findings.summary if re_findings else None %}
+      {% set re_proc = re_findings.process_info if re_findings else None %}
+      {% set re_children = re_findings.child_processes if re_findings else [] %}
+      {% set re_defender = re_findings.defender_events if re_findings else [] %}
+      {% set re_net = re_findings.network_activity if re_findings else [] %}
+      {% set re_files = re_findings.file_operations if re_findings else [] %}
+      {% set re_audit = re_findings.audit_api_calls if re_findings else [] %}
+      {% set threat_signals = ['threatfound','threatdetect','detectionadded','malwarefound','protectionalert','detected'] %}
+      {% set ns = namespace(threat_hit=false) %}
+      {% for d in re_defender %}{% if d.verdict or d.event %}{% set evt = (d.event or '')|lower %}{% for s in threat_signals %}{% if s in evt %}{% set ns.threat_hit = true %}{% endif %}{% endfor %}{% if d.verdict %}{% set ns.threat_hit = true %}{% endif %}{% endif %}{% endfor %}
+
       <div class="scanner">
         <div class="scanner-name">RedEdr</div>
         <div class="scanner-body">
-          {% set re_summary = re_.findings.summary if re_ and re_.findings and re_.findings.summary else None %}
           <div class="scanner-headline">
+            {% if ns.threat_hit %}
+              <span class="threat-state">
+                <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1l7 14H1L8 1zm0 5v4m0 2v.5"/></svg>
+                Defender flagged the binary at runtime
+              </span>
+            {% endif %}
             <span class="scanner-meta">
               {% if re_summary %}
                 {{ re_summary.total_events or 0 }} events ·
                 {{ re_summary.total_dlls or 0 }} DLL loads ·
-                {{ re_summary.total_image_loads or 0 }} image loads
+                {{ re_summary.total_image_loads or 0 }} image loads ·
+                {{ re_summary.total_network_activity or 0 }} net ·
+                {{ re_summary.total_file_operations or 0 }} files ·
+                {{ re_summary.total_audit_api_calls or 0 }} audit-API
               {% else %}
                 No telemetry recorded
               {% endif %}
             </span>
           </div>
+
+          {% if re_defender %}
+            <h4 class="subsection-title mt-12">Defender Events ({{ re_defender|length }})</h4>
+            <table class="report-table">
+              <thead><tr><th>Provider</th><th>Event</th><th>Scan Target</th><th>Verdict</th></tr></thead>
+              <tbody>
+                {% for d in re_defender[:15] %}
+                  {% set evt = (d.event or '')|lower %}
+                  {% set is_threat = (d.verdict and (d.verdict|string)|trim) %}
+                  {% if not is_threat %}{% for s in threat_signals %}{% if s in evt %}{% set is_threat = true %}{% endif %}{% endfor %}{% endif %}
+                  <tr>
+                    <td class="mono">{{ d.provider or '—' }}</td>
+                    <td class="mono">{{ d.event or '—' }}</td>
+                    <td class="mono muted">{{ (d.scan_target or '—')|truncate(80, true) }}</td>
+                    <td>{% if d.verdict %}<span class="pill {% if is_threat %}critical{% else %}medium{% endif %}">{{ d.verdict }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+                  </tr>
+                {% endfor %}
+                {% if re_defender|length > 15 %}
+                  <tr><td colspan="4" class="center">… and {{ re_defender|length - 15 }} more</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          {% endif %}
+
+          {% if re_proc and (re_proc.pid or re_children) %}
+            <h4 class="subsection-title mt-12">Process Tree</h4>
+            <pre class="code">{{ (re_proc.image_path or re_proc.commandline or 'Target')|trim }}  (PID {{ re_proc.pid or '?' }})
+{% for c in re_children %}  └─ {{ c.image_name or 'Unknown' }}  (PID {{ c.pid or '?' }}{% if c.parent_pid %}, parent {{ c.parent_pid }}{% endif %})
+{% endfor %}</pre>
+          {% endif %}
+
+          {% if re_net %}
+            <h4 class="subsection-title mt-12">Network Activity ({{ re_net|length }})</h4>
+            <table class="report-table">
+              <thead><tr><th>Proto</th><th>Local</th><th>Remote</th><th>Op</th><th>Size</th></tr></thead>
+              <tbody>
+                {% for n in re_net[:25] %}
+                  <tr>
+                    <td class="mono">{{ n.proto or '?' }}</td>
+                    <td class="mono muted">{{ n.local_addr or '—' }}{% if n.local_port %}:{{ n.local_port }}{% endif %}</td>
+                    <td class="mono">{{ n.remote_addr or '—' }}{% if n.remote_port %}:{{ n.remote_port }}{% endif %}</td>
+                    <td class="mono muted">{{ n.operation or '—' }}</td>
+                    <td class="mono muted">{{ n.size if n.size is not none else '—' }}</td>
+                  </tr>
+                {% endfor %}
+                {% if re_net|length > 25 %}
+                  <tr><td colspan="5" class="center">… and {{ re_net|length - 25 }} more</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          {% endif %}
+
+          {% if re_files %}
+            <h4 class="subsection-title mt-12">File Operations ({{ re_files|length }})</h4>
+            <table class="report-table">
+              <thead><tr><th>Path</th><th>Operation</th><th>Thread</th></tr></thead>
+              <tbody>
+                {% for f in re_files[:25] %}
+                  <tr>
+                    <td class="mono" style="word-break: break-all;">{{ (f.path or '—')|truncate(120, true) }}</td>
+                    <td class="mono muted">{{ f.operation or '—' }}</td>
+                    <td class="mono muted">{{ f.thread_id if f.thread_id is not none else '—' }}</td>
+                  </tr>
+                {% endfor %}
+                {% if re_files|length > 25 %}
+                  <tr><td colspan="3" class="center">… and {{ re_files|length - 25 }} more</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          {% endif %}
+
+          {% if re_audit %}
+            <h4 class="subsection-title mt-12">Audit-API Calls ({{ re_audit|length }})</h4>
+            <table class="report-table">
+              <thead><tr><th>API</th><th>Target PID</th><th>Target TID</th><th>Caller PID/TID</th></tr></thead>
+              <tbody>
+                {% for a in re_audit[:25] %}
+                  <tr>
+                    <td class="mono">{{ a.api or '—' }}</td>
+                    <td class="mono">{{ a.target_pid if a.target_pid is not none else '—' }}</td>
+                    <td class="mono muted">{{ a.target_tid if a.target_tid is not none else '—' }}</td>
+                    <td class="mono muted">{{ a.caller_pid if a.caller_pid is not none else '—' }} / {{ a.caller_tid if a.caller_tid is not none else '—' }}</td>
+                  </tr>
+                {% endfor %}
+                {% if re_audit|length > 25 %}
+                  <tr><td colspan="4" class="center">… and {{ re_audit|length - 25 }} more</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          {% endif %}
         </div>
       </div>
 

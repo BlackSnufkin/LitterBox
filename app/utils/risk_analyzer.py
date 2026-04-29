@@ -328,8 +328,41 @@ def _calculate_dynamic_risk(dynamic_results, analysis_type):
     dynamic_risk += _calculate_memory_anomaly_risk(dynamic_results, analysis_type, risk_factors)
     dynamic_risk += _calculate_behavior_risk(dynamic_results, analysis_type, risk_factors)
     dynamic_risk += _calculate_hsb_risk(dynamic_results, analysis_type, risk_factors)
+    dynamic_risk += _calculate_rededr_risk(dynamic_results, analysis_type, risk_factors)
 
     return dynamic_risk, risk_factors
+
+
+def _calculate_rededr_risk(dynamic_results, analysis_type, risk_factors):
+    """Defender-only contribution from RedEdr telemetry.
+
+    The analyzer classifies every defender_events entry as one of:
+      threat   — real detection (ThreatFound, non-empty verdict, etc.)
+      scan     — Defender behavior monitor actively engaged with our process
+                 (BmModuleLoad / BmNotificationHandle* / BmOpenProcess)
+      internal — Defender's own state plumbing (BmInternal / BmEtw)
+      other    — anything else (e.g., msmpeng ThreadStop)
+
+    Only `threat` events bump the score. `scan` is descriptive (operator
+    knows Defender engaged but didn't flag — typically the win state). The
+    other RedEdr signals (network, audit-API, file ops, child processes)
+    stay descriptive too, per the design decision.
+    """
+    rededr = dynamic_results.get('rededr', {}).get('findings', {})
+    defender = rededr.get('defender_events') or []
+    if not defender:
+        return 0
+
+    threat_hits = [e for e in defender if e.get('category') == 'threat']
+
+    if threat_hits:
+        # ThreatFound-class verdict at runtime is the strongest possible signal.
+        risk_factors.append(
+            f"Critical: Microsoft Defender flagged the binary at runtime "
+            f"({len(threat_hits)} threat verdict{'s' if len(threat_hits) != 1 else ''})"
+        )
+        return 50
+    return 0
 
 
 def _calculate_memory_anomaly_risk(dynamic_results, analysis_type, risk_factors):

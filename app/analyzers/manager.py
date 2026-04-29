@@ -169,66 +169,120 @@ class AnalysisManager:
             return self._create_error_result(start_time, str(e))
 
     def _run_file_analysis(self, target: str, cmd_args: list, start_time: float) -> dict:
-        """Handle file-based analysis with RedEdr integration"""
+        """Handle file-based analysis with RedEdr integration.
+
+        RedEdr cleanup is in `finally` so an orphaned RedEdr can never outlive
+        a crashed/early-terminated payload. Whatever telemetry RedEdr managed
+        to collect is also attached to the response on failure paths, so the
+        user sees partial events instead of nothing.
+        """
         results = {}
         process = None
         rededr = None
-        
+        response = None
+
         try:
             # 1. Start RedEdr if enabled
             rededr = self._initialize_rededr(target, results)
-            
+
             # 2. Validate and start process
             try:
                 process, pid = self._validate_process(target, False, cmd_args)
             except Exception as e:
-                return self._handle_process_startup_error(e, start_time, cmd_args)
-            
+                response = self._handle_process_startup_error(e, start_time, cmd_args)
+                return response
+
             # 3. Run regular analyzers (excluding RedEdr)
             regular_analyzers = {k: v for k, v in self.dynamic_analyzers.items() if k != 'rededr'}
             other_results = self._run_analyzers(regular_analyzers, pid, 'dynamic')
             results.update(other_results)
-            
+
             # 4. Capture process output
             results['process_output'] = self._capture_process_output(process)
-            
-            # 5. Get RedEdr results and cleanup
+
+            # 5. Get RedEdr results — cleanup is unconditional, in finally.
             if rededr:
                 self.logger.debug("Getting RedEdr events")
                 results['rededr'] = rededr.get_results()
-                self._cleanup_rededr(rededr)
-            
+
             results['analysis_metadata'] = self._create_metadata(
-                start_time, 
-                early_termination=False, 
-                analysis_started=True, 
+                start_time,
+                early_termination=False,
+                analysis_started=True,
                 cmd_args=cmd_args or []
             )
-            
-            return results
-            
+            response = results
+            return response
+
         except Exception as e:
-            return self._create_error_result(start_time, str(e), cmd_args)
+            response = self._create_error_result(start_time, str(e), cmd_args)
+            return response
+
+        finally:
+            # Always tear down RedEdr — even on early return / exception —
+            # so a crashed payload never leaves an orphaned RedEdr process.
+            # Cleanup is idempotent, so calling it after the happy-path
+            # get_results() is safe.
+            if rededr is not None:
+                # Attach partial RedEdr telemetry to the response on failure
+                # paths (early termination, generic exception). The happy
+                # path already populated results['rededr'] in step 5.
+                if isinstance(response, dict) and 'rededr' not in response:
+                    try:
+                        response['rededr'] = rededr.get_results()
+                    except Exception as e:
+                        self.logger.error(f"Failed to capture partial RedEdr telemetry: {e}")
+                try:
+                    self._cleanup_rededr(rededr)
+                except Exception as e:
+                    self.logger.error(f"Error during RedEdr cleanup: {e}")
 
     def _initialize_rededr(self, target: str, results: dict):
-        """Initialize RedEdr if enabled"""
+        """Initialize RedEdr if enabled.
+
+        Blocks until RedEdr logs that all ETW providers are attached
+        (typically 1-3s). No timeout — failure surfaces as a quick subprocess
+        exit, which the reader thread also unblocks on. Callers that want a
+        hard deadline get it from the surrounding analysis-pipeline timeout.
+        """
         rededr_config = self.config['analysis']['dynamic'].get('rededr', {})
         if not rededr_config.get('enabled'):
             return None
-            
+
         self.logger.debug("Initializing RedEdr analyzer")
         try:
             target_name = target.split('\\')[-1]
             rededr = RedEdrAnalyzer(self.config)
-            if rededr.start_tool(target_name):
-                etw_wait_time = rededr_config.get('etw_wait_time', 5)
-                self.logger.debug(f"RedEdr initialized, waiting {etw_wait_time} seconds for ETW setup")
-                time.sleep(etw_wait_time)
-                return rededr
-            else:
+            if not rededr.start_tool(target_name):
                 self.logger.error("Failed to start RedEdr")
                 results['rededr'] = {'status': 'error', 'error': 'Failed to start tool'}
                 return None
+
+            ready_start = time.monotonic()
+            rededr.wait_for_ready()
+            elapsed = time.monotonic() - ready_start
+            if rededr.is_ready():
+                self.logger.debug(
+                    f"RedEdr ready in {elapsed:.2f}s (ETW providers attached)"
+                )
+                return rededr
+
+            # Reader thread unblocked because RedEdr exited before signaling
+            # readiness. Capture whatever output we collected for diagnostics.
+            self.logger.error(
+                f"RedEdr exited after {elapsed:.2f}s without signaling readiness"
+            )
+            try:
+                rededr.cleanup()
+            except Exception:
+                pass
+            tail = '\n'.join(rededr.collected_output[-20:]) if rededr.collected_output else ''
+            results['rededr'] = {
+                'status': 'error',
+                'error': 'RedEdr exited before ETW providers attached',
+                'last_output': tail,
+            }
+            return None
         except Exception as e:
             self.logger.error(f"Error initializing RedEdr: {e}")
             results['rededr'] = {'status': 'error', 'error': str(e)}
