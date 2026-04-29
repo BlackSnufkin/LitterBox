@@ -4,64 +4,38 @@ All notable changes to this project will be documented in this file.
 
 ## [v5.0.0] - 2026-04-28
 ### Added
-- Tailored downloadable report for driver samples: HolyGrail BYOVD section promoted above File Information
-- Driver reports swap the hero "Risk Assessment" for "BYOVD Potential" using a Python port of `holygrail/core.js`'s `calculateScore`
-- Driver reports swap the YARA/PE-Sieve/Moneta/Patriot/HSB chip row for LOLDrivers / Win10 / Win11 / Critical Imports
-- `/api/results/<target>/risk` endpoint returning `{risk_score, risk_level, risk_factors}`
-- `grumpycat.get_risk_assessment(target)` client method for the new endpoint
-- `GrumpyCats/install_mcp.py` — installer for six MCP clients (Claude Code project + global, Claude Desktop, Cursor, Windsurf, VS Code project) with auto-detected venv Python and idempotent JSON merge
+- Tailored downloadable report for driver samples (BYOVD section + BYOVD Potential hero)
+- `/api/results/<target>/risk` endpoint and matching `grumpycat.get_risk_assessment()` client method
+- `GrumpyCats/install_mcp.py` — installer for six MCP clients with auto-detected venv Python
+- Command-line arguments input on the dynamic-analysis warning modal (pre-populated from last run)
 
 ### Changed
-- Backend split into 6 Flask blueprints + services + helpers under `app/blueprints/`, `app/services/`, `app/helpers.py`
-- `app/utils.py` (1,400 lines) split into the `app/utils/` package with single-concern modules
-- Extracted `BaseSubprocessAnalyzer` template-method base — 9 subprocess analyzers reduced to thin subclasses
-- Frontend split into per-concern ES6 modules under `results/`, `holygrail/`, `byovd/`, `upload/`
-- Shared JS utils package `app/static/js/utils/` (escape, formatters, severity, fetch, modals, dom)
-- Per-tool scanner modules under `app/static/js/results/tools/` — one file per scanner, `tools.js` is now a 66-line registry
-- Reusable Jinja macros in `app/templates/partials/_macros.html` consumed by static/dynamic info pages
-- Full UI redesign on a terminal/IDE shell — titlebar (logo + breadcrumb), iconed sidebar, optional tab row, sidebar foot shows status + version
-- New `:root` design tokens and `.lb-*` component vocabulary (panels, tags, buttons, chips, tables, hash rows, empty states)
-- JetBrains Mono throughout
-- Calm-red rule — bright red reserved for severity tags, destructive buttons, and the brand dot
-- Self-contained downloadable report — Tailwind CDN dependency dropped, all CSS inlined, logo embedded as base64
-- `file_info` header consolidated — Back / Static / Dynamic buttons in the panel header, Dynamic flagged yellow because it executes the payload
-- `helpers._load_file_data` now also loads `byovd_results.json` and threads it through to the report template
-- Switched to Tailwind v4 via the standalone CLI binary — committed `tailwind.min.css` shrinks ~2.8 MB → ~280 KB
-- `CLAUDE.md` primer with an end-to-end "Adding a new scanner tool" recipe (backend + frontend)
-- `grumpycat.py`: `main()` if/elif chain replaced with a `COMMAND_HANDLERS` dispatch table; `get_comprehensive_results` now fans the four GETs across a `ThreadPoolExecutor`
-- `LitterBoxMCP.py`: full rewrite onto modern FastMCP — `@mcp.tool()` with docstrings, `Annotated[..., Field(...)]` parameter docs, async tools via `asyncio.to_thread`, stderr logging, `mcp.run(transport=...)` API, default bind to 127.0.0.1, four focused 15-25-line OPSEC prompts replacing the previous five 150-200-line ones
-- Stringnalyzer block in the downloadable report renders every non-empty IOC bucket (URLs, IPs, domains, paths, …) as a full code block instead of a 3-item / 140-char sample, with 16 categories and a 100-item cap per category
-- Process Telemetry summary panel on `/results/<hash>/dynamic` uses `lb-hash-row` label/value pattern and surfaces `image_path` + `commandline` when RedEdr provides them
-- `GrumpyCats/README.md` rewritten to match — three-component framing, accurate `pip install mcp requests`, full installer reference, current 22 MCP tools and 4 prompts
+- Backend split into Flask blueprints, services, and a `utils/` package; subprocess analyzers consolidated under `BaseSubprocessAnalyzer`
+- Frontend split into per-tool ES6 modules with shared utils; reusable Jinja macros for scanner tables
+- Full UI redesign on a terminal/IDE shell with new `.lb-*` design tokens and JetBrains Mono throughout
+- Tailwind upgraded to v4 via the standalone CLI binary (committed `tailwind.min.css` ~10× smaller)
+- Self-contained downloadable report — Tailwind CDN dropped, CSS inlined, logo embedded
+- Stringnalyzer block in the report now renders every non-empty IOC bucket as a full code block (16 categories, 100-item cap)
+- `LitterBoxMCP.py` full rewrite onto modern FastMCP (async tools, stderr logging, `Annotated[..., Field(...)]` params, four focused OPSEC prompts)
+- `grumpycat.py` dispatch-table CLI and parallel `get_comprehensive_results`
+- UI terminology reframed for operator-first reading: Detection Score, Triggering Indicators, Sensitive Imports, Signature triggered, Critical Imports, Payload Analysis
+- Color palette softened across the app — severity tokens shifted -500 → -400, summary risk badges converted from solid bg to outlined chips, heavy rgba alphas tightened
+- Analysis-type cards now show explicit `Run X Scan →` CTAs with stronger hover state
 
 ### Fixed
 - XSS hardening at user-data interpolation sites in results-page renderers
-- Detection counts on `/results/<hash>/static` were using dynamic-scope counts when a dynamic scan also existed; each summary page now scopes to its own results
-- `ModalHandler` crash on dynamic results pages (null-deref against removed `.bg-gray-900` selector)
-- `AnalysisCore.updateStageToComplete` null-deref against removed stage-indicator markup
-- `tools.summary` was silently skipped because its `elementId` pointed at the removed `summaryWrapper` div
+- Detection counts on `/results/<hash>/static` no longer leak dynamic-scope counts
 - Per-tool render failures no longer suppress the rest of the rendering
-- Drag-and-drop highlight no longer null-derefs against the removed `.upload-icon` selector
-- Upload "Unsupported file type" false positive — extensions now sourced from `window.serverConfig`
-- Status-icon styling clash on initial render
-- Latent `utils` parameter bugs in `/files` and `/results/<hash>/info` helper chains
-- `.gitignore` `Results/` pattern was unanchored and shadowed `app/static/js/results/` and `app/blueprints/results.py`
-- Duplicate `.logo-wrapper` definition in `style.css` merged
-- Upload of `.xls` / `.docx` / Office macro samples no longer throws "can't access property 'innerHTML', elements.macroDetectionNotes is undefined" — the missing element was added to the JS lookup table (upstream issue)
-- `LitterBoxMCP.py` startup crash — `from optimized_litterbox_client import …` (module never existed) replaced with `from grumpycat import …`, `mcp.serve(host=..., port=...)` (removed API) replaced with `mcp.run(transport=...)`, and logging routed to stderr so it doesn't corrupt stdio JSON-RPC
+- Office macro upload no longer throws on missing `macroDetectionNotes` element (upstream issue)
+- `LitterBoxMCP.py` startup crash — broken import, removed `mcp.serve(...)` API, and stdout-corrupting logging all fixed
 
 ### Removed
-- Pre-redesign Tailwind utility chains across all templates
-- Inline cyber-themed `<style>` blocks in `holygrail.html` and `byovd_info.html`
-- `_design_previews/` iteration HTML files
+- Pre-redesign Tailwind utility chains and inline cyber-themed `<style>` blocks
 - Tailwind CDN runtime dependency from `report.html`
-- Bottom IDE-style statusbar (it duplicated the sidebar-foot status indicator)
-- `grumpycat.py`: dead `_file_cache` (read by nothing), unused `hashlib` / `Tuple` / `Any` imports, unreliable `__del__`
-- `LitterBoxMCP.py`: `handle_api_operation` try/except envelope (FastMCP converts exceptions to MCP errors automatically), `LitterBoxMCPClient` lazy wrapper, redundant `name=` / `description=` decorator args, `shutdown_client` exposed as a tool
+- Dead code in `grumpycat.py` and `LitterBoxMCP.py` (cache, unused imports, exception envelope, lazy client wrapper)
 
 ### Notes
-- No new dependencies; setup unchanged: `pip install -r requirements.txt && py litterbox.py --debug` (admin)
-- Tailwind upgraded to v4 — `tailwind.min.css` is now generated locally by the maintainer via the standalone CLI binary; end users still ship the committed file
+- No new dependencies; setup unchanged
 - No public API / endpoint changes; existing JS DOM-ID contracts preserved
 
 
