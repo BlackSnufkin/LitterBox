@@ -3,22 +3,30 @@
 LitterBox's sensor agent — a single-binary HTTP execution runner. Runs on
 the Windows VM where you've installed an EDR (Elastic Defend, Defender,
 etc.) and accepts payloads from LitterBox over HTTP. Executes them, reports
-stdout/stderr/PID/exit code back. **Does not read EDR alerts** — telemetry
-comes from your EDR agent independently. LitterBox queries your local
-Elastic stack (or whichever backend your EDR ships to) for alerts on its
-own.
+stdout/stderr/PID/exit code back.
 
 ```
 LitterBox  ── HTTP ──►  Whiskers.exe  ── Process.Spawn ──►  payload
                               │
                               └─ same VM has your EDR agent watching everything
-                                 (Elastic Defend / Defender / etc.)
+                                 (Elastic Defend / Defender / Fibratus / etc.)
 ```
 
-The naming: in the LitterBox family, `Whiskers` is the agent — sensors out
-in the field, deployed on the EDR VM, picking up what happens to a payload
-during execution. The orchestrator is `LitterBox` itself; the client
-library is `GrumpyCats`.
+**Alert sourcing.** Whiskers itself does not author or interpret alerts —
+they come from whatever EDR you installed alongside it. LitterBox resolves
+alerts in one of two ways depending on the configured EDR profile kind:
+
+- **`kind: elastic`** — LitterBox queries your Elastic stack directly.
+  Whiskers stays a pure exec runner.
+- **`kind: fibratus`** — LitterBox calls Whiskers's
+  `GET /api/alerts/fibratus/since` (added v5.x), which `wevtutil`-queries
+  the local Application event log for `Provider=Fibratus` rule matches.
+  No remote backend needed.
+
+The naming: in the LitterBox family, `Whiskers` is the agent — sensors
+out in the field, deployed on the EDR VM, picking up what happens to a
+payload during execution. The orchestrator is `LitterBox` itself; the
+client library is `GrumpyCats`.
 
 ## Install
 
@@ -58,8 +66,14 @@ From any machine that can reach the VM:
 
 ```bash
 curl http://<edr-vm-ip>:8080/api/info
-# {"hostname":"DESKTOP-...","os_version":"Windows ...","agent_version":"0.1.0"}
+# {"hostname":"DESKTOP-...","os_version":"Windows ...","agent_version":"0.1.0",
+#  "telemetry_sources":["fibratus"]}      # ← only when Fibratus is installed
 ```
+
+`telemetry_sources` is auto-populated based on what's present on the VM
+(currently just Fibratus presence at
+`C:\Program Files\Fibratus\Bin\fibratus.exe`). The orchestrator uses this
+to preflight before dispatching to a `kind: fibratus` profile.
 
 ## CLI flags
 
@@ -78,15 +92,16 @@ The binary also accepts `--help` and `--version`.
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/info` | Self-reported `{hostname, os_version, agent_version}` |
+| `GET` | `/api/info` | Self-reported `{hostname, os_version, agent_version, telemetry_sources}` |
 | `POST` | `/api/lock/acquire` | Single-occupancy gate. 200 if free, 409 if held |
 | `POST` | `/api/lock/release` | 200, idempotent |
 | `GET` | `/api/lock/status` | `{in_use: bool}` |
-| `POST` | `/api/execute/exec` | Multipart: `file` + `drop_path` + `executable_args` + `xor_key`. Returns `{status, pid}` immediately; the spawn runs detached |
+| `POST` | `/api/execute/exec` | Multipart: `file` + `drop_path` + `executable_args` + `xor_key`. Returns `{status, pid}` immediately; the spawn runs detached. `.dll` payloads spawn via `rundll32.exe <path>,<entry> [args...]` — entry point is the first token of `executable_args`. |
 | `POST` | `/api/execute/kill` | Terminate the most recent run if alive |
 | `GET` | `/api/logs/execution` | `{pid, status, stdout, stderr, exit_code, started_at, finished_at, is_running}` for the most recent run |
 | `GET` | `/api/logs/agent` | Plain-text agent-debug log (last 1000 lines) |
 | `DELETE` | `/api/logs/agent` | Clear the agent log buffer |
+| `GET` | `/api/alerts/fibratus/since` | Query params `from=<ISO8601>&until=<ISO8601>`. Returns `{supported: bool, events: [{time_created, event_id, data}]}` — `data` is the raw JSON `<Data>` from each `Provider=Fibratus` event-log record in the window. `supported: false` when Fibratus isn't installed on the VM. |
 
 Single-occupancy by design — a new `/api/execute/exec` while a previous
 run is still live will kill the previous one before starting the new
@@ -130,8 +145,24 @@ design — single-VM trust model).
 **`/api/execute/exec` returns 500 with `Failed to spawn`** — the EDR on
 the VM probably blocked the dropper or the spawn. Check your EDR's
 quarantine log; this is exactly the signal we want to capture and
-return to LitterBox via the Elastic alert query.
+return to LitterBox via the alert query path.
+
+**`/api/execute/exec` returns 200 with `{"status":"virus", ...}`** —
+Whiskers detected an AV intercept on file write or spawn (Windows errno
+225 / 995 / 1234). That's a successful detection from our point of view,
+not a transport-level failure; the orchestrator surfaces it as
+`summary.blocked_by_av: true` in the saved findings.
 
 **`/api/logs/execution` shows empty stdout** — the spawned process may
 not have flushed before exit, or it wrote to a separate console (GUI
 app). For GUI / detached payloads, capture is best-effort.
+
+**`/api/alerts/fibratus/since` returns `supported: false`** — the agent
+didn't find `C:\Program Files\Fibratus\Bin\fibratus.exe` on disk. Confirm
+Fibratus is installed at the default path; non-standard install paths
+are not currently auto-detected.
+
+**`/api/alerts/fibratus/since` returns prose `data` strings instead of
+JSON** — Fibratus is in the default `format: pretty` mode. Edit
+`%PROGRAMFILES%\Fibratus\Config\fibratus.yml` to set
+`alertsenders.eventlog.format: json` and restart the Fibratus service.

@@ -1,6 +1,6 @@
 """End-to-end orchestrator for one Elastic-EDR run.
 
-Per-payload flow (matches ROADMAP.md Phase L4):
+Per-payload flow:
 
   1. AgentClient.get_info -> learn the EDR VM's hostname
   2. AgentClient.lock_acquire

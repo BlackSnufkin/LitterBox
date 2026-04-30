@@ -129,57 +129,76 @@ Find undetected legitimate drivers for BYOVD attacks:
 - **Dangerous Import Analysis**: Detection of privileged functions commonly exploited in BYOVD attacks
 - **BYOVD Score Calculation**: Risk assessment based on exploitation potential and defensive controls
 
-### Elastic EDR Integration
+### EDR Integration
 
 Dispatch a payload to a separate, EDR-instrumented Windows VM and pull the
-correlated detection alerts back into the LitterBox results page. Built around
-two new components:
+correlated detection alerts back into the LitterBox results page. Two profile
+kinds are supported, both backed by the same Whiskers agent:
 
-- **Whiskers** — single-binary Rust agent (`Whiskers/`) that runs on the EDR VM
-  and exposes a small HTTP API: lock acquire/release, multipart payload upload,
-  process spawn + kill, stdout/stderr/exit-code capture, agent self-identification
-  (auto-discovered hostname). Single-occupancy by design; no parallel runs.
-- **ElasticEdrAnalyzer** — orchestrator on the LitterBox side that dispatches a
-  payload to a registered EDR profile and queries the operator's self-hosted
-  Elastic stack for alerts raised against the run.
+- **`kind: elastic`** — LitterBox queries an operator-deployed Elastic stack
+  for alerts raised against the run. Best for Elastic Defend or any other EDR
+  whose alerts ship to Elasticsearch.
+- **`kind: fibratus`** — LitterBox polls Whiskers's `/api/alerts/fibratus/since`,
+  which `wevtutil`-queries the EDR VM's Windows Application event log for
+  `Provider=Fibratus` records. Best for the Fibratus open-source ETW detection
+  engine — no remote backend required.
+
+Built around three components:
+
+- **Whiskers** — single-binary Rust agent (`Whiskers/`) that runs on the EDR VM.
+  Exposes lock acquire/release, multipart payload upload (XOR-on-the-wire),
+  process spawn + kill, stdout/stderr/exit-code capture, agent self-
+  identification (auto-discovered hostname + Fibratus presence), and the
+  `/api/alerts/fibratus/since` event-log query for Fibratus profiles.
+  Single-occupancy by design; one run at a time per VM.
+- **ElasticEdrAnalyzer** — orchestrator for `kind: elastic` profiles.
+- **FibratusEdrAnalyzer** — orchestrator for `kind: fibratus` profiles. Same
+  two-phase shape as Elastic but Phase 2 polls Whiskers's event-log endpoint
+  instead of Elasticsearch, and normalizes Fibratus's native alert shape
+  (`events[].proc.{name,exe,cmdline,parent_name,…}` + bare `tactic.id`/
+  `technique.id` MITRE labels) into the saved-view renderer's dict.
 
 Capabilities include:
 
 - **Two-phase orchestration** — Phase 1 (lock + exec + log fetch on the agent)
-  returns in ~1-7s; Phase 2 (Elastic correlation) polls in the background with
+  returns in ~1-7s; Phase 2 (alert correlation) polls in the background with
   early-return on first hit and an 8-second settle window for related-alert
   bursts. Lock is released after Phase 1 so back-to-back dispatches don't queue.
 - **Per-payload alert correlation** — query is scoped by `host.name` (case-
   insensitive) AND filename match across `file.name` / `process.name` /
-  `file.path` / `process.executable`, so concurrent dispatches don't mix alerts.
+  `file.path` / `process.executable` / `process.command_line` / `process.args`
+  for Elastic; the Fibratus path filters on `events[].proc.*` substring match.
 - **AV-block detection** — Whiskers tags the run as `virus` when Defend
   intercepts on file write or spawn; orchestrator surfaces the prevention
-  alert as a distinct `blocked_by_av` outcome.
+  alert as a distinct `summary.blocked_by_av: true` flag.
 - **EDR-kill detection** — when the agent didn't issue the kill but the process
-  exited non-zero, the run is labeled "killed by EDR behavior protection".
+  exited non-zero, the run is labeled "killed by EDR behavior protection". For
+  DLL payloads (rundll32-spawned), the heuristic additionally requires alert
+  evidence to avoid false positives from benign rundll32 exit codes.
+- **DLL execution** — `.dll` payloads spawn via `rundll32.exe <path>,<entry> [args…]`;
+  the entry point is the first token of the executable-args field (rundll32
+  syntax `<ExportedFunction> [args…]`).
+- **XOR-on-the-wire** — every dispatch picks a random byte 0-255, XORs the
+  payload before multipart upload, and tells Whiskers to reverse the XOR
+  while writing to disk. Avoids leaving cleartext in HTTP buffers / OS network
+  stacks where Defender's network inspection would flag it pre-write.
 - **Rich alert detail** — per-alert expandable panel with rule reason, rule
   description, MITRE ATT&CK tactic/technique chips, triggering API + behaviors,
   memory region + protection flags, full call stack with module provenance,
   final user module callout, process tree (spawned + parent), Defend's response
   actions (kill targets, tree kills), user identity, raw `_source`.
-- **Detection-Score contribution** — high/critical EDR alerts add up to +50 to
-  the file's overall Detection Score; AV blocks add +35.
+- **Live agent dashboard** — `/whiskers` lists every registered profile with
+  live agent + backend reachability; `/` shows the system dashboard with
+  scanner availability + EDR fleet health. Both backed by an in-process TTL
+  cache + background poller, so the dashboard loads instantly even when one
+  VM is unreachable.
+- **Saved-view route** — `/results/edr/<profile>/<target>` renders the run's
+  saved findings using the same renderer as the live scan view (no fork).
 
 The integration is profile-driven — drop one or more `Config/edr_profiles/*.yml`
-files (gitignored; ship-as `*.example.yml`) and each registered profile gets
-its own "Run with X" tab on the upload page. Deployment is operator-managed:
-
-- **Elastic stack** — LitterBox does not deploy or manage it. Point at a
-  self-hosted instance you stood up via
-  [elastic-container-project](https://www.elastic.co/security-labs/the-elastic-container-project).
-- **EDR VM** — bring your own Windows VM with Elastic Agent + Elastic Defend
-  enrolled to your stack. Drop `Whiskers.exe` on it, allow inbound port 8080,
-  optionally register as a Windows service.
-
-Default index pattern queried:
-`.ds-logs-endpoint.alerts-default-*,.internal.alerts-security.alerts-default-*`
-(Elastic 9.x layout). Override per-profile with `elastic_index_pattern` if your
-deployment differs.
+files (gitignored; ship as `*.example.yml`) and each registered profile gets
+its own button on the upload page. Deployment is operator-managed; LitterBox
+does not deploy Elastic, Fibratus, or the EDR VM.
 
 ### Doppelganger Analysis
 
@@ -213,25 +232,33 @@ Delivers code similarity analysis through:
 - [Hollows-Hunter](https://github.com/hasherezade/hollows_hunter) - Process hollowing detection
 
 ### EDR Integration Suite
-- **Whiskers** (this repo, `Whiskers/`) - Single-binary Rust HTTP agent for EDR-VM dispatch
-- [Elastic Defend](https://www.elastic.co/security/endpoint-security) - EDR backend (operator-deployed via [elastic-container-project](https://www.elastic.co/security-labs/the-elastic-container-project))
+- **Whiskers** (this repo, `Whiskers/`) - Single-binary Rust HTTP agent for EDR-VM dispatch + Fibratus event-log query
+- [Elastic Defend](https://www.elastic.co/security/endpoint-security) - EDR backend for `kind: elastic` profiles (operator-deployed via [elastic-container-project](https://www.elastic.co/security-labs/the-elastic-container-project))
+- [Fibratus](https://github.com/rabbitstack/fibratus) - Open-source ETW detection engine for `kind: fibratus` profiles (no remote backend)
 
 
 ## API Reference
 
+The URL convention puts the analysis type / qualifier BEFORE the target hash
+everywhere — `/results/<type>/<target>`, `/api/results/<type>/<target>`,
+`/api/results/edr/<profile>/<target>` — to match the existing
+`/analyze/edr/<profile>/<target>` shape.
+
 ### File Operations
 ```http
 POST   /upload                    # Upload samples for analysis
+GET    /upload                    # Drop-zone page (analysis-mode picker)
 GET    /files                     # Retrieve processed file list
 ```
 
 ### Analysis Endpoints
 ```http
-GET    /analyze/static/<hash>            # Execute static analysis
-POST   /analyze/dynamic/<hash>           # Perform dynamic file analysis  
-POST   /analyze/dynamic/<pid>            # Conduct process analysis
-GET    /analyze/edr/<profile>/<hash>     # Render EDR results page (uses analysis_type=edr)
-POST   /analyze/edr/<profile>/<hash>     # Dispatch payload to EDR profile (Phase 1 sync, Phase 2 background)
+GET    /analyze/static/<hash>             # Execute static analysis
+POST   /analyze/dynamic/<hash>            # Perform dynamic file analysis
+POST   /analyze/dynamic/<pid>             # Conduct process analysis
+GET    /analyze/edr/<profile>/<target>    # Render EDR results page (uses analysis_type=edr)
+POST   /analyze/edr/<profile>/<target>    # Dispatch payload to EDR profile (Phase 1 sync, Phase 2 background)
+GET    /analyze/all/<target>              # "All" pipeline coordinator page (Static + every EDR profile in parallel; Dynamic waits only for Static)
 ```
 
 ### HolyGrail BYOVD Analysis
@@ -244,7 +271,7 @@ GET    /holygrail?hash=<hash>     # Execute BYOVD analysis on uploaded driver
 ```http
 # Blender Module
 GET    /doppelganger?type=blender               # Retrieve latest scan results
-GET    /doppelganger?type=blender&hash=<hash>   # Compare process IOCs with payload  
+GET    /doppelganger?type=blender&hash=<hash>   # Compare process IOCs with payload
 POST   /doppelganger                            # Execute system scan with {"type": "blender", "operation": "scan"}
 
 # FuzzyHash Module
@@ -255,30 +282,41 @@ POST   /doppelganger                            # Generate database with {"type"
 
 ### Results Retrieval (JSON)
 ```http
-GET    /api/results/<hash>/info             # Retrieve file metadata
-GET    /api/results/<hash>/static           # Access static analysis results
-GET    /api/results/<hash>/dynamic          # Obtain dynamic analysis data
-GET    /api/results/<pid>/dynamic           # Retrieve process analysis data
-GET    /api/results/<hash>/holygrail        # Access BYOVD analysis results
-GET    /api/results/<hash>/edr              # List EDR profiles run for this hash
-GET    /api/results/<hash>/edr/<profile>    # Read saved findings for a specific EDR profile (used by Phase-2 polling)
-GET    /api/edr/profiles                    # List registered EDR profiles
+GET    /api/results/info/<target>             # File metadata
+GET    /api/results/static/<target>           # Static analysis results
+GET    /api/results/dynamic/<target>          # Dynamic analysis (file or PID)
+GET    /api/results/holygrail/<target>        # BYOVD analysis results
+GET    /api/results/risk/<target>             # Computed Detection Score + triggering indicators
+GET    /api/results/edr/<target>              # Index of every EDR profile run for this target
+GET    /api/results/edr/<profile>/<target>    # Saved findings for a specific EDR profile (used by Phase-2 polling)
+```
+
+### EDR + System Health
+```http
+GET    /api/edr/profiles                                       # List registered EDR profiles (public — no secrets)
+GET    /api/edr/agents/status                                  # Per-profile agent + backend reachability snapshot (TTL-cached)
+GET    /api/edr/fibratus/<profile>/alerts/since?from=&until=   # Test/debug passthrough — query the Whiskers agent's Fibratus event-log endpoint without dispatching a payload
+GET    /api/system/scanners                                    # Inventory of configured local analyzers + whether their binaries exist
 ```
 
 ### HTML Report Generation
 ```http
-GET    /api/report/          # Generate comprehensive HTML report (target = hash or pid)
-GET    /api/report/?download=true  # Download report as file attachment
-GET    /report/              # Download report directly (redirects to api with download=true)
+GET    /api/report/<target>                  # Generate comprehensive HTML report (target = hash or pid)
+GET    /api/report/<target>?download=true    # Download report as file attachment
+GET    /report/<target>                      # Download report directly (redirects to api with download=true)
 ```
 
-### Web Interface Results
+### Web Interface (Pages)
 ```http
-GET    /results/<hash>/info      # View file information
-GET    /results/<hash>/static    # Access static analysis reports
-GET    /results/<hash>/dynamic   # View dynamic analysis reports
-GET    /results/<pid>/dynamic    # Access process analysis reports
-GET    /results/<hash>/byovd     # View BYOVD analysis results
+GET    /                                  # System dashboard — scanner availability + EDR agent reachability
+GET    /upload                            # Upload drop-zone (analysis-mode picker)
+GET    /whiskers                          # EDR agents inventory (live status per registered profile)
+GET    /summary                           # Cross-file results summary
+GET    /results/info/<target>             # File information page
+GET    /results/static/<target>           # Static analysis report
+GET    /results/dynamic/<target>          # Dynamic analysis report
+GET    /results/holygrail/<target>        # BYOVD analysis results
+GET    /results/edr/<profile>/<target>    # Saved EDR findings (rich detail — same renderer as the live scan)
 ```
 
 ### System Management
@@ -286,7 +324,7 @@ GET    /results/<hash>/byovd     # View BYOVD analysis results
 GET    /health                   # System health verification
 POST   /cleanup                  # Remove analysis artifacts
 POST   /validate/<pid>           # Verify process accessibility
-DELETE /file/<hash>              # Remove specific analysis
+DELETE /file/<target>            # Remove specific analysis
 ```
 
 ## Installation
@@ -377,14 +415,43 @@ All settings are stored in `config/config.yml`. Edit this file to:
 - Configure analysis tools
 - Adjust timeouts
 
-### Elastic EDR Setup (optional)
+### EDR Setup (optional)
 
-The Elastic EDR integration is opt-in — drop one or more profile YAMLs under
-`Config/edr_profiles/` and the upload page picks them up at boot. End-to-end
-the workflow has three pieces, all operator-managed:
+EDR integration is opt-in — drop one or more profile YAMLs under
+`Config/edr_profiles/` and the upload page picks them up at boot. Two profile
+kinds are supported with distinct setup paths.
 
-**1. Stand up an Elastic stack** — LitterBox does not deploy or manage one. The
-fastest path is [elastic-container-project](https://www.elastic.co/security-labs/the-elastic-container-project)
+#### Common: deploy Whiskers on the EDR VM
+
+`Whiskers.exe` is a single-binary Rust agent (~1.6 MB, no runtime deps). See
+[Whiskers/README.md](Whiskers/README.md) for the full guide. Quick version:
+
+```powershell
+# on the EDR VM
+mkdir C:\Tools -Force
+# copy Whiskers.exe into C:\Tools\
+
+New-NetFirewallRule -DisplayName "Whiskers Agent" -Direction Inbound `
+    -Protocol TCP -LocalPort 8080 -Action Allow
+
+# Register as an at-logon scheduled task so it auto-starts.
+# Runs as the invoking user (no UAC); payloads inherit that privilege.
+C:\Tools\Whiskers.exe --install
+# Log out / back in to trigger the scheduled task, OR run it manually:
+C:\Tools\Whiskers.exe
+```
+
+Payloads land in `<exe_dir>\samples\` by default. Override per-VM with
+`--samples-dir <path>` or per-dispatch via the profile YAML's `drop_path`.
+
+If you're using Elastic Defend, add `Whiskers.exe` as a Trusted Application
+in Defend's policy (Kibana → Security → Manage → Trusted Applications), since
+the agent spawns arbitrary payloads.
+
+#### Option A: `kind: elastic` (Elastic Defend)
+
+**1. Stand up an Elastic stack** — LitterBox does not deploy or manage one.
+The fastest path is [elastic-container-project](https://www.elastic.co/security-labs/the-elastic-container-project)
 which gives you Elasticsearch + Kibana + Fleet locally. Once it's up:
 
 - Enable the **Elastic Defend** integration on a Fleet policy
@@ -394,48 +461,75 @@ which gives you Elasticsearch + Kibana + Fleet locally. Once it's up:
   `.alerts-security.alerts-*`, `.internal.alerts-security.alerts-*`, and
   `.ds-logs-endpoint.alerts-*`. Copy the **encoded** value.
 
-**2. Deploy Whiskers on the EDR VM** — `Whiskers.exe` is a single-binary Rust
-agent (~1.5 MB, no runtime deps). See [Whiskers/README.md](Whiskers/README.md)
-for the full deployment guide. Quick version:
-
-```powershell
-# on the EDR VM (Windows VM with Elastic Defend enrolled)
-mkdir C:\Tools -Force
-# copy Whiskers.exe into C:\Tools\
-
-New-NetFirewallRule -DisplayName "Whiskers Agent" -Direction Inbound `
-    -Protocol TCP -LocalPort 8080 -Action Allow
-
-C:\Tools\Whiskers.exe --port 8080
-# OR register as a service
-sc.exe create Whiskers binPath= "C:\Tools\Whiskers.exe --port 8080" start= auto
-sc.exe start Whiskers
-```
-
-You'll likely need to add `Whiskers.exe` as a Trusted Application in Defend's
-policy (Kibana → Security → Manage → Trusted Applications), since the agent
-spawns arbitrary payloads.
-
-**3. Configure the LitterBox profile** — copy
+**2. Configure the profile** — copy
 `Config/edr_profiles/elastic.yml.example` to `elastic.yml` (the real file is
 gitignored) and fill in:
 
 ```yaml
 name: "elastic"
 display_name: "Elastic Defend"
+kind: "elastic"                        # default; can be omitted for back-compat
 agent_url: "http://<edr-vm-ip>:8080"
 elastic_url: "https://<elastic-stack-ip>:9200"
-elastic_apikey: "<base64-encoded-key-from-step-1>"
+elastic_apikey: "<base64-encoded-key>"
 elastic_verify_tls: false              # self-signed cert from elastic-container-project
 wait_seconds_for_alerts: 90            # max poll window for successful execs
 av_block_wait_seconds: 60              # max poll window for AV-block events
 exec_timeout_seconds: 60               # how long to let the payload run
 ```
 
+#### Option B: `kind: fibratus` (Fibratus open-source ETW)
+
+No Elastic stack needed — Fibratus does ETW collection + rule matching locally
+on the EDR VM and writes alerts to the Windows Application event log. Whiskers
+queries the log on demand.
+
+**1. Install Fibratus** on the EDR VM from
+[github.com/rabbitstack/fibratus](https://github.com/rabbitstack/fibratus/releases).
+Default install path is `C:\Program Files\Fibratus\`; Whiskers detects this
+and reports `telemetry_sources: ["fibratus"]` via `/api/info`.
+
+**2. Configure Fibratus** to write JSON alerts to the event log. Edit
+`%PROGRAMFILES%\Fibratus\Config\fibratus.yml`:
+
+```yaml
+alertsenders:
+  eventlog:
+    enabled: true
+    format: json    # CRITICAL — analyzer parses the <Data> field as JSON
+```
+
+Make sure `filters.rules.enabled: true` and `filters.rules.from-paths` points
+at the rule pack you want active. Restart the service:
+`net stop fibratus; net start fibratus`.
+
+**3. Configure the profile** — copy
+`Config/edr_profiles/fibratus.yml.example` to `fibratus.yml` and fill in:
+
+```yaml
+name: "fibratus"
+display_name: "Fibratus"
+kind: "fibratus"
+agent_url: "http://<edr-vm-ip>:8080"
+wait_seconds_for_alerts: 30            # Fibratus pushes in real-time → shorter
+av_block_wait_seconds: 30
+exec_timeout_seconds: 60
+```
+
+#### Verifying the wire
+
 `hostname` is **not** configured — the agent self-reports it via
 `GET /api/info`, so moving the agent to a different VM is transparent. Restart
-LitterBox after editing the YAML; the upload page will gain a "Run with X"
-tab per registered profile.
+LitterBox after editing any profile YAML; the upload page gains a button per
+registered profile.
+
+Quick smoke-tests with the GrumpyCats CLI:
+```bash
+python GrumpyCats/grumpycat.py edr-profiles                                # list registered profiles
+python GrumpyCats/grumpycat.py edr-status                                  # live agent + backend probe
+python GrumpyCats/grumpycat.py fibratus-alerts --profile fibratus \
+    --from 2026-04-30T00:00:00Z                                            # pull alerts via Whiskers without running a payload
+```
 
 ## Client Libraries
 

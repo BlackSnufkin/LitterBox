@@ -1,6 +1,7 @@
 # EDR-integration analyzers. Dispatches payloads to a Whiskers agent on a
-# user-managed EDR VM, then queries the user's local EDR backend (e.g. an
-# Elastic stack) for alerts raised against the run.
+# user-managed EDR VM, then resolves alerts via a profile-specific path:
+#   * kind: elastic   — queries an Elastic Detection-Engine cluster.
+#   * kind: fibratus  — polls Whiskers's /api/alerts/fibratus/since which
+#                       wevtutil-queries the Windows Application event log.
 #
-# See ROADMAP.md (Phase L) for the architecture, and Config/edr_profiles/
-# *.yml.example for the per-profile schema.
+# See Config/edr_profiles/*.yml.example for the per-kind schema.

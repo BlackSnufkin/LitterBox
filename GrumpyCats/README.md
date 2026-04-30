@@ -11,9 +11,43 @@
 
 GrumpyCats is the client side of LitterBox. Three pieces:
 
-1. **`grumpycat.py`** — Python CLI + library for the LitterBox HTTP API.
-2. **`LitterBoxMCP.py`** — MCP server that exposes the same surface to AI agents (Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, …) plus four OPSEC-review prompts.
-3. **`install_mcp.py`** — one-shot installer that wires `LitterBoxMCP.py` into the right config file for your MCP client of choice.
+1. **`grumpycat.py`** — thin CLI orchestrator (~14 lines). Imports the parser
+   + handlers from the `cli/` package and the API surface from the
+   `litterbox_client/` package.
+2. **`LitterBoxMCP.py`** — MCP server that exposes the same surface to AI
+   agents (Claude Desktop, Claude Code, Cursor, Windsurf, VS Code, …) plus
+   four OPSEC-review prompts.
+3. **`install_mcp.py`** — one-shot installer that wires `LitterBoxMCP.py`
+   into the right config file for your MCP client of choice.
+
+### Layout
+
+```
+GrumpyCats/
+├── grumpycat.py                # entry point — calls cli.run()
+├── cli/                        # argparse parser + per-command handlers
+│   ├── parser.py               # build_parser() — split into _add_<group> helpers
+│   ├── handlers.py             # _cmd_* + COMMAND_HANDLERS dispatch
+│   └── runner.py               # exception-aware dispatch + exit codes
+├── litterbox_client/           # API client, split into per-domain mixins
+│   ├── exceptions.py           # LitterBoxError, LitterBoxAPIError
+│   ├── base.py                 # _BaseClient (session, _make_request, validators)
+│   ├── files.py                # FilesMixin
+│   ├── analysis.py             # AnalysisMixin
+│   ├── doppelganger.py         # DoppelgangerMixin
+│   ├── results.py              # ResultsMixin
+│   ├── edr.py                  # EdrMixin (Whiskers + Elastic + Fibratus)
+│   ├── reports.py              # ReportsMixin
+│   ├── system.py               # SystemMixin (cleanup, health, comprehensive)
+│   └── client.py               # LitterBoxClient = composition of all mixins
+├── LitterBoxMCP.py             # FastMCP wrapper
+└── install_mcp.py              # MCP-client config installer
+```
+
+Adding a new command = one method in the right mixin under
+`litterbox_client/`, one subparser in `cli/parser.py`, one `_cmd_*` handler
+in `cli/handlers.py`, one row in `COMMAND_HANDLERS`. Done. The MCP tool is
+one decorator in `LitterBoxMCP.py` since it shares the client.
 
 ---
 
@@ -57,6 +91,12 @@ python grumpycat.py [global-options] <command> [command-options]
 | `doppelganger-scan`      | Snapshot the host for Blender comparison    |
 | `doppelganger-analyze`   | Compare a payload against Blender or fuzzy  |
 | `doppelganger-db`        | Build the FuzzyHash baseline DB             |
+| `edr-run`                | Dispatch a payload to an EDR profile (Elastic / Fibratus) |
+| `edr-results`            | Read saved EDR findings (per-profile or cross-profile index) |
+| `edr-profiles`           | List registered EDR profiles                |
+| `edr-status`             | Live probe of every EDR profile (agent + backend reachability) |
+| `fibratus-alerts`        | Test/debug — pull Fibratus alerts via Whiskers without dispatching a payload |
+| `scanners`               | Inventory of configured local analyzers + whether their binaries exist |
 | `status`                 | Server health + fleet summary               |
 | `health`                 | Just the health check                       |
 | `cleanup`                | Wipe sandbox artifacts                      |
@@ -92,6 +132,33 @@ grumpycat.py results abc123def --comprehensive
 # Or scope to one analysis type
 grumpycat.py results abc123def --type static
 grumpycat.py results abc123def --type holygrail
+```
+
+### EDR (Whiskers + Elastic Defend or Fibratus)
+
+```bash
+# List registered EDR profiles
+grumpycat.py edr-profiles
+
+# Live probe of every profile — agent + backend reachability (cached server-side)
+grumpycat.py edr-status
+
+# Dispatch a payload to a profile and wait for Phase-2 settle
+grumpycat.py edr-run abc123def --profile elastic --wait
+grumpycat.py edr-run abc123def --profile fibratus --wait
+
+# DLL payload — first arg becomes the rundll32 entry point
+grumpycat.py edr-run def456abc --profile elastic --args MyExportedFunc --wait
+
+# Read saved EDR findings
+grumpycat.py edr-results abc123def --profile fibratus    # one profile
+grumpycat.py edr-results abc123def                        # cross-profile index
+
+# Verify the Fibratus alert wire without running a payload
+grumpycat.py fibratus-alerts --profile fibratus --from 2026-04-30T00:00:00Z
+
+# Inventory of local analyzers (drives the dashboard's Scanners panel)
+grumpycat.py scanners
 ```
 
 ### Doppelganger / similarity
@@ -141,7 +208,7 @@ grumpycat.py delete abc123def
 ## Using It as a Library
 
 ```python
-from grumpycat import LitterBoxClient
+from litterbox_client import LitterBoxClient
 
 with LitterBoxClient(base_url="http://127.0.0.1:1337") as client:
     # Upload and run analysis
@@ -150,7 +217,8 @@ with LitterBoxClient(base_url="http://127.0.0.1:1337") as client:
     static_result  = client.analyze_file(file_hash, "static")
     dynamic_result = client.analyze_file(file_hash, "dynamic")
 
-    # Pull every result for a target with a single fan-out call
+    # Pull every result for a target with one fan-out call
+    # (file_info + static + dynamic + holygrail + edr_index in parallel)
     all_results = client.get_comprehensive_results(file_hash)
 
     # Driver workflow
@@ -165,17 +233,36 @@ with LitterBoxClient(base_url="http://127.0.0.1:1337") as client:
     comparison       = client.compare_with_blender(file_hash)
     fuzzy_score      = client.analyze_with_fuzzy(file_hash, threshold=85)
 
-    # Server health
-    status = client.get_system_status()
+    # EDR — works for kind=elastic and kind=fibratus alike
+    profiles = client.list_edr_profiles()
+    health   = client.get_edr_agents_status()    # cached server-side
+    phase1   = client.analyze_edr(file_hash, "elastic")
+    final    = client.wait_for_edr_completion(file_hash, "elastic")
+    saved    = client.get_edr_results(file_hash, "elastic")
+    index    = client.get_edr_index(file_hash)
+
+    # Fibratus testing helper — wire-check without running a payload
+    alerts = client.fibratus_alerts_since(
+        "fibratus", since_iso="2026-04-30T00:00:00Z",
+    )
+
+    # Server + scanner health
+    status   = client.get_system_status()
+    scanners = client.get_scanners_status()
 ```
 
-The client uses a `requests.Session` with retry-on-5xx, fans out the four `/api/results/<hash>/*` reads in parallel for `get_comprehensive_results`, and exposes a context-manager interface so the session closes cleanly.
+The client uses a `requests.Session` with retry-on-5xx, fans out the
+five `get_comprehensive_results` calls (file_info / static / dynamic /
+holygrail / edr_index) in parallel, and exposes a context-manager
+interface so the session closes cleanly. The class itself is composed
+from per-domain mixins under `litterbox_client/`; public callers see
+one class and don't need to care about the split.
 
 ---
 
 ## AI Integration (MCP)
 
-`LitterBoxMCP.py` is a stdio MCP server that exposes 22 tools and 4 OPSEC-review prompts to any MCP-compatible client. Tools run async and offload the sync `LitterBoxClient` calls to a worker thread, so multiple tool calls don't serialize.
+`LitterBoxMCP.py` is a stdio MCP server that exposes 29 tools and 4 OPSEC-review prompts to any MCP-compatible client. Tools run async and offload the sync `LitterBoxClient` calls to a worker thread, so multiple tool calls don't serialize.
 
 ### Requirements
 
@@ -261,7 +348,7 @@ py install_mcp.py --print                                   # JSON only, no file
 
 ## MCP Tools Reference
 
-All 22 tools are async. Tool exceptions become MCP error responses automatically — no manual envelopes.
+All 29 tools are async. Tool exceptions become MCP error responses automatically — no manual envelopes.
 
 ### Intake — upload + kick off analysis
 
@@ -296,12 +383,24 @@ All 22 tools are async. Tool exceptions become MCP error responses automatically
 | `analyze_fuzzy_similarity` | ssdeep similarity score (0-100) against the FuzzyHash baseline         |
 | `create_fuzzy_database`    | (Re)build the FuzzyHash baseline DB from a folder of reference binaries|
 
+### EDR — Whiskers + Elastic / Fibratus
+
+| Tool                       | What It Does                                                           |
+|----------------------------|------------------------------------------------------------------------|
+| `list_edr_profiles`        | List EDR profiles registered under `Config/edr_profiles/`              |
+| `get_edr_agents_status`    | Live agent + backend reachability snapshot (server-cached)             |
+| `analyze_edr`              | Dispatch a payload to a profile (executes! confirm with the user first) |
+| `get_edr_results`          | Saved findings for a specific EDR profile run                          |
+| `get_edr_index`            | Cross-profile index of every EDR run for a target                      |
+| `fibratus_alerts_since`    | Test/debug — pull Fibratus alerts via Whiskers without dispatching a payload |
+
 ### Fleet management
 
 | Tool                | What It Does                                                          |
 |---------------------|-----------------------------------------------------------------------|
 | `list_payloads`     | List every analyzed payload + driver + process with detection summary |
 | `sandbox_status`    | Health + tool readiness + fleet summary                               |
+| `get_scanners_status` | Inventory of configured local analyzers + binary availability       |
 | `cleanup_sandbox`   | Wipe artifacts (destructive — confirm before calling)                 |
 | `delete_payload`    | Delete one payload + its results (destructive)                        |
 

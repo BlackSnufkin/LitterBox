@@ -70,10 +70,20 @@ the unoptimized `cargo build` size.
 AGENT_PID=$!
 sleep 1
 curl -s http://127.0.0.1:8087/api/info
-# Expected: {"hostname":"...","os_version":"...","agent_version":"0.1.0"}
+# Expected: {"hostname":"...","os_version":"...","agent_version":"0.1.0",
+#            "telemetry_sources": [...]}
 kill $AGENT_PID
 ```
 
-The full integration test scenario (lock/exec/kill/logs round-trip) lives
-inline in this repo's git history under the A2 verification step — see
-the smoke-test command in the PR that added the endpoints.
+The unit tests cover the parser-critical pieces — wevtutil XML parsing
+(both single- and double-quoted attribute styles) and ISO timestamp
+formatting. Run with:
+
+```bash
+cargo test --release
+```
+
+For the full integration test scenario (lock / exec / kill / logs +
+fibratus alerts round-trip), drop the binary on a real EDR VM and exercise
+it from LitterBox via `grumpycat.py edr-status` and
+`grumpycat.py fibratus-alerts --profile <name>`.
