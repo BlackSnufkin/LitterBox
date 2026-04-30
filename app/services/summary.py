@@ -116,9 +116,11 @@ def process_file_summary(item, item_path, file_based_summary, logger):
                 dynamic_results = json_helpers.load_json_file(dynamic_path)
                 logger.debug(f"Loaded dynamic analysis results for item: {item}")
 
-            # Discover every EDR profile run for this sample. Stored as
-            # `edr_<profile>_results.json`. The calculate_risk helper
-            # accepts a {profile_name: findings} mapping.
+            # Discover every EDR profile run for this sample for the
+            # Status-cell sub-badges. Stored as `edr_<profile>_results.json`.
+            # NOTE: EDR results are NOT folded into the file's risk score.
+            # EDR is its own analysis type with its own page; the file's
+            # score stays scoped to static+dynamic+PE info.
             edr_results = {}
             edr_prefix, edr_suffix = 'edr_', '_results.json'
             for entry in os.listdir(item_path):
@@ -137,7 +139,6 @@ def process_file_summary(item, item_path, file_based_summary, logger):
                 file_info=file_info,
                 static_results=static_results,
                 dynamic_results=dynamic_results,
-                edr_results=edr_results or None,
             )
 
         risk_level = risk_analyzer.get_risk_level(risk_score)

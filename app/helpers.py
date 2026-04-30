@@ -99,12 +99,17 @@ class RouteHelpers:
                 dynamic_results=data['dynamic_results'],
             )
         else:
+            # Note: EDR results are intentionally NOT folded in here. The
+            # file_info / results page has tabs only for Static and Dynamic;
+            # EDR is its own analysis type at /analyze/edr/<profile>/<hash>
+            # with its own page, alerts, and Detection-Score contribution.
+            # Keeping the file's score scoped to static+dynamic+PE keeps
+            # the abstraction clean.
             risk_score, risk_factors = risk_analyzer.calculate_risk(
                 analysis_type='file',
                 file_info=data['file_info'],
                 static_results=data['static_results'],
                 dynamic_results=data['dynamic_results'],
-                edr_results=data.get('edr_results'),
             )
 
         risk_level = risk_analyzer.get_risk_level(risk_score)

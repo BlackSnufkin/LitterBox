@@ -134,24 +134,20 @@ function renderFiles() {
         if (file.risk_assessment) {
             const { level, score, factors } = file.risk_assessment;
             riskEl.textContent = `${level} (${score}%)`;
-            riskEl.className = 'px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium';
-            
-            if (score >= 75) {
-                riskEl.className += ' bg-red-500/15 text-red-300 border border-red-500/30';
-            } else if (score >= 50) {
-                riskEl.className += ' bg-orange-500/15 text-orange-300 border border-orange-500/30';
-            } else if (score >= 25) {
-                riskEl.className += ' bg-yellow-500/15 text-yellow-300 border border-yellow-500/30';
-            } else {
-                riskEl.className += ' bg-green-500/15 text-green-300 border border-green-500/30';
-            }
+            // Use the design-system severity tag — the dynamic Tailwind
+            // classes weren't getting picked up by the JIT scanner (only
+            // template files are scanned, not JS) so `text-orange-300`
+            // etc. were missing from the compiled CSS, leaving the badge
+            // unstyled white. .lb-tag.<level> is defined globally with
+            // the right severity colors from --lb-sev-*.
+            riskEl.className = `lb-tag ${(level || 'muted').toLowerCase()}`;
 
             if (factors && factors.length > 0) {
                 entropyEl.textContent = factors[0];
             }
         } else {
             riskEl.textContent = 'Unknown';
-            riskEl.className += ' bg-gray-500/15 text-gray-400 border border-gray-500/30 px-3 py-1 text-xs rounded-lg inline-flex items-center justify-center font-medium';
+            riskEl.className = 'lb-tag muted';
             entropyEl.textContent = '';
         }
         
