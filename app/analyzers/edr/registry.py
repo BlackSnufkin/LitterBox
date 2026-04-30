@@ -93,6 +93,7 @@ def dispatch_split(
     payload_path: str,
     config: dict,
     on_phase_2_done: Callable[[dict], None],
+    executable_args: Optional[str] = None,
 ) -> dict:
     """Split-phase dispatch.
 
@@ -103,6 +104,10 @@ def dispatch_split(
     is called with the final findings dict. The callback is responsible
     for persisting the updated result.
 
+    `executable_args` is forwarded to the agent's exec endpoint as a
+    single space-separated string. For DLL payloads the first token is
+    the exported entry point (rundll32 wraps it server-side).
+
     Phase 2 errors are swallowed and surfaced to the callback as a
     `status: 'error'` dict — the thread never raises into nothing.
     """
@@ -111,7 +116,7 @@ def dispatch_split(
         raise KeyError(f"unknown EDR profile: {profile_name!r}")
 
     analyzer = ElasticEdrAnalyzer(config, profile)
-    phase_1, continuation = analyzer.run_exec(payload_path)
+    phase_1, continuation = analyzer.run_exec(payload_path, executable_args)
 
     if continuation is None:
         # Terminal failure (busy, agent unreachable, missing file, etc.) —

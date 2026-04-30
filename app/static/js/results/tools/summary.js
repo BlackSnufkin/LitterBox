@@ -159,10 +159,10 @@ export default {
             else if (status === 'busy')                 { detail = 'Agent busy with another run'; isFailureState = true; }
             else if (status === 'partial')              { detail = 'Run completed but Elastic query failed'; isFailureState = true; }
             else if (status === 'error')                { detail = `Error: ${r.error || 'unknown'}`; isFailureState = true; }
+            else if (status === 'polling_alerts' && summary.blocked_by_av) { detail = 'EDR blocked spawn — correlating alerts…'; isPolling = true; }
             else if (status === 'polling_alerts' && killedByEdr) { detail = 'Killed by EDR — correlating alerts…'; isPolling = true; }
             else if (status === 'polling_alerts')       { detail = 'Exec finished — correlating alerts…'; isPolling = true; }
-            else if (status === 'blocked_polling_alerts'){ detail = 'AV blocked spawn — correlating alerts…'; isPolling = true; }
-            else if (status === 'blocked_by_av')        detail = 'Blocked by AV before execution';
+            else if (status === 'blocked_by_av')        detail = 'Blocked by EDR before execution';
             else if (killedByEdr && totalAlerts > 0)    detail = `Killed by EDR · ${totalAlerts} alert${totalAlerts === 1 ? '' : 's'} raised`;
             else if (totalAlerts > 0)                   detail = `${totalAlerts} alert${totalAlerts === 1 ? '' : 's'} raised`;
             else                                        detail = 'No alerts raised';
@@ -178,10 +178,7 @@ export default {
         // poll window haven't finished correlating yet — show that
         // explicitly instead of a misleading "Clean" green when the
         // count happens to be 0.
-        const edrPolling = !!(results.edr && (
-            results.edr.status === 'polling_alerts' ||
-            results.edr.status === 'blocked_polling_alerts'
-        ));
+        const edrPolling = !!(results.edr && results.edr.status === 'polling_alerts');
         const totalEl = document.getElementById('totalDetections');
         const overEl  = document.getElementById('overallStatus');
         if (totalEl) totalEl.textContent = totalDetections;

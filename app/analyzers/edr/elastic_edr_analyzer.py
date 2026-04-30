@@ -4,7 +4,7 @@ Per-payload flow (matches ROADMAP.md Phase L4):
 
   1. AgentClient.get_info -> learn the EDR VM's hostname
   2. AgentClient.lock_acquire
-  3. AgentClient.exec(payload, args)
+  3. AgentClient.exec(payload, args)  -- XOR-encoded on the wire
   4. wait for exec to exit OR exec_timeout_seconds
   5. AgentClient.kill (idempotent if already exited)
   6. AgentClient.get_execution_logs -> stdout/stderr/exit_code
@@ -17,10 +17,19 @@ Failure model: if the agent is unreachable in step 1, mark the profile
 unavailable and bail. If anything between lock_acquire and lock_release
 fails, the lock is released in `finally` so the agent doesn't get stuck
 in a busy state.
+
+XOR-on-the-wire: every dispatch picks a random byte 0-255, XORs the
+payload with it before multipart upload, and tells Whiskers to reverse
+the XOR while writing byte-by-byte. This avoids leaving an unencrypted
+copy of the payload in HTTP buffers / OS network stacks / the agent's
+request memory — Defender's network inspection on the EDR VM otherwise
+sees the cleartext payload before WriteAsync runs and can flag it
+before our multipart parser even completes.
 """
 
 import logging
 import os
+import secrets
 import time
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -241,20 +250,27 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
         # Build the phase-1 snapshot the UI shows immediately. It's a
         # complete EDR-result dict with status="polling_alerts" and an
         # empty alerts array; Phase 2 will overwrite it on disk when the
-        # alerts arrive.
+        # alerts arrive. The AV-block-vs-clean-exec distinction lives in
+        # `summary.blocked_by_av` — we don't fork the polling status for
+        # that because the polling itself happens entirely between
+        # LitterBox and Elastic, regardless of what the EDR VM did.
         kind = exec_outcome["kind"]
         is_blocked = (kind == "virus")
-        phase_1_status = "blocked_polling_alerts" if is_blocked else "polling_alerts"
+        phase_1_status = "polling_alerts"
         max_wait = (
             self.profile.av_block_wait_seconds if is_blocked
             else self.profile.wait_seconds_for_alerts
         )
         exec_logs = exec_outcome.get("exec_logs", {})
         # For the AV-block path the process never ran, so kill
-        # classification doesn't apply. For successful spawns we already
-        # know if the EDR terminated it externally — surface it now so
-        # the operator doesn't have to wait for Phase 2 to see it.
-        killed_by_edr = False if is_blocked else self._classify_kill(exec_logs)
+        # classification doesn't apply. For .exe successful spawns we can
+        # rely on the heuristic in Phase 1; for .dll spawns the heuristic
+        # produces false positives (rundll32 exits 1 on bad-export, etc.)
+        # so we defer to Phase 2 which has alert evidence.
+        killed_by_edr = (
+            False if is_blocked
+            else self._classify_kill(exec_logs, filename=filename)
+        )
         raw_exec_status = exec_logs.get("status")
         exec_status_label = (
             "virus" if is_blocked
@@ -284,7 +300,6 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
                 "run_start": run_start.isoformat(),
                 "run_end": None,
                 "wait_seconds_for_alerts": max_wait,
-                "phase": phase_1_status,
                 "blocked_by_av": is_blocked,
             },
         }
@@ -321,13 +336,22 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
         alerts fire in real-time — we don't need to hold the lock through the
         post-exec wait window just to query Elastic afterwards.
         """
-        # Step 3 — exec.
+        # Step 3 — exec. The payload travels XOR-encoded with a random
+        # per-dispatch byte; Whiskers reverses the XOR byte-by-byte while
+        # writing to disk. Avoids cleartext payload sitting in HTTP buffers
+        # where Defender's network inspection might flag it pre-write.
+        # `bytes.translate` is C-implemented; a generator over file_bytes
+        # would take seconds on a 12 MB sample.
+        xor_key = secrets.randbelow(256)
+        xor_table = bytes(b ^ xor_key for b in range(256))
+        xored = file_bytes.translate(xor_table)
         try:
             exec_resp = self.agent.exec(
-                file_bytes=file_bytes,
+                file_bytes=xored,
                 filename=filename,
                 drop_path=self.profile.drop_path,
                 executable_args=executable_args,
+                xor_key=xor_key,
             )
         except AgentUnreachable as exc:
             return {**self._unreachable_result(exc), "_final": True}
@@ -444,6 +468,7 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
         return self._success_result(
             agent_info, outcome["exec_logs"], outcome["pid"],
             run_start, run_end, hostname, alerts,
+            file_name=file_name,
         )
 
     def _poll_alerts(
@@ -526,24 +551,40 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
             time.sleep(poll_interval)
 
     @classmethod
-    def _classify_kill(cls, exec_logs: dict) -> bool:
+    def _classify_kill(
+        cls,
+        exec_logs: dict,
+        *,
+        filename: Optional[str] = None,
+        alerts: Optional[list] = None,
+    ) -> bool:
         """If Whiskers didn't issue a kill and the process didn't exit
-        cleanly, something external terminated it. In a LitterBox dispatch
-        the EDR is the only thing on the VM that does that — so we label
-        it as a behavior-protection kill.
+        cleanly, something external terminated it. For .exe payloads on
+        an EDR-instrumented host, "something external" is overwhelmingly
+        the EDR — the heuristic alone is reliable.
 
-        Edge case: a payload that crashes on its own with a non-zero exit
-        code will get the same label. That's an acceptable false positive
-        — when you're running suspect binaries on an EDR-instrumented host,
-        a non-zero exit you didn't ask for is overwhelmingly the EDR.
+        For .dll payloads spawned via rundll32, exit_code != 0 is much
+        noisier: GetProcAddress failure on a missing export, DllMain
+        returning FALSE, even a malformed DLL all produce non-zero exits
+        with no EDR involvement. So for DLLs we additionally require at
+        least one Elastic alert as evidence before flagging killed_by_edr.
+
+        Phase 1 has no alerts yet, so for DLLs Phase 1 always returns
+        False; Phase 2 re-evaluates after correlation and may flip True.
         """
         raw_status = (exec_logs.get("status") or "").lower()
         if raw_status == "killed":
-            # The agent issued the kill itself (orchestrator timeout). Not
-            # an external termination.
+            # The agent issued the kill itself (orchestrator timeout).
             return False
         exit_code = exec_logs.get("exit_code")
-        return exit_code not in (0, None)
+        if exit_code in (0, None):
+            return False
+
+        is_dll = bool(filename and filename.lower().endswith(".dll"))
+        if is_dll:
+            # DLL exit codes are unreliable — require alert evidence.
+            return bool(alerts)
+        return True
 
     def _success_result(
         self,
@@ -554,10 +595,15 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
         run_end: datetime,
         hostname: str,
         alerts: List[Alert],
+        file_name: Optional[str] = None,
     ) -> dict:
         alert_dicts = [a.to_dict() for a in alerts]
         high_severity_count = sum(1 for a in alerts if a.severity in HIGH_SEVERITY)
-        killed_by_edr = self._classify_kill(exec_logs)
+        # Phase 2 has alerts in hand — feed them in so the .dll-via-rundll32
+        # case can confirm killed_by_edr only when alerts back it up.
+        killed_by_edr = self._classify_kill(
+            exec_logs, filename=file_name, alerts=alerts,
+        )
         # Surface "killed_by_edr" as the user-facing exec_status when we
         # have evidence — the raw "exited" label is technically right but
         # actively misleading when behavior protection was the cause.
@@ -584,6 +630,7 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
                 "total_alerts": len(alert_dicts),
                 "high_severity_alerts": high_severity_count,
                 "killed_by_edr": killed_by_edr,
+                "blocked_by_av": False,
                 "run_start": run_start.isoformat(),
                 "run_end": run_end.isoformat(),
                 "wait_seconds_for_alerts": self.profile.wait_seconds_for_alerts,

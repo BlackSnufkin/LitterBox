@@ -124,10 +124,8 @@ class AnalysisCore {
             // the duration timer running and don't flip the status to
             // "Analysis completed". The EDR poll handler will stop the
             // timer + flip status when Phase 2 lands a terminal result.
-            const edrPolling = !!(data.results && data.results.edr && (
-                data.results.edr.status === 'polling_alerts' ||
-                data.results.edr.status === 'blocked_polling_alerts'
-            ));
+            const edrPolling = !!(data.results && data.results.edr &&
+                data.results.edr.status === 'polling_alerts');
 
             this.updateTimer();
             if (!edrPolling) {

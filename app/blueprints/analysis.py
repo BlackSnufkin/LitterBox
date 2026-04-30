@@ -166,6 +166,18 @@ def _handle_analysis_results(results, result_path, results_filename):
     return jsonify({'status': 'success', 'results': results})
 
 
+@analysis_bp.route('/whiskers', methods=['GET'])
+def whiskers_page():
+    """Render the Whiskers (EDR agents) inventory page. Live status data
+    is fetched async by the page's JS via /api/edr/agents/status."""
+    deps = current_app.extensions['litterbox']
+    return render_template(
+        'agents.html',
+        config=current_app.config,
+        edr_profiles=deps.edr_registry.list_profiles(),
+    )
+
+
 @analysis_bp.route('/analyze/edr/<profile>/<target>', methods=['GET', 'POST'])
 @error_handler
 def analyze_edr(profile, target):
@@ -205,7 +217,17 @@ def analyze_edr(profile, target):
         app.logger.warning(f"Result path not found for hash: {target}")
         return jsonify({'error': 'Result path not found'}), 404
 
-    app.logger.debug(f"Dispatching to EDR profile {profile!r} with payload {file_path}")
+    # Pull cmd args from the POST body (validated/sanitized like the
+    # dynamic-analysis route does) and join into the single string
+    # AgentClient.exec expects. For DLL targets the first token is the
+    # exported entry point — Whiskers wraps with rundll32 server-side.
+    cmd_args = _extract_and_validate_args(request, app.logger)
+    executable_args = ' '.join(cmd_args) if cmd_args else None
+
+    app.logger.debug(
+        f"Dispatching to EDR profile {profile!r} with payload {file_path} "
+        f"args={executable_args!r}"
+    )
     results_filename = f'edr_{profile}_results.json'
 
     # Phase 2 callback — runs on a background thread when alerts arrive.
@@ -232,7 +254,8 @@ def analyze_edr(profile, target):
 
     try:
         results = deps.edr_registry.dispatch_split(
-            profile, file_path, app.config, _on_phase_2_done
+            profile, file_path, app.config, _on_phase_2_done,
+            executable_args=executable_args,
         )
     except Exception as e:
         app.logger.error(f"EDR dispatch failed: {e}", exc_info=True)

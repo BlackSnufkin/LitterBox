@@ -668,9 +668,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Navigate to dynamic analysis
                 window.location.href = `/analyze/${type}/${currentFileHash}`;
             } else if (type.startsWith('edr:')) {
-                // EDR profile dispatch: type is "edr:<profile_name>"
-                // Server-side route is /analyze/edr/<profile>/<hash>.
+                // EDR profile dispatch: type is "edr:<profile_name>".
+                // Each profile body has its own args input (id =
+                // edrArgs-<profile>); read it, persist to localStorage so
+                // the results page's POST forwards it to Whiskers.
                 const profile = type.slice(4);
+                const argsInput = document.getElementById(`edrArgs-${profile}`);
+                const argsValue = argsInput ? argsInput.value : '';
+                const args = argsValue.split(' ').filter(arg => arg.trim() !== '');
+                localStorage.setItem('analysisArgs', JSON.stringify(args));
                 window.location.href = `/analyze/edr/${encodeURIComponent(profile)}/${currentFileHash}`;
             } else {
                 // Navigate to static analysis

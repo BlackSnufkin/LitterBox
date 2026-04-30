@@ -251,7 +251,14 @@ class AnalysisManager:
 
         self.logger.debug("Initializing RedEdr analyzer")
         try:
-            target_name = target.split('\\')[-1]
+            # For DLL targets we spawn `rundll32.exe <dll>,<entry>` — the
+            # actual running process is rundll32, not the DLL. RedEdr's
+            # --trace filter takes a process name, so point it at
+            # rundll32.exe to capture ETW from the DLL's host process.
+            if target.lower().endswith('.dll'):
+                target_name = 'rundll32.exe'
+            else:
+                target_name = target.split('\\')[-1]
             rededr = RedEdrAnalyzer(self.config)
             if not rededr.start_tool(target_name):
                 self.logger.error("Failed to start RedEdr")
@@ -389,12 +396,28 @@ class AnalysisManager:
             raise Exception(f"Invalid or non-existent PID: {e}")
 
     def _create_new_process(self, target: str, cmd_args: list) -> Tuple[subprocess.Popen, int]:
-        """Create and validate new process"""
-        command = [target]
-        if cmd_args:
-            command.extend(cmd_args)
-            
-        self.logger.debug(f"Starting new process: {command}")
+        """Create and validate new process. DLL targets are wrapped with
+        rundll32.exe — Windows can't directly Popen a .dll, and the
+        operator's first cmd_arg is treated as the exported entry point
+        (mandatory for DLLs)."""
+        if target.lower().endswith('.dll'):
+            if not cmd_args:
+                raise Exception(
+                    "DLL execution requires an entry point as the first "
+                    "command-line argument (rundll32 syntax: <ExportName> "
+                    "[args...])"
+                )
+            entry, *extra = cmd_args
+            # rundll32.exe expects: <dll>,<entry> [args...]
+            # The dll path and entry name are joined with a comma into a
+            # single argv slot so rundll32 parses them as one target spec.
+            command = ['rundll32.exe', f'{target},{entry}', *extra]
+            self.logger.debug(f"DLL target — wrapping with rundll32: {command}")
+        else:
+            command = [target]
+            if cmd_args:
+                command.extend(cmd_args)
+            self.logger.debug(f"Starting new process: {command}")
         
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW

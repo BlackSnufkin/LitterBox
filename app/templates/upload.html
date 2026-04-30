@@ -134,7 +134,7 @@
                 <div id="argsInputContainer">
                     <label for="analysisArgs" class="lb-eyebrow" style="display: block; margin-bottom: 6px;">Command-line Arguments</label>
                     <input type="text" id="analysisArgs" placeholder="Enter arguments separated by spaces" class="lb-input lb-mono"/>
-                    <p class="lb-muted" style="margin-top: 6px; font-size: 12px;">Arguments passed to the payload at execution time.</p>
+                    <p class="lb-muted" style="margin-top: 6px; font-size: 12px;">Arguments passed to the payload at execution time. <span class="lb-strong">For DLL files</span> the first argument is the exported entry point (e.g. <span class="lb-mono">DllMain</span>) — passed to <span class="lb-mono">rundll32.exe</span>.</p>
                 </div>
                 <button type="button" onclick="selectAnalysisType('dynamic')" class="lb-mode-cta">
                     Run Dynamic Scan
@@ -154,6 +154,12 @@
                     <li class="lb-ok">EDR Alert Correlation</li>
                     <li class="lb-ok">Execution Log Capture</li>
                 </ul>
+                <div class="edr-args-container">
+                    <label for="edrArgs-{{ profile.name }}" class="lb-eyebrow" style="display: block; margin-bottom: 6px;">Command-line Arguments</label>
+                    <input type="text" id="edrArgs-{{ profile.name }}" data-edr-args="{{ profile.name }}"
+                           placeholder="Enter arguments separated by spaces" class="lb-input lb-mono"/>
+                    <p class="lb-muted" style="margin-top: 6px; font-size: 12px;">Forwarded to the spawned process on the EDR VM. <span class="lb-strong">For DLL files</span> the first argument is the exported entry point (e.g. <span class="lb-mono">DllMain</span>) — passed to <span class="lb-mono">rundll32.exe</span>.</p>
+                </div>
                 <button type="button" onclick="selectAnalysisType('edr:{{ profile.name }}')" class="lb-mode-cta">
                     Run with {{ profile.display_name }}
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>

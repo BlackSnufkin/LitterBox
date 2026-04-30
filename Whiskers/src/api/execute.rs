@@ -91,33 +91,69 @@ pub async fn exec(
         // Distinguish if we can; otherwise treat as generic write failure.
         tracing::error!(error = %err, "Failed to write payload");
         let virus_signaled = is_likely_av_block(&err);
-        let resp = if virus_signaled {
-            ExecResponse {
+        if virus_signaled {
+            // 200 OK — the agent successfully detected an AV intercept.
+            // It's a real outcome of the run, not a transport-level error.
+            return Ok(Json(ExecResponse {
                 status: "virus",
                 pid: None,
                 message: Some(format!("Antivirus blocked write: {err}")),
-            }
-        } else {
-            ExecResponse {
-                status: "error",
-                pid: None,
-                message: Some(format!("Failed to write file: {err}")),
-            }
-        };
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(resp)));
+            }));
+        }
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ExecResponse {
+            status: "error",
+            pid: None,
+            message: Some(format!("Failed to write file: {err}")),
+        })));
     }
 
     // Kill any previous run that's still hanging around (defensive — orchestrator
     // should have called kill, but if it didn't, don't leave orphans).
     take_previous_run_for_cleanup(&state).await;
 
-    // Spawn the payload.
-    let mut command = Command::new(&file_path);
-    if let Some(args) = form.executable_args.as_ref() {
-        if !args.is_empty() {
-            command.args(parse_args(args));
+    // Spawn the payload. Windows can't directly exec a `.dll` — those need
+    // to go through `rundll32.exe <dll>,<entry-point> [args...]`. The
+    // entry point is required and comes from `executable_args`; if it's
+    // missing we bail with a clear error instead of letting Windows
+    // return ERROR_BAD_EXE_FORMAT.
+    let is_dll = file_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.eq_ignore_ascii_case("dll"))
+        .unwrap_or(false);
+    let executable_args = form.executable_args.as_deref().unwrap_or("").trim();
+
+    let mut command = if is_dll {
+        if executable_args.is_empty() {
+            tracing::error!("DLL spawn rejected: no entry point provided in executable_args");
+            let _ = tokio::fs::remove_file(&file_path).await;
+            return Err((StatusCode::BAD_REQUEST, Json(ExecResponse {
+                status: "error",
+                pid: None,
+                message: Some(
+                    "DLL execution requires an entry point in executable_args \
+                     (rundll32 syntax: <ExportedFunction> [args...])".into(),
+                ),
+            })));
         }
-    }
+        // Split the args: the first token is the export name (becomes
+        // `<dll>,<export>`), everything after is forwarded to rundll32.
+        let mut tokens = executable_args.split_whitespace();
+        let entry = tokens.next().unwrap();   // checked non-empty above
+        let rest: Vec<&str> = tokens.collect();
+        let dll_target = format!("{},{}", file_path.display(), entry);
+        tracing::info!(dll = %file_path.display(), entry, "Spawning DLL via rundll32");
+        let mut c = Command::new("rundll32.exe");
+        c.arg(dll_target);
+        for r in rest { c.arg(r); }
+        c
+    } else {
+        let mut c = Command::new(&file_path);
+        if !executable_args.is_empty() {
+            c.args(parse_args(executable_args));
+        }
+        c
+    };
     command
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -132,20 +168,18 @@ pub async fn exec(
             let virus_signaled = is_likely_av_block(&err);
             // Best-effort cleanup of the dropper.
             let _ = tokio::fs::remove_file(&file_path).await;
-            let resp = if virus_signaled {
-                ExecResponse {
+            if virus_signaled {
+                return Ok(Json(ExecResponse {
                     status: "virus",
                     pid: None,
                     message: Some(format!("Antivirus blocked spawn: {err}")),
-                }
-            } else {
-                ExecResponse {
-                    status: "error",
-                    pid: None,
-                    message: Some(format!("Failed to spawn process: {err}")),
-                }
-            };
-            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(resp)));
+                }));
+            }
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ExecResponse {
+                status: "error",
+                pid: None,
+                message: Some(format!("Failed to spawn process: {err}")),
+            })));
         }
     };
 

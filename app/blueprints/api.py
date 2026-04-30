@@ -111,6 +111,80 @@ def api_edr_profiles():
     return jsonify({'profiles': deps.edr_registry.list_profiles()})
 
 
+@api_bp.route('/api/edr/agents/status', methods=['GET'])
+@error_handler
+def api_edr_agents_status():
+    """Live probe of every registered EDR profile.
+
+    For each profile we hit the agent's /api/info + /api/lock/status and
+    the Elastic stack's `GET /` ping in parallel. Each probe is bounded
+    by a tight timeout so an unreachable agent doesn't stall the whole
+    page. Used by /whiskers to render the inventory + live status.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from ..analyzers.edr.agent_client import AgentClient, AgentError, AgentUnreachable
+    from ..analyzers.edr.elastic_client import ElasticClient, ElasticError, ElasticUnreachable
+
+    deps = _deps()
+    profiles = list(deps.edr_registry._PROFILES.values())  # internal accessor — same module
+
+    def probe(p):
+        agent = AgentClient(p.agent_url, timeout=4)
+        elastic = ElasticClient(
+            p.elastic_url, p.elastic_apikey,
+            verify_tls=p.elastic_verify_tls, timeout=5,
+        )
+        agent_info, agent_err, lock = None, None, None
+        try:
+            agent_info = agent.get_info()
+            try:
+                lock = agent.lock_status()
+            except (AgentUnreachable, AgentError):
+                pass
+        except AgentUnreachable as e:
+            agent_err = f"unreachable: {e}"
+        except AgentError as e:
+            agent_err = f"error: {e}"
+
+        elastic_info, elastic_err = None, None
+        try:
+            elastic_info = elastic.ping()
+        except ElasticUnreachable as e:
+            elastic_err = f"unreachable: {e}"
+        except ElasticError as e:
+            elastic_err = f"error: {e}"
+
+        return {
+            "name": p.name,
+            "display_name": p.display_name,
+            "type": "elastic-defend",
+            "agent_url": p.agent_url,
+            "elastic_url": p.elastic_url,
+            "agent": {
+                "reachable": agent_info is not None,
+                "error": agent_err,
+                "hostname": (agent_info or {}).get("hostname"),
+                "os_version": (agent_info or {}).get("os_version"),
+                "agent_version": (agent_info or {}).get("agent_version"),
+            },
+            "lock": lock,
+            "elastic": {
+                "reachable": elastic_info is not None,
+                "error": elastic_err,
+                "cluster_name": (elastic_info or {}).get("cluster_name"),
+                "version": ((elastic_info or {}).get("version") or {}).get("number"),
+            },
+        }
+
+    if not profiles:
+        return jsonify({"agents": []})
+
+    # Probe in parallel — total wall time is the slowest probe, not sum of all.
+    with ThreadPoolExecutor(max_workers=min(8, len(profiles))) as pool:
+        results = list(pool.map(probe, profiles))
+    return jsonify({"agents": results})
+
+
 @api_bp.route('/api/results/<target>/edr/<profile>', methods=['GET'])
 @error_handler
 def api_edr_results(target, profile):

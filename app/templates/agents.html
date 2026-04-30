@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}Whiskers{% endblock %}
+
+{% set active_nav = 'whiskers' %}
+
+{% block content %}
+
+{% if not edr_profiles %}
+<!-- No profiles registered — point the operator at the docs. -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Agents</div>
+    <div class="lb-panel-body">
+        <div class="lb-empty" style="flex-direction: column; padding: 24px; gap: 8px;">
+            <div class="lb-strong">No EDR profiles registered</div>
+            <div class="lb-muted" style="font-size: 12px; text-align: center; max-width: 600px;">
+                Drop a YAML at <span class="lb-mono">Config/edr_profiles/&lt;name&gt;.yml</span>
+                (copy from <span class="lb-mono">elastic.yml.example</span>) and restart LitterBox.
+                See the <span class="lb-mono">README.md</span> "Elastic EDR Setup" section
+                for the full deployment guide.
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>EDR Agents
+        <span id="agentsCount" class="lb-tag muted" style="margin-left: 12px;">{{ edr_profiles|length }} registered</span>
+        <button id="agentsRefreshBtn" onclick="refreshAgents()" class="lb-btn lb-btn-ghost"
+                style="margin-left: auto; padding: 2px 10px; font-size: 12px;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114-5M20 14a8 8 0 01-14 5"/>
+            </svg>
+            Refresh
+        </button>
+    </div>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 12px; margin: 0 0 4px 0;">
+            One card per profile registered under
+            <span class="lb-mono">Config/edr_profiles/</span>. The Whiskers agent + Elastic stack
+            are probed in parallel; status refreshes every minute.
+        </p>
+    </div>
+</div>
+
+<div id="agentsGrid" class="lb-grid-2" style="margin-top: 12px;">
+    {% for profile in edr_profiles %}
+    <div class="lb-agent-card" data-profile="{{ profile.name }}">
+        <div class="lb-agent-card-hdr">
+            <div class="lb-agent-card-title">
+                <span id="agentDot-{{ profile.name }}" class="lb-agent-dot lb-agent-dot--unknown" title="Probing…"></span>
+                <span class="lb-strong" style="font-size: 14px;">{{ profile.display_name }}</span>
+                <span class="lb-tag info" style="margin-left: 8px;">EDR Agent</span>
+            </div>
+            <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">
+                <span id="agentType-{{ profile.name }}">elastic-defend</span>
+            </div>
+        </div>
+        <div class="lb-agent-card-body">
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">Status</span>
+                <span id="agentStatus-{{ profile.name }}" class="lb-muted">Probing…</span>
+            </div>
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">Hostname</span>
+                <span id="agentHostname-{{ profile.name }}" class="lb-mono lb-muted">—</span>
+            </div>
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">OS</span>
+                <span id="agentOs-{{ profile.name }}" class="lb-mono lb-muted">—</span>
+            </div>
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">Agent Version</span>
+                <span id="agentVersion-{{ profile.name }}" class="lb-mono lb-muted">—</span>
+            </div>
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">Lock</span>
+                <span id="agentLock-{{ profile.name }}" class="lb-muted">—</span>
+            </div>
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">Agent URL</span>
+                <span class="lb-mono" style="font-size: 11px;">{{ profile.agent_url }}</span>
+            </div>
+            <div class="lb-agent-divider"></div>
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">Elastic</span>
+                <span id="agentElastic-{{ profile.name }}" class="lb-muted">Probing…</span>
+            </div>
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">Cluster</span>
+                <span id="agentCluster-{{ profile.name }}" class="lb-mono lb-muted">—</span>
+            </div>
+            <div class="lb-agent-row">
+                <span class="lb-eyebrow">Elastic URL</span>
+                <span class="lb-mono" style="font-size: 11px; word-break: break-all;">{{ profile.elastic_url }}</span>
+            </div>
+            <div id="agentError-{{ profile.name }}" class="lb-agent-error hidden"></div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+.lb-agent-card {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--lb-border-hi);
+    background: var(--lb-panel);
+}
+.lb-agent-card-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--lb-bg-soft);
+    border-bottom: 1px solid var(--lb-border);
+}
+.lb-agent-card-title { display: flex; align-items: center; gap: 8px; }
+.lb-agent-card-body {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 12px 14px;
+}
+.lb-agent-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; min-height: 18px;
+}
+.lb-agent-row .lb-eyebrow { flex: 0 0 auto; }
+.lb-agent-row > :last-child {
+    text-align: right; font-size: 12px; word-break: break-all;
+}
+.lb-agent-divider {
+    border-top: 1px solid var(--lb-border);
+    margin: 4px -14px;
+}
+.lb-agent-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+}
+.lb-agent-dot--ok      { background: var(--lb-sev-low); box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.12); }
+.lb-agent-dot--down    { background: var(--lb-accent); box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12); }
+.lb-agent-dot--partial { background: var(--lb-sev-medium); box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.12); }
+.lb-agent-dot--unknown { background: var(--lb-text-mute); }
+.lb-agent-error {
+    margin-top: 6px; padding: 8px 10px;
+    background: rgba(248, 113, 113, 0.06);
+    border-left: 2px solid var(--lb-accent);
+    font-size: 11px; color: var(--lb-accent-soft);
+    word-break: break-all;
+}
+</style>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/agents/core.js') }}"></script>
+{% endblock %}

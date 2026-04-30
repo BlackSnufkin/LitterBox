@@ -166,6 +166,14 @@ class ElasticClient:
             # Match alerts touching THIS specific payload across all the
             # places Elastic Defend records the filename. The MD5 prefix
             # in the filename ensures uniqueness across uploads.
+            #
+            # The command-line / args matches are critical for DLL
+            # payloads spawned via rundll32: the running process is
+            # rundll32.exe (so file.name / process.name / file.path /
+            # process.executable all point at the system rundll32),
+            # and the DLL's path only appears inside the command line
+            # (`rundll32.exe <dll-path>,<entry>`). Same pattern for any
+            # other launcher-hosted payload.
             filters.append({"bool": {
                 "minimum_should_match": 1,
                 "should": [
@@ -183,6 +191,14 @@ class ElasticClient:
                     }}},
                     {"wildcard": {"process.executable": {
                         "value": f"*{file_name}",
+                        "case_insensitive": True,
+                    }}},
+                    {"wildcard": {"process.command_line": {
+                        "value": f"*{file_name}*",
+                        "case_insensitive": True,
+                    }}},
+                    {"wildcard": {"process.args": {
+                        "value": f"*{file_name}*",
                         "case_insensitive": True,
                     }}},
                 ],

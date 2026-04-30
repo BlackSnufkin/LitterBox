@@ -4,15 +4,18 @@
 //
 // The orchestrator runs in two phases:
 //   Phase 1 (exec)        — sync over HTTP; returns when the agent finishes
-//                          spawning the payload (success or AV block)
+//                          spawning the payload (success or EDR block)
 //   Phase 2 (correlation) — async on the server (background thread);
 //                          polls Elastic for alerts, overwrites the saved
 //                          findings JSON when done.
 //
 // On the initial POST response we render whatever Phase 1 produced. If
-// the status is `polling_alerts` or `blocked_polling_alerts`, we kick
-// off a foreground poll of GET /api/results/<hash>/edr/<profile> so the
-// alerts pane and summary chip reflect Phase 2 progress in real time.
+// the status is `polling_alerts`, we kick off a foreground poll of GET
+// /api/results/<hash>/edr/<profile> so the alerts pane and summary chip
+// reflect Phase 2 progress in real time. The block-vs-clean-exec
+// distinction is carried in `summary.blocked_by_av` — Phase 2 doesn't
+// fork its status on it because the polling itself is purely between
+// LitterBox and Elastic, regardless of what the EDR VM did.
 //
 // Targets:
 //   - #edrSummary           (summary tab)
@@ -25,7 +28,7 @@ import { errorPanel, cleanState, threatState, statRow, panel, kvGrid, codeBlock,
 import summaryTool from './summary.js';
 
 const HIGH_SEVERITY = new Set(['high', 'critical']);
-const POLLING_STATUSES = new Set(['polling_alerts', 'blocked_polling_alerts']);
+const POLLING_STATUS = 'polling_alerts';
 const POLL_INTERVAL_MS = 3000;
 
 // Module-level handle so a re-render with a new payload aborts the old
@@ -40,7 +43,7 @@ function clearPoll() {
 }
 
 function isPolling(results) {
-    return POLLING_STATUSES.has(results?.status);
+    return results?.status === POLLING_STATUS;
 }
 
 function severityRank(s) {
@@ -110,8 +113,7 @@ function renderAlerts(results) {
     // the stat chip stays the same width as the numeric ones beside it.
     const STATUS_LABELS = {
         'completed':                'Completed',
-        'blocked_by_av':            'AV Block',
-        'blocked_polling_alerts':   'AV Block',
+        'blocked_by_av':            'EDR Block',
         'polling_alerts':           'Polling…',
         'partial':                  'Partial',
         'busy':                     'Busy',
@@ -122,7 +124,7 @@ function renderAlerts(results) {
     const statusSeverity = (
         status === 'completed' && totalAlerts === 0 ? 'clean' :
         status === 'completed' ? 'critical' :
-        status === 'blocked_by_av' || status === 'blocked_polling_alerts' ? 'critical' :
+        status === 'blocked_by_av' ? 'critical' :
         status === 'polling_alerts' ? 'info' :
         status === 'partial' ? 'medium' :
         'critical'
@@ -158,8 +160,8 @@ function renderAlerts(results) {
         // Phase 2 in flight on the server — show a busy indicator in the
         // alerts pane until the next poll updates this state.
         const max = summary.wait_seconds_for_alerts || '?';
-        const blockedHint = status === 'blocked_polling_alerts'
-            ? ' The AV blocked the spawn; we are correlating against the prevention alert.'
+        const blockedHint = summary.blocked_by_av
+            ? ' The EDR blocked the spawn; we are correlating against the prevention alert.'
             : '';
         target.innerHTML = `
             <div class="lb-empty" style="flex-direction: column; padding: 24px 16px; gap: 8px; align-items: flex-start;">
