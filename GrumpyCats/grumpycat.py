@@ -316,32 +316,32 @@ class LitterBoxClient:
     def get_results(self, target: str, analysis_type: str) -> Dict:
         """Get results for a specific analysis type."""
         self._validate_analysis_type(analysis_type, ['static', 'dynamic', 'info'])
-        response = self._make_request('GET', f'/results/{target}/{analysis_type}')
+        response = self._make_request('GET', f'/results/{analysis_type}/{target}')
         return response.json()
 
     def get_file_info(self, target: str) -> Dict:
         """Get file information via API endpoint."""
-        response = self._make_request('GET', f'/api/results/{target}/info')
+        response = self._make_request('GET', f'/api/results/info/{target}')
         return response.json()
 
     def get_static_results(self, target: str) -> Dict:
         """Get static analysis results via API endpoint."""
-        response = self._make_request('GET', f'/api/results/{target}/static')
+        response = self._make_request('GET', f'/api/results/static/{target}')
         return response.json()
 
     def get_dynamic_results(self, target: str) -> Dict:
         """Get dynamic analysis results via API endpoint."""
-        response = self._make_request('GET', f'/api/results/{target}/dynamic')
+        response = self._make_request('GET', f'/api/results/dynamic/{target}')
         return response.json()
 
     def get_holygrail_results(self, target: str) -> Dict:
         """Get HolyGrail/BYOVD analysis results via API endpoint."""
-        response = self._make_request('GET', f'/api/results/{target}/holygrail')
+        response = self._make_request('GET', f'/api/results/holygrail/{target}')
         return response.json()
 
     def get_risk_assessment(self, target: str) -> Dict:
         """Get the computed detection assessment (score, level, triggering indicators) for a target."""
-        response = self._make_request('GET', f'/api/results/{target}/risk')
+        response = self._make_request('GET', f'/api/results/risk/{target}')
         return response.json()
 
     def get_files_summary(self) -> Dict:

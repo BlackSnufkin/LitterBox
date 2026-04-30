@@ -11,7 +11,7 @@
 //
 // On the initial POST response we render whatever Phase 1 produced. If
 // the status is `polling_alerts`, we kick off a foreground poll of GET
-// /api/results/<hash>/edr/<profile> so the alerts pane and summary chip
+// /api/results/edr/<profile>/<hash> so the alerts pane and summary chip
 // reflect Phase 2 progress in real time. The block-vs-clean-exec
 // distinction is carried in `summary.blocked_by_av` — Phase 2 doesn't
 // fork its status on it because the polling itself is purely between
@@ -595,7 +595,7 @@ function schedulePoll(profile) {
     if (!hash || !profile) return;
     _pollTimer = setTimeout(async () => {
         try {
-            const resp = await fetch(`/api/results/${encodeURIComponent(hash)}/edr/${encodeURIComponent(profile)}`, {
+            const resp = await fetch(`/api/results/edr/${encodeURIComponent(profile)}/${encodeURIComponent(hash)}`, {
                 cache: 'no-store',
             });
             if (!resp.ok) {

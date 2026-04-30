@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         showToast('HolyGrail analysis completed successfully', 'success');
                         // Redirect to results page
                         setTimeout(() => {
-                            window.location.href = `/results/${currentFileHash}/byovd`;
+                            window.location.href = `/results/byovd/${currentFileHash}`;
                         }, 1000);
                     } else {
                         // Handle error

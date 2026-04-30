@@ -14,7 +14,7 @@
     <div class="lb-panel-hdr">
         <span class="lb-glyph">▸</span>Dynamic Analysis Summary
         {% if file_info %}
-            <button onclick="window.location.href='/results/{{ file_info.md5 }}/info'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;" aria-label="Navigate back to file information">
+            <button onclick="window.location.href='/results/info/{{ file_info.md5 }}'" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 12px;" aria-label="Navigate back to file information">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
                 Back to File Info
             </button>

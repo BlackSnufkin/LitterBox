@@ -1,5 +1,5 @@
 // app/static/js/results/core.js
-// Entry point for the /results/<target>/<analysis_type> page.
+// Entry point for the /results/<analysis_type>/<target> page.
 // Wires up TabManager, PayloadManager, AnalysisTypeHandler, ModalHandler
 // and the AnalysisCore poll loop.
 
@@ -215,7 +215,7 @@ window.startHolyGrailScan = function() {
     .then(data => {
         if (data.status === 'success') {
             // Redirect to results page
-            window.location.href = `/results/${fileHash}/byovd`;
+            window.location.href = `/results/byovd/${fileHash}`;
         } else {
             // Handle error and restore button
             console.error('HolyGrail analysis failed:', data.error || data.message);

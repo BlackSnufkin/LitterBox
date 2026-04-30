@@ -1,5 +1,5 @@
 // app/static/js/byovd/core.js
-// /results/<hash>/byovd page entry: fetches BYOVD analysis, renders verdict,
+// /results/byovd/<hash> page entry: fetches BYOVD analysis, renders verdict,
 // details, imports, YARA matches, and Win10/11 mitigation status.
 
 import { PERF_CONFIG, ElementCache, DOMUtils, AnimationSystem } from './utils.js';
@@ -60,7 +60,7 @@ class ByovdApp {
     // Parse path efficiently
     const pathSegments = window.location.pathname.split('/').filter(Boolean);
     
-    // Check for results pattern: /results/{hash}/byovd
+    // Check for results pattern: /results/byovd/{hash}
     const resultsIndex = pathSegments.indexOf('results');
     if (resultsIndex !== -1 && pathSegments[resultsIndex + 1]) {
       return pathSegments[resultsIndex + 1];
@@ -167,7 +167,7 @@ class ByovdApp {
 
       console.log('[BYOVD] Fetching data from API...');
       const data = await this.apiClient.fetch(
-        `/api/results/${encodeURIComponent(this.driverHash)}/holygrail`,
+        `/api/results/holygrail/${encodeURIComponent(this.driverHash)}`,
         { forceRefresh }
       );
 

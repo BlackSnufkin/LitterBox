@@ -50,7 +50,7 @@ export async function apiDelete(url, options = {}) {
     return response.json();
 }
 
-// Cached GET — useful for relatively-static endpoints (e.g. /api/results/<hash>/info).
+// Cached GET — useful for relatively-static endpoints (e.g. /api/results/info/<hash>).
 // Returns the cached promise on repeat calls; pass {forceRefresh:true} to bypass.
 const _cache = new Map();
 export async function apiGetCached(url, { forceRefresh = false, ...options } = {}) {

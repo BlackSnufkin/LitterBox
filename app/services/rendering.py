@@ -1,5 +1,5 @@
 # app/services/rendering.py
-"""Result-page render helpers for the /results/<target>/<type> endpoint."""
+"""Result-page render helpers for the /results/<type>/<target> endpoint."""
 import os
 
 from flask import current_app, render_template

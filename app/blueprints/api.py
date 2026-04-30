@@ -16,7 +16,7 @@ def _deps():
     return current_app.extensions['litterbox']
 
 
-@api_bp.route('/api/results/<target>/static', methods=['GET'])
+@api_bp.route('/api/results/static/<target>', methods=['GET'])
 @error_handler
 def api_static_results(target):
     app = current_app
@@ -36,7 +36,7 @@ def api_static_results(target):
         return jsonify(json.load(f))
 
 
-@api_bp.route('/api/results/<target>/dynamic', methods=['GET'])
+@api_bp.route('/api/results/dynamic/<target>', methods=['GET'])
 @error_handler
 def api_dynamic_results(target):
     app = current_app
@@ -61,7 +61,7 @@ def api_dynamic_results(target):
         return jsonify(json.load(f))
 
 
-@api_bp.route('/api/results/<target>/info', methods=['GET'])
+@api_bp.route('/api/results/info/<target>', methods=['GET'])
 @error_handler
 def api_file_info(target):
     app = current_app
@@ -81,7 +81,7 @@ def api_file_info(target):
         return jsonify(json.load(f))
 
 
-@api_bp.route('/api/results/<target>/holygrail', methods=['GET'])
+@api_bp.route('/api/results/holygrail/<target>', methods=['GET'])
 @error_handler
 def api_byovd_info(target):
     app = current_app
@@ -185,7 +185,7 @@ def api_edr_agents_status():
     return jsonify({"agents": results})
 
 
-@api_bp.route('/api/results/<target>/edr/<profile>', methods=['GET'])
+@api_bp.route('/api/results/edr/<profile>/<target>', methods=['GET'])
 @error_handler
 def api_edr_results(target, profile):
     """Read the saved findings for a specific EDR profile run on `target`."""
@@ -203,7 +203,7 @@ def api_edr_results(target, profile):
         return jsonify(json.load(f))
 
 
-@api_bp.route('/api/results/<target>/edr', methods=['GET'])
+@api_bp.route('/api/results/edr/<target>', methods=['GET'])
 @error_handler
 def api_edr_index(target):
     """List which EDR profiles have saved results for `target`."""
@@ -220,7 +220,7 @@ def api_edr_index(target):
     return jsonify({'profiles': sorted(profiles)})
 
 
-@api_bp.route('/api/results/<target>/risk', methods=['GET'])
+@api_bp.route('/api/results/risk/<target>', methods=['GET'])
 @error_handler
 def api_risk_assessment(target):
     """Return the computed detection assessment (score, level, triggering indicators) for a target."""

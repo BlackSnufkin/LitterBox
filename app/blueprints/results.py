@@ -15,7 +15,7 @@ def _deps():
     return current_app.extensions['litterbox']
 
 
-@results_bp.route('/results/<target>/<analysis_type>', methods=['GET'])
+@results_bp.route('/results/<analysis_type>/<target>', methods=['GET'])
 @error_handler
 def get_analysis_results(target, analysis_type):
     app = current_app

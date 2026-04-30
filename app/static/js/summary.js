@@ -443,15 +443,15 @@ function getDriverAnalysisStatus(driver) {
 
 // Action functions
 function viewFile(md5) {
-    window.location.href = `/results/${md5}/info`;
+    window.location.href = `/results/info/${md5}`;
 }
 
 function viewDriver(md5) {
-    window.location.href = `/results/${md5}/byovd`;
+    window.location.href = `/results/byovd/${md5}`;
 }
 
 function viewProcess(pid) {
-    window.location.href = `/results/${pid}/dynamic`;
+    window.location.href = `/results/dynamic/${pid}`;
 }
 
 function showFileDeleteWarning(md5) {
