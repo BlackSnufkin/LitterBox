@@ -8,6 +8,7 @@
 //! LitterBox queries the EDR's backend separately for the verdict.
 
 use std::net::{IpAddr, SocketAddr};
+use std::path::PathBuf;
 
 use axum::extract::DefaultBodyLimit;
 use axum::routing::{delete, get, post};
@@ -25,6 +26,8 @@ use crate::agent_log::{AgentLog, AgentLogLayer};
 use crate::state::AppState;
 
 const AGENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Name registered with Windows Task Scheduler for `--install` / `--uninstall`.
+const SCHEDULED_TASK_NAME: &str = "Whiskers";
 
 #[derive(Parser, Debug)]
 #[command(name = "whiskers", version, about = "Whiskers — LitterBox's sensor agent")]
@@ -44,6 +47,23 @@ struct Cli {
     /// dispatches larger samples.
     #[arg(long, default_value_t = 200)]
     max_payload_mb: usize,
+
+    /// Directory where incoming payloads are written when the orchestrator
+    /// does not specify a per-request drop path. Defaults to
+    /// `<agent-exe-dir>/samples`. The directory is created on first write.
+    #[arg(long)]
+    samples_dir: Option<PathBuf>,
+
+    /// Register Whiskers with Windows Task Scheduler so it auto-starts at
+    /// user logon (no admin elevation required). Forwards the current
+    /// invocation's flags into the task's command line, then exits without
+    /// starting the server. Use `--uninstall` to remove.
+    #[arg(long, conflicts_with = "uninstall")]
+    install: bool,
+
+    /// Remove the previously installed scheduled task and exit.
+    #[arg(long, conflicts_with = "install")]
+    uninstall: bool,
 }
 
 #[tokio::main]
@@ -64,10 +84,33 @@ async fn main() {
         .init();
 
     let cli = Cli::parse();
+
+    if cli.install {
+        match install_scheduled_task(&cli) {
+            Ok(()) => return,
+            Err(e) => {
+                eprintln!("install failed: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+    if cli.uninstall {
+        match uninstall_scheduled_task() {
+            Ok(()) => return,
+            Err(e) => {
+                eprintln!("uninstall failed: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+
     let addr = SocketAddr::new(cli.bind, cli.port);
     let max_payload_bytes = cli.max_payload_mb.saturating_mul(1024 * 1024);
+    let samples_dir = resolve_samples_dir(cli.samples_dir.clone());
 
-    let state = AppState::new(agent_log);
+    tracing::info!(samples_dir = %samples_dir.display(), "Default drop path");
+
+    let state = AppState::new(agent_log, samples_dir);
 
     // axum's default multipart body limit is 2 MiB — too small for real
     // payloads. Disable the route-level cap and re-impose our own via
@@ -130,4 +173,99 @@ async fn shutdown_signal() {
     }
 
     tracing::info!("shutdown signal received");
+}
+
+/// Pick the directory where payloads land by default.
+///
+/// CLI override (`--samples-dir`) wins; otherwise we resolve `<exe_dir>/samples`
+/// from `current_exe()`. If both lookups fail (extremely unusual), fall back
+/// to `./samples` relative to the working directory.
+fn resolve_samples_dir(cli_override: Option<PathBuf>) -> PathBuf {
+    if let Some(p) = cli_override {
+        return p;
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            return parent.join("samples");
+        }
+    }
+    PathBuf::from("samples")
+}
+
+/// Register Whiskers as an "at logon" scheduled task so it comes up
+/// automatically when the user logs into the EDR VM. We forward only the
+/// flags that actually differ from defaults — the task command line stays
+/// readable when inspected via `schtasks /Query`.
+///
+/// Runs as the invoking user, no elevation: we want spawned payloads to
+/// inherit the same privilege Whiskers has now (matches the operator's
+/// manual-launch behavior).
+#[cfg(target_os = "windows")]
+fn install_scheduled_task(cli: &Cli) -> std::io::Result<()> {
+    let exe = std::env::current_exe()?;
+    let mut tr = format!("\"{}\"", exe.display());
+    if cli.port != 8080 {
+        tr.push_str(&format!(" --port {}", cli.port));
+    }
+    if cli.bind.to_string() != "0.0.0.0" {
+        tr.push_str(&format!(" --bind {}", cli.bind));
+    }
+    if cli.max_payload_mb != 200 {
+        tr.push_str(&format!(" --max-payload-mb {}", cli.max_payload_mb));
+    }
+    if let Some(d) = &cli.samples_dir {
+        tr.push_str(&format!(" --samples-dir \"{}\"", d.display()));
+    }
+
+    let status = std::process::Command::new("schtasks.exe")
+        .args([
+            "/Create", "/F",
+            "/TN", SCHEDULED_TASK_NAME,
+            "/SC", "ONLOGON",
+            "/TR", &tr,
+        ])
+        .status()?;
+
+    if !status.success() {
+        return Err(std::io::Error::other(format!(
+            "schtasks /Create exited with {:?}",
+            status.code()
+        )));
+    }
+    println!(
+        "Installed scheduled task '{name}'. Whiskers will auto-start on the next user logon.\n  Command: {tr}\n  To remove: {exe} --uninstall",
+        name = SCHEDULED_TASK_NAME,
+        tr = tr,
+        exe = exe.display(),
+    );
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn uninstall_scheduled_task() -> std::io::Result<()> {
+    let status = std::process::Command::new("schtasks.exe")
+        .args(["/Delete", "/F", "/TN", SCHEDULED_TASK_NAME])
+        .status()?;
+    if !status.success() {
+        return Err(std::io::Error::other(format!(
+            "schtasks /Delete exited with {:?} (task may not exist)",
+            status.code()
+        )));
+    }
+    println!("Removed scheduled task '{}'.", SCHEDULED_TASK_NAME);
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn install_scheduled_task(_cli: &Cli) -> std::io::Result<()> {
+    Err(std::io::Error::other(
+        "--install is only supported on Windows (uses schtasks.exe)",
+    ))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn uninstall_scheduled_task() -> std::io::Result<()> {
+    Err(std::io::Error::other(
+        "--uninstall is only supported on Windows",
+    ))
 }

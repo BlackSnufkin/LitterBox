@@ -11,14 +11,29 @@ All notable changes to this project will be documented in this file.
 - RedEdr now captures Microsoft-Windows-Kernel-File / -Network / -Audit-API-Calls / Antimalware-Engine ETW events; new tabs surface File Ops / Network / Audit API / Defender with Process Tree panel and ETW Provider Diagnostics
 - Defender threat verdicts at runtime contribute +50 to the Detection Score (only verdicts; scan activity stays descriptive)
 - Whiskers — single-binary Rust HTTP agent (`Whiskers/`) for dispatching payloads to a separate EDR-instrumented Windows VM
+- Whiskers `--install` / `--uninstall` flags register an `ONLOGON` Windows scheduled task so the agent auto-starts at user logon (no UAC, runs as the invoking user)
+- Whiskers `--samples-dir` flag; default drop path is now `<agent-exe-dir>/samples/` (auto-created on first write) instead of `C:\Users\Public\Downloads\`
+- Whiskers chunked-XOR write (64 KiB working buffer) — multi-MB payloads finish in milliseconds instead of the 10+ seconds the byte-by-byte loop took, which had been timing out the orchestrator
 - Elastic EDR integration via per-profile YAMLs under `Config/edr_profiles/`; each profile gets a "Run with X" tab on the upload page
 - Two-phase EDR orchestration: Phase 1 (exec) returns sync, Phase 2 (Elastic alert poll) runs in a background thread and updates the saved JSON when done
-- Per-payload alert correlation — query scoped by `host.name` + filename across `file.name`/`process.name`/`file.path`/`process.executable`
+- Per-payload alert correlation — query scoped by `host.name` + filename across `file.name`/`process.name`/`file.path`/`process.executable`/`process.command_line`/`process.args` (the `command_line` / `args` clauses pull in alerts on rundll32-launched DLLs, which only carry the DLL name in the parent's command line)
 - AV-block detection from Whiskers (`status:"virus"` on Windows errno 225/995/1234) surfaces as `blocked_by_av`
-- EDR-kill detection — non-zero exit without an agent-issued kill is labeled "killed by EDR behavior protection"
+- EDR-kill detection — non-zero exit without an agent-issued kill is labeled "killed by EDR behavior protection". For DLLs, kill classification additionally requires alert evidence (DLL hosts can exit non-zero for benign reasons)
 - Per-alert detail panel: Reason, Rule Description, MITRE chips, Triggering API, Memory Region, Call Stack with module provenance, Final User Module, Process / Parent / EDR Response cards
 - High/critical EDR alerts contribute up to +50 to the Detection Score (AV blocks +35; multi-profile takes the max)
-- New endpoints: `GET /api/edr/profiles`, `GET /api/results/<hash>/edr[/<profile>]`, `GET/POST /analyze/edr/<profile>/<hash>`
+- New endpoints: `GET /api/edr/profiles`, `GET /api/edr/agents/status`, `GET /api/system/scanners`, `GET /api/results/edr/<target>[/<profile>]`, `GET/POST /analyze/edr/<profile>/<target>`
+- New pages: system dashboard at `/` (live scanner availability + EDR agent reachability, polls every minute), `/whiskers` agent inventory, `/analyze/all/<target>` "All" pipeline coordinator, `/results/edr/<profile>/<target>` saved-view (rich detail — MITRE chips, call stack, expandable per-alert detail, raw `_source` — backed by the same renderer as the live scan view)
+- "All" analysis mode: client-side coordinator runs Static + every EDR profile in parallel; Dynamic waits only for Static (EDR is on a remote VM, no local resource contention)
+- DLL execution support — payloads ending in `.dll` spawn via `rundll32.exe <path>,<entry> [args...]` in both the Whiskers agent and the local Dynamic analyzer; entry point comes from the executable-args field
+- GrumpyCats client gained EDR + scanner-health methods (`analyze_edr`, `get_edr_results`, `get_edr_index`, `list_edr_profiles`, `get_edr_agents_status`, `get_scanners_status`, `wait_for_edr_completion`); CLI subcommands `edr-run` / `edr-results` / `edr-profiles` / `edr-status` / `scanners`; matching MCP tools surface the same to LLM clients
+
+### Changed
+- Drop-zone moved from `/` to `/upload` (GET); `/` is now the system dashboard. Existing POST `/upload` for file uploads is unchanged.
+- URL convention unified — analysis type / qualifier always comes BEFORE the target hash: `/results/<type>/<target>`, `/api/results/<type>/<target>`, `/api/results/edr/<profile>/<target>`. Matches `/analyze/edr/<profile>/<target>`.
+- AgentClient gains a separate `exec_timeout` (180s) for the multipart upload + agent-side write path; the cheap endpoints stay at the 10s default.
+- Status flow simplified — `blocked_polling_alerts` collapsed into `polling_alerts` plus an orthogonal `summary.blocked_by_av` flag (the polling itself is purely LitterBox→Elastic, so the EDR-VM blocked/clean state shouldn't affect the polling status).
+- Sidebar nav: added Dashboard entry; Upload nav points to `/upload`; "Agents" renamed to "Whiskers" (route also at `/whiskers`).
+- File-info detection score no longer folds in EDR results (EDR is its own analysis type with its own page; it shouldn't bleed into the static + dynamic + PE score).
 
 ### Changed
 - Backend split into Flask blueprints, services, and a `utils/` package; subprocess analyzers consolidated under `BaseSubprocessAnalyzer`

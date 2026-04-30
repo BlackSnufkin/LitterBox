@@ -344,6 +344,93 @@ class LitterBoxClient:
         response = self._make_request('GET', f'/api/results/risk/{target}')
         return response.json()
 
+    # =============================================================================
+    # EDR (Whiskers + Elastic Defend) OPERATIONS
+    # =============================================================================
+
+    def list_edr_profiles(self) -> Dict:
+        """List EDR profiles registered under Config/edr_profiles/."""
+        response = self._make_request('GET', '/api/edr/profiles')
+        return response.json()
+
+    def get_edr_agents_status(self) -> Dict:
+        """Probe each registered EDR profile's Whiskers agent + Elastic stack.
+
+        Returns reachability, hostname, agent version, lock state, cluster
+        info etc. The server fans out probes in parallel; total wall time
+        is the slowest probe."""
+        response = self._make_request('GET', '/api/edr/agents/status')
+        return response.json()
+
+    def analyze_edr(self, file_hash: str, profile: str,
+                   cmd_args: Optional[List[str]] = None,
+                   xor_key: Optional[int] = None) -> Dict:
+        """Dispatch a payload to a registered EDR profile.
+
+        Returns the Phase-1 result immediately (status='polling_alerts'
+        when execution succeeded; 'blocked_by_av' / 'agent_unreachable' /
+        'busy' / 'error' otherwise). Phase-2 (Elastic alert correlation)
+        runs in a server-side daemon thread; poll
+        `get_edr_results(file_hash, profile)` until status is no longer
+        'polling_alerts'.
+        """
+        data = {}
+        if cmd_args:
+            data.update(self._validate_command_args(cmd_args))
+        if xor_key is not None:
+            if not 0 <= xor_key <= 255:
+                raise ValueError(f"xor_key must be 0-255, got {xor_key}")
+            data['xor_key'] = xor_key
+
+        response = self._make_request(
+            'POST', f'/analyze/edr/{profile}/{file_hash}', json=data,
+        )
+        return response.json()
+
+    def get_edr_results(self, file_hash: str, profile: str) -> Dict:
+        """Fetch the saved findings for a specific EDR profile run."""
+        response = self._make_request(
+            'GET', f'/api/results/edr/{profile}/{file_hash}',
+        )
+        return response.json()
+
+    def get_edr_index(self, file_hash: str) -> Dict:
+        """Fetch every saved EDR run for a target (one entry per profile)."""
+        response = self._make_request('GET', f'/api/results/edr/{file_hash}')
+        return response.json()
+
+    def wait_for_edr_completion(self, file_hash: str, profile: str,
+                                interval: float = 3.0,
+                                timeout: float = 180.0) -> Dict:
+        """Block until Phase-2 settles (status leaves 'polling_alerts'),
+        the saved JSON appears for the first time, or `timeout` seconds
+        elapse. Returns the last-seen findings dict (may still be
+        'polling_alerts' on timeout — caller decides what to do)."""
+        import time
+        deadline = time.monotonic() + timeout
+        last = None
+        while time.monotonic() < deadline:
+            try:
+                last = self.get_edr_results(file_hash, profile)
+                if (last or {}).get('status') and last.get('status') != 'polling_alerts':
+                    return last
+            except LitterBoxAPIError as e:
+                # 404 just means Phase-1 hasn't been kicked off yet — keep polling.
+                if e.status_code != 404:
+                    raise
+            time.sleep(interval)
+        return last or {'status': 'timeout', 'error': f'Phase-2 timeout after {timeout}s'}
+
+    # =============================================================================
+    # SYSTEM HEALTH
+    # =============================================================================
+
+    def get_scanners_status(self) -> Dict:
+        """Inventory of configured analyzers and whether their binaries
+        exist on disk (drives the dashboard scanner panel)."""
+        response = self._make_request('GET', '/api/system/scanners')
+        return response.json()
+
     def get_files_summary(self) -> Dict:
         """Get summary of all analyzed files and processes."""
         response = self._make_request('GET', '/files')
@@ -352,15 +439,17 @@ class LitterBoxClient:
     def get_comprehensive_results(self, target: str) -> Dict:
         """Get all available results for a target in one call.
 
-        The four GETs are independent, so they fan out across a small
+        The five GETs are independent, so they fan out across a small
         thread pool — wall time on a populated target drops from
-        sequential (~4×) to roughly the slowest single response.
+        sequential (~5×) to roughly the slowest single response.
+        Includes EDR runs (across every profile) when present.
         """
         fetchers = [
             ('file_info',         self.get_file_info),
             ('static_results',    self.get_static_results),
             ('dynamic_results',   self.get_dynamic_results),
             ('holygrail_results', self.get_holygrail_results),
+            ('edr_index',         self.get_edr_index),
         ]
 
         def _safe_fetch(method):
@@ -545,8 +634,15 @@ Examples:
   %(prog)s doppelganger-scan --type blender
   %(prog)s doppelganger-analyze abc123def --type fuzzy --threshold 85
 
+  # EDR (Whiskers + Elastic Defend)
+  %(prog)s edr-profiles
+  %(prog)s edr-status
+  %(prog)s edr-run abc123def --profile elastic --wait
+  %(prog)s edr-results abc123def --profile elastic
+
   # System operations
   %(prog)s status --full
+  %(prog)s scanners
   %(prog)s cleanup --all
 
   # Report operations  
@@ -592,6 +688,23 @@ Examples:
     results_parser.add_argument('--comprehensive', action='store_true', 
                               help='Get all available results')
     
+    # EDR commands
+    edr_run_parser = subparsers.add_parser('edr-run', help='Dispatch a payload to an EDR profile (Whiskers + Elastic)')
+    edr_run_parser.add_argument('hash', help='File hash returned by upload')
+    edr_run_parser.add_argument('--profile', required=True, help='EDR profile name (Config/edr_profiles/<name>.yml)')
+    edr_run_parser.add_argument('--args', nargs='+', help='Command-line arguments passed to the payload')
+    edr_run_parser.add_argument('--xor-key', type=int, help='Single byte (0-255) used to XOR-encode the payload in transit')
+    edr_run_parser.add_argument('--wait', action='store_true', help='Poll until Phase-2 (Elastic alert correlation) settles')
+    edr_run_parser.add_argument('--timeout', type=float, default=180.0, help='Phase-2 wait timeout in seconds (default 180)')
+
+    edr_results_parser = subparsers.add_parser('edr-results', help='Read saved EDR findings for a target')
+    edr_results_parser.add_argument('hash', help='File hash')
+    edr_results_parser.add_argument('--profile', help='Specific profile (omit to get the index across every profile)')
+
+    subparsers.add_parser('edr-profiles', help='List registered EDR profiles')
+    subparsers.add_parser('edr-status', help='Live probe of every EDR profile (Whiskers + Elastic reachability)')
+    subparsers.add_parser('scanners', help='Inventory of configured local analyzers and whether their binaries exist')
+
     # Doppelganger scan command
     doppelganger_scan_parser = subparsers.add_parser('doppelganger-scan', help='Run doppelganger scan')
     doppelganger_scan_parser.add_argument('--type', choices=['blender'], default='blender',
@@ -733,6 +846,40 @@ def _cmd_results(client: LitterBoxClient, args):
     print(json.dumps(result, indent=2))
 
 
+def _cmd_edr_run(client: LitterBoxClient, args):
+    print(f"Dispatching {args.hash} to EDR profile '{args.profile}'...")
+    phase1 = client.analyze_edr(args.hash, args.profile,
+                                cmd_args=args.args, xor_key=args.xor_key)
+    print("Phase-1 result:")
+    print(json.dumps(phase1, indent=2))
+
+    if args.wait and (phase1 or {}).get('status') == 'polling_alerts':
+        print(f"\nPolling for Phase-2 settle (timeout {args.timeout}s)...")
+        final = client.wait_for_edr_completion(args.hash, args.profile, timeout=args.timeout)
+        print("Phase-2 result:")
+        print(json.dumps(final, indent=2))
+
+
+def _cmd_edr_results(client: LitterBoxClient, args):
+    if args.profile:
+        result = client.get_edr_results(args.hash, args.profile)
+    else:
+        result = client.get_edr_index(args.hash)
+    print(json.dumps(result, indent=2))
+
+
+def _cmd_edr_profiles(client: LitterBoxClient, args):
+    print(json.dumps(client.list_edr_profiles(), indent=2))
+
+
+def _cmd_edr_status(client: LitterBoxClient, args):
+    print(json.dumps(client.get_edr_agents_status(), indent=2))
+
+
+def _cmd_scanners(client: LitterBoxClient, args):
+    print(json.dumps(client.get_scanners_status(), indent=2))
+
+
 def _cmd_doppelganger_scan(client: LitterBoxClient, args):
     print(f"Running doppelganger scan with type: {args.type}")
     print(json.dumps(client.run_blender_scan(), indent=2))
@@ -809,6 +956,11 @@ COMMAND_HANDLERS = {
     'upload-driver':         _cmd_upload_driver,
     'analyze-pid':           _cmd_analyze_pid,
     'results':               _cmd_results,
+    'edr-run':               _cmd_edr_run,
+    'edr-results':           _cmd_edr_results,
+    'edr-profiles':          _cmd_edr_profiles,
+    'edr-status':            _cmd_edr_status,
+    'scanners':              _cmd_scanners,
     'doppelganger-scan':     _cmd_doppelganger_scan,
     'doppelganger-analyze':  _cmd_doppelganger_analyze,
     'doppelganger-db':       _cmd_doppelganger_db,

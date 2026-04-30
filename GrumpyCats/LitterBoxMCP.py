@@ -35,10 +35,11 @@ mcp = FastMCP(
     name="LitterBox",
     instructions=(
         "Tools for the LitterBox payload-analysis sandbox: upload payloads / drivers, "
-        "run static or dynamic analysis, retrieve results, and generate reports. "
-        "Use the prompts for OPSEC review of analysis output. "
-        "Tool exceptions are surfaced to the client by FastMCP automatically — "
-        "do not wrap returns in success / error envelopes."
+        "run static / dynamic / EDR (Whiskers + Elastic Defend) analysis, retrieve "
+        "results, and generate reports. Also exposes system health (registered EDR "
+        "agent reachability, configured scanner inventory). Use the prompts for "
+        "OPSEC review of analysis output. Tool exceptions are surfaced to the client "
+        "by FastMCP automatically — do not wrap returns in success / error envelopes."
     ),
 )
 
@@ -176,6 +177,76 @@ async def download_report(
     """Download the HTML report to disk and return the saved path."""
     saved = await _call(client.download_report, target, output_path)
     return {"saved_to": saved}
+
+
+# =============================================================================
+# EDR — Whiskers agent + Elastic Defend correlation
+# =============================================================================
+
+@mcp.tool()
+async def list_edr_profiles() -> dict:
+    """List EDR profiles registered under Config/edr_profiles/."""
+    return await _call(client.list_edr_profiles)
+
+
+@mcp.tool()
+async def get_edr_agents_status() -> dict:
+    """Live probe of every EDR profile (Whiskers agent + Elastic stack reachability,
+    hostname, agent version, lock state, cluster info)."""
+    return await _call(client.get_edr_agents_status)
+
+
+@mcp.tool()
+async def analyze_edr(
+    file_hash: Annotated[str, Field(description="MD5 hash of an uploaded file.")],
+    profile: Annotated[str, Field(description="EDR profile name (matches Config/edr_profiles/<name>.yml).")],
+    cmd_args: Annotated[Optional[List[str]], Field(description="Command-line arguments passed to the payload.")] = None,
+    xor_key: Annotated[Optional[int], Field(description="Single byte (0-255) to XOR-encode the payload in transit (anti-AV).", ge=0, le=255)] = None,
+    wait: Annotated[bool, Field(description="Block until Phase-2 (Elastic alert correlation) settles.")] = True,
+    timeout: Annotated[float, Field(description="Phase-2 wait timeout in seconds.", ge=10, le=600)] = 180.0,
+) -> dict:
+    """Dispatch a payload to a registered EDR profile (Whiskers agent + Elastic Defend).
+
+    Note: this EXECUTES the payload on the EDR VM. Confirm with the user first.
+
+    Two-phase: Phase-1 (synchronous) handles agent dispatch + lock + execution; Phase-2
+    (server-side daemon) correlates Elastic alerts. With wait=True, the server returns
+    once Phase-2 settles or `timeout` elapses.
+    """
+    phase1 = await _call(client.analyze_edr, file_hash, profile, cmd_args=cmd_args, xor_key=xor_key)
+    if not wait or (phase1 or {}).get('status') != 'polling_alerts':
+        return {'phase_1': phase1, 'phase_2': None}
+    phase2 = await _call(client.wait_for_edr_completion, file_hash, profile, 3.0, timeout)
+    return {'phase_1': phase1, 'phase_2': phase2}
+
+
+@mcp.tool()
+async def get_edr_results(
+    file_hash: Annotated[str, Field(description="MD5 hash of the analyzed payload.")],
+    profile: Annotated[str, Field(description="EDR profile name.")],
+) -> dict:
+    """Read saved EDR findings (alerts + execution logs + summary) for one profile."""
+    return await _call(client.get_edr_results, file_hash, profile)
+
+
+@mcp.tool()
+async def get_edr_index(
+    file_hash: Annotated[str, Field(description="MD5 hash of the analyzed payload.")],
+) -> dict:
+    """Index of every saved EDR run for a target (one entry per profile that has data)."""
+    return await _call(client.get_edr_index, file_hash)
+
+
+# =============================================================================
+# System health — local scanner inventory
+# =============================================================================
+
+@mcp.tool()
+async def get_scanners_status() -> dict:
+    """Inventory of configured local analyzers (static + dynamic + holygrail) and
+    whether their binaries are present on disk. Drives the dashboard panel and
+    is the right thing to call before a run if a scanner has been failing."""
+    return await _call(client.get_scanners_status)
 
 
 # =============================================================================

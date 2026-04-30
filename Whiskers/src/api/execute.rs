@@ -27,8 +27,6 @@ use tokio::sync::oneshot;
 use crate::file_writer;
 use crate::state::{AppState, ExecStatus, RunState};
 
-const DEFAULT_DROP_PATH: &str = r"C:\Users\Public\Downloads\";
-
 #[derive(Serialize)]
 pub struct ExecResponse {
     pub status: &'static str,
@@ -83,7 +81,7 @@ pub async fn exec(
         ));
     }
 
-    let file_path = build_drop_path(&form.drop_path, &form.file_name);
+    let file_path = build_drop_path(&form.drop_path, &form.file_name, &state.default_drop_path);
     tracing::info!(path = %file_path.display(), xor = form.xor_key.is_some(), "Writing payload");
 
     if let Err(err) = file_writer::write(&file_path, &form.file_bytes, form.xor_key).await {
@@ -391,14 +389,14 @@ fn is_likely_av_block(err: &std::io::Error) -> bool {
     }
 }
 
-/// Build the final on-disk path: `<drop_path>/<file_name>`. Defaults
-/// drop_path to `C:\Users\Public\Downloads\` if not provided.
-fn build_drop_path(drop_path: &str, file_name: &str) -> PathBuf {
-    let mut base = if drop_path.trim().is_empty() {
-        DEFAULT_DROP_PATH.to_string()
-    } else {
-        drop_path.to_string()
-    };
+/// Build the final on-disk path: `<drop_path>/<file_name>`. The orchestrator
+/// can override per-request via the multipart `drop_path` field; otherwise
+/// we drop into the agent's own samples dir (resolved at startup).
+fn build_drop_path(drop_path: &str, file_name: &str, default_dir: &Path) -> PathBuf {
+    if drop_path.trim().is_empty() {
+        return default_dir.join(file_name);
+    }
+    let mut base = drop_path.to_string();
     if !base.ends_with('\\') && !base.ends_with('/') {
         base.push('\\');
     }

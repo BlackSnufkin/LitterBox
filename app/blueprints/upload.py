@@ -1,5 +1,5 @@
 # app/blueprints/upload.py
-"""Static index page and generic file uploads."""
+"""Index dashboard, upload drop-zone, and generic file uploads."""
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from ..services.error_handling import error_handler
@@ -10,6 +10,20 @@ upload_bp = Blueprint('upload', __name__)
 
 @upload_bp.route('/')
 def index():
+    """System health dashboard: agents + scanner availability.
+    Live data is fetched async by the page's JS via /api/edr/agents/status
+    and /api/system/scanners."""
+    deps = current_app.extensions['litterbox']
+    return render_template(
+        'dashboard.html',
+        config=current_app.config,
+        edr_profiles=deps.edr_registry.list_profiles(),
+    )
+
+
+@upload_bp.route('/upload', methods=['GET'])
+def upload_page():
+    """Upload drop-zone — renders the analysis-mode picker."""
     deps = current_app.extensions['litterbox']
     return render_template(
         'upload.html',

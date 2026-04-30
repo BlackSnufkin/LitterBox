@@ -25,14 +25,17 @@ library is `GrumpyCats`.
 1. Get the binary
    - Download `Whiskers.exe` from the LitterBox release page, OR
    - Build from source — see [`BUILD.md`](BUILD.md)
-2. Drop it anywhere on the VM (e.g. `C:\Tools\Whiskers.exe`)
+2. Drop it anywhere on the VM (e.g. `C:\Tools\Whiskers.exe`). The folder you
+   put it in becomes the agent home — payloads land in
+   `<that folder>\samples\` by default and the directory is created on first
+   write.
 3. Allow inbound TCP 8080 in Windows Firewall:
    ```powershell
    New-NetFirewallRule -DisplayName "Whiskers" `
                        -Direction Inbound -Protocol TCP -LocalPort 8080 `
                        -Action Allow
    ```
-4. Run it:
+4. Run it once to verify:
    ```powershell
    .\Whiskers.exe --port 8080
    ```
@@ -40,6 +43,14 @@ library is `GrumpyCats`.
    ```
    2026-04-29T13:30:12Z  INFO  whiskers ready version=0.1.0 listen=0.0.0.0:8080
    ```
+5. (Optional, recommended) Register it to auto-start on user logon so you
+   don't have to launch it manually every session:
+   ```powershell
+   .\Whiskers.exe --install
+   ```
+   This creates an `ONLOGON` Windows scheduled task named `Whiskers` running
+   as the current user (no UAC prompt). Log out and back in to confirm.
+   To remove the task: `.\Whiskers.exe --uninstall`.
 
 ## Verify
 
@@ -56,34 +67,12 @@ curl http://<edr-vm-ip>:8080/api/info
 |---|---|---|
 | `--port <PORT>` | `8080` | TCP port to listen on |
 | `--bind <ADDR>` | `0.0.0.0` | Bind address. Set `127.0.0.1` for loopback-only testing |
+| `--max-payload-mb <MB>` | `200` | Multipart upload cap on `/api/execute/exec`. LitterBox's own upload cap is 100 MB; this leaves headroom for the multipart envelope |
+| `--samples-dir <PATH>` | `<exe_dir>\samples` | Where payloads land when the orchestrator doesn't supply a per-request `drop_path`. Auto-created on first write |
+| `--install` | — | Register Whiskers as an `ONLOGON` Windows scheduled task (no UAC, runs as the invoking user). Forwards any non-default flags from the current invocation into the task. Exits without starting the server |
+| `--uninstall` | — | Remove the previously installed scheduled task. Exits |
 
 The binary also accepts `--help` and `--version`.
-
-## Run as a Windows service (optional)
-
-For a VM where you want Whiskers up automatically after every reboot.
-Easiest path is `sc.exe`:
-
-```powershell
-# Run elevated PowerShell:
-sc.exe create Whiskers binPath= "\"C:\Tools\Whiskers.exe\" --port 8080" `
-              start= auto DisplayName= "Whiskers (LitterBox sensor agent)"
-
-sc.exe description Whiskers "LitterBox sensor agent — payload execution runner"
-
-sc.exe start Whiskers
-```
-
-Stop / remove later with:
-```powershell
-sc.exe stop   Whiskers
-sc.exe delete Whiskers
-```
-
-> Whiskers isn't a "real" Windows service (no SCM lifecycle handling) so
-> `sc create` runs it as a console app under the service host. For most
-> sandbox use that's fine; for a hardened production deploy wrap it in
-> [NSSM](https://nssm.cc/) which handles SCM properly.
 
 ## Endpoints
 
@@ -113,13 +102,14 @@ a crashed orchestrator stranding Whiskers.
 - Whiskers has **no authentication**. It's designed to run on a VM that
   only LitterBox should be able to reach (private network, VPN, or
   loopback). Don't expose port 8080 to the internet.
-- Payloads land in `C:\Users\Public\Downloads\` by default unless the
-  caller specifies `drop_path`. That folder is auto-cleaned after each
-  run, but Whiskers never reaches outside the supplied `drop_path`.
-- Execution runs as the same user the Whiskers process is running as. If
-  you installed the service as `LocalSystem` (sc.exe default), payloads
-  run with SYSTEM privileges — fine for sandbox use, intentional for
-  evaluating SYSTEM-context detections, but be aware.
+- Payloads land in `<exe_dir>\samples\` by default (override with
+  `--samples-dir` or per-request via the multipart `drop_path` field).
+  The drop is auto-cleaned after each run, but Whiskers never reaches
+  outside the supplied path.
+- Execution runs as the same user the Whiskers process is running as.
+  `--install` registers the task as `ONLOGON` running as the invoking
+  user — payloads run unelevated unless you launched the install from an
+  elevated shell.
 - The XOR option on `/api/execute/exec` keeps the payload encrypted in
   transit and during the in-memory copy on the agent — useful when your
   EDR's behavioral monitor would match a plaintext known-bad sample

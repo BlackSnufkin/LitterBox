@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% set active_nav = 'dashboard' %}
+
+{% block content %}
+
+<!-- Header / hero -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>System Dashboard
+        <span class="lb-panel-badge">v{{ config.application.version }}</span>
+        <div style="margin-left: auto; display: flex; gap: 6px;">
+            <button id="dashRefreshBtn" onclick="refreshDashboard()" class="lb-btn lb-btn-ghost"
+                    style="padding: 2px 10px; font-size: 12px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114-5M20 14a8 8 0 01-14 5"/>
+                </svg>
+                Refresh
+            </button>
+            <a href="/upload" class="lb-btn lb-btn-primary" style="padding: 2px 10px; font-size: 12px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Upload Sample
+            </a>
+        </div>
+    </div>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 12px; margin: 0;">
+            Live readout of LitterBox's pieces — local scanner binaries and remote EDR agents.
+            Auto-refreshes every minute; click Refresh for an immediate poll.
+        </p>
+    </div>
+</div>
+
+<!-- Two-column grid: Scanners (left) + Agents (right) -->
+<div class="lb-grid-2" style="margin-top: 12px;">
+
+    <!-- Scanners panel -->
+    <div class="lb-panel">
+        <div class="lb-panel-hdr">
+            <span class="lb-glyph">▸</span>Scanners
+            <span id="scannersCount" class="lb-tag muted" style="margin-left: 8px;">—</span>
+        </div>
+        <div class="lb-panel-body">
+            <p class="lb-muted" style="font-size: 12px; margin: 0 0 10px 0;">
+                Configured analyzers. <span class="lb-mono">ok</span> = enabled and binary on disk;
+                <span class="lb-mono">missing</span> = enabled but tool path can't be resolved;
+                <span class="lb-mono">disabled</span> = turned off in config.
+            </p>
+            <div id="scannersTable">
+                <div class="lb-muted" style="font-size: 12px;">Loading…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agents panel -->
+    <div class="lb-panel">
+        <div class="lb-panel-hdr">
+            <span class="lb-glyph">▸</span>EDR Agents
+            <span id="agentsCount" class="lb-tag muted" style="margin-left: 8px;">{{ edr_profiles|length }} registered</span>
+            <a href="/whiskers" class="lb-btn lb-btn-ghost" style="margin-left: auto; padding: 2px 10px; font-size: 11px;">Open Whiskers →</a>
+        </div>
+        <div class="lb-panel-body">
+            {% if not edr_profiles %}
+                <div class="lb-muted" style="font-size: 12px;">
+                    No EDR profiles registered. Drop a YAML at
+                    <span class="lb-mono">Config/edr_profiles/&lt;name&gt;.yml</span> and restart.
+                </div>
+            {% else %}
+                <p class="lb-muted" style="font-size: 12px; margin: 0 0 10px 0;">
+                    Per-profile agent + Elastic reachability. Click a row to jump to the full Whiskers detail card.
+                </p>
+                <div id="agentsTable">
+                    {% for profile in edr_profiles %}
+                    <div class="lb-dash-row" data-profile="{{ profile.name }}"
+                         onclick="window.location.href='/whiskers'">
+                        <span id="dashAgentDot-{{ profile.name }}" class="lb-agent-dot lb-agent-dot--unknown"></span>
+                        <div class="lb-dash-row-main">
+                            <div class="lb-strong" style="font-size: 13px;">{{ profile.display_name }}</div>
+                            <div class="lb-muted lb-mono" style="font-size: 11px;">{{ profile.agent_url }}</div>
+                        </div>
+                        <div class="lb-dash-row-tags">
+                            <span id="dashAgentSide-{{ profile.name }}" class="lb-tag muted">agent —</span>
+                            <span id="dashElasticSide-{{ profile.name }}" class="lb-tag muted">elastic —</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<style>
+.lb-dash-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--lb-border);
+    background: var(--lb-bg-soft);
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.lb-dash-row:hover { background: var(--lb-panel); }
+.lb-dash-row-main { flex: 1 1 auto; min-width: 0; }
+.lb-dash-row-main > * { display: block; word-break: break-all; }
+.lb-dash-row-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+.lb-scanner-row {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    gap: 12px; align-items: baseline;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--lb-border);
+    font-size: 12px;
+}
+.lb-scanner-row:last-child { border-bottom: none; }
+.lb-scanner-row .lb-eyebrow { font-size: 10px; }
+.lb-scanner-path {
+    font-family: var(--lb-mono-font, monospace);
+    font-size: 11px;
+    color: var(--lb-text-mute);
+    word-break: break-all;
+}
+.lb-scanner-group-hdr {
+    margin: 10px 0 4px 0;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--lb-text-mute);
+}
+.lb-scanner-group-hdr:first-child { margin-top: 0; }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/dashboard/core.js') }}"></script>
+{% endblock %}

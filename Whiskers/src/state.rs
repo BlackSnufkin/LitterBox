@@ -17,14 +17,19 @@ pub struct AppState {
     pub lock: Mutex<LockState>,
     pub run: Mutex<Option<RunState>>,
     pub agent_log: Arc<AgentLog>,
+    /// Directory where incoming payloads land when the orchestrator does
+    /// not specify a per-request `drop_path`. Set at startup from CLI flags
+    /// or `<exe_dir>/samples`.
+    pub default_drop_path: PathBuf,
 }
 
 impl AppState {
-    pub fn new(agent_log: Arc<AgentLog>) -> Arc<Self> {
+    pub fn new(agent_log: Arc<AgentLog>, default_drop_path: PathBuf) -> Arc<Self> {
         Arc::new(AppState {
             lock: Mutex::new(LockState::default()),
             run: Mutex::new(None),
             agent_log,
+            default_drop_path,
         })
     }
 }

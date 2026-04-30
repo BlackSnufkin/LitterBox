@@ -111,6 +111,53 @@ def api_edr_profiles():
     return jsonify({'profiles': deps.edr_registry.list_profiles()})
 
 
+@api_bp.route('/api/system/scanners', methods=['GET'])
+@error_handler
+def api_system_scanners():
+    """Inventory of configured analyzers and whether their binaries exist.
+
+    Walks the static + dynamic + holygrail sections of analysis config and
+    reports per-scanner: enabled flag, configured tool path, whether the
+    file is present on disk. Used by the dashboard to flag missing tools."""
+    cfg = current_app.config.get('analysis', {}) or {}
+
+    def _row(group, name, scanner_cfg):
+        tool_path = (scanner_cfg or {}).get('tool_path', '').strip()
+        enabled = bool((scanner_cfg or {}).get('enabled', False))
+        exists = bool(tool_path) and os.path.isfile(tool_path)
+        return {
+            'group': group,
+            'name': name,
+            'enabled': enabled,
+            'tool_path': tool_path,
+            'exists': exists,
+            'status': (
+                'ok' if enabled and exists else
+                'missing' if enabled and not exists else
+                'disabled'
+            ),
+        }
+
+    rows = []
+    for group_key in ('static', 'dynamic'):
+        group_cfg = cfg.get(group_key) or {}
+        for scanner_name, scanner_cfg in group_cfg.items():
+            if isinstance(scanner_cfg, dict):
+                rows.append(_row(group_key, scanner_name, scanner_cfg))
+
+    holygrail = cfg.get('holygrail')
+    if isinstance(holygrail, dict):
+        rows.append(_row('holygrail', 'holygrail', holygrail))
+
+    counts = {
+        'total':    len(rows),
+        'ok':       sum(1 for r in rows if r['status'] == 'ok'),
+        'missing':  sum(1 for r in rows if r['status'] == 'missing'),
+        'disabled': sum(1 for r in rows if r['status'] == 'disabled'),
+    }
+    return jsonify({'scanners': rows, 'counts': counts})
+
+
 @api_bp.route('/api/edr/agents/status', methods=['GET'])
 @error_handler
 def api_edr_agents_status():
