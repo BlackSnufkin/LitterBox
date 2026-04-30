@@ -160,8 +160,8 @@ function renderFiles() {
         
         const statusCell = row.querySelector('[data-field="fileAnalysisStatus"]');
         const status = getAnalysisStatus(file);
-        statusCell.className = `px-2 py-1 text-sm rounded-lg ${status.class}`;
-        statusCell.textContent = status.text;
+        statusCell.className = '';
+        statusCell.innerHTML = renderFileStatusCell(file, status);
         
         const viewButton = row.querySelector('[data-action="view"]');
         const deleteButton = row.querySelector('[data-action="delete"]');
@@ -426,6 +426,38 @@ function getAnalysisStatus(file) {
         text: 'No Results',
         class: 'bg-red-500/10 text-red-400 border border-red-900/20'
     };
+}
+
+/**
+ * Build the Status cell for one file row. Two parts:
+ *   - the static-vs-dynamic completion badge (Complete / Partial / No Results)
+ *   - an EDR sub-line listing each profile run with alert counts and
+ *     block/kill flags. Only rendered when the file has been dispatched
+ *     to at least one EDR profile.
+ */
+function renderFileStatusCell(file, status) {
+    const main = `<span class="px-2 py-1 text-sm rounded-lg ${status.class}">${status.text}</span>`;
+    if (!file.has_edr_analysis || !Array.isArray(file.edr_runs) || !file.edr_runs.length) {
+        return main;
+    }
+    const badges = file.edr_runs.map(r => {
+        const alerts = r.total_alerts || 0;
+        const high   = r.high_severity_alerts || 0;
+        const blocked = !!r.blocked_by_av;
+        const killed  = !!r.killed_by_edr;
+        const tone =
+            blocked || killed || high > 0 ? 'critical' :
+            alerts > 0                   ? 'medium'   :
+                                            'info';
+        const detail = (
+            blocked     ? `${r.display_name}: blocked` :
+            killed      ? `${r.display_name}: killed (${alerts})` :
+            alerts > 0  ? `${r.display_name}: ${alerts}` :
+                          `${r.display_name}: clean`
+        );
+        return `<span class="lb-tag ${tone}" style="font-size: 10px; margin-right: 4px;">${detail}</span>`;
+    }).join('');
+    return `${main}<div style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 2px;">${badges}</div>`;
 }
 
 function getDriverAnalysisStatus(driver) {

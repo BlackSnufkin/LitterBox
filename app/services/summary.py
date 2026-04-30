@@ -116,17 +116,50 @@ def process_file_summary(item, item_path, file_based_summary, logger):
                 dynamic_results = json_helpers.load_json_file(dynamic_path)
                 logger.debug(f"Loaded dynamic analysis results for item: {item}")
 
+            # Discover every EDR profile run for this sample. Stored as
+            # `edr_<profile>_results.json`. The calculate_risk helper
+            # accepts a {profile_name: findings} mapping.
+            edr_results = {}
+            edr_prefix, edr_suffix = 'edr_', '_results.json'
+            for entry in os.listdir(item_path):
+                if entry.startswith(edr_prefix) and entry.endswith(edr_suffix):
+                    profile_name = entry[len(edr_prefix):-len(edr_suffix)]
+                    loaded = json_helpers.load_json_file(os.path.join(item_path, entry))
+                    if loaded:
+                        edr_results[profile_name] = loaded
+
             has_static_analysis = os.path.exists(static_path)
             has_dynamic_analysis = os.path.exists(dynamic_path)
+            has_edr_analysis = bool(edr_results)
 
             risk_score, risk_factors = risk_analyzer.calculate_risk(
                 analysis_type='file',
                 file_info=file_info,
                 static_results=static_results,
                 dynamic_results=dynamic_results,
+                edr_results=edr_results or None,
             )
 
         risk_level = risk_analyzer.get_risk_level(risk_score)
+
+        # Collapse the per-profile EDR runs into a small list the UI can
+        # show in the status column without loading the full JSON. Each
+        # entry has just the headline: profile, alert count, killed/AV
+        # flags, status string.
+        edr_runs = []
+        if not is_driver:
+            for profile_name, edr in (edr_results or {}).items():
+                summary = (edr or {}).get('summary') or {}
+                exec_block = (edr or {}).get('execution') or {}
+                edr_runs.append({
+                    'profile': profile_name,
+                    'display_name': edr.get('display_name') or profile_name,
+                    'status': edr.get('status'),
+                    'total_alerts': summary.get('total_alerts') or len(edr.get('alerts') or []),
+                    'high_severity_alerts': summary.get('high_severity_alerts'),
+                    'blocked_by_av': summary.get('blocked_by_av'),
+                    'killed_by_edr': exec_block.get('killed_by_edr'),
+                })
 
         file_based_summary[item] = {
             'md5': file_info.get('md5', 'unknown'),
@@ -139,6 +172,8 @@ def process_file_summary(item, item_path, file_based_summary, logger):
             'detection_risk': file_info.get('entropy_analysis', {}).get('detection_risk', 'Unknown'),
             'has_static_analysis': has_static_analysis,
             'has_dynamic_analysis': has_dynamic_analysis,
+            'has_edr_analysis': has_edr_analysis if not is_driver else False,
+            'edr_runs': edr_runs,
             'risk_assessment': {
                 'score': risk_score,
                 'level': risk_level,
