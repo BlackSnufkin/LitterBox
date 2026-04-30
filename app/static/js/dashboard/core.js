@@ -80,11 +80,19 @@ function applyAgentRow(agent) {
     const p = agent.name;
     const a = agent.agent || {};
     const e = agent.elastic || {};
+    // Fibratus profiles have no Elastic backend — alerts arrive via the
+    // /api/edr/fibratus/ingest push endpoint. Treat agent-up alone as healthy.
+    const isFibratus = agent.kind === 'fibratus';
 
-    const reachable = (a.reachable ? 1 : 0) + (e.reachable ? 1 : 0);
-    if (reachable === 2)      setDot(p, 'ok',      'Agent + Elastic reachable');
-    else if (reachable === 1) setDot(p, 'partial', 'Partial — see status fields');
-    else                       setDot(p, 'down',    'Agent + Elastic unreachable');
+    if (isFibratus) {
+        setDot(p, a.reachable ? 'ok' : 'down',
+               a.reachable ? 'Agent reachable (Fibratus push)' : 'Agent unreachable');
+    } else {
+        const reachable = (a.reachable ? 1 : 0) + (e.reachable ? 1 : 0);
+        if (reachable === 2)      setDot(p, 'ok',      'Agent + Elastic reachable');
+        else if (reachable === 1) setDot(p, 'partial', 'Partial — see status fields');
+        else                       setDot(p, 'down',    'Agent + Elastic unreachable');
+    }
 
     if (a.reachable) {
         const v = a.agent_version ? ` v${a.agent_version}` : '';
@@ -93,7 +101,9 @@ function applyAgentRow(agent) {
         setTag(`dashAgentSide-${p}`, 'high', 'agent down');
     }
 
-    if (e.reachable) {
+    if (isFibratus) {
+        setTag(`dashElasticSide-${p}`, 'info', 'fibratus · push');
+    } else if (e.reachable) {
         const v = e.version ? ` v${e.version}` : '';
         setTag(`dashElasticSide-${p}`, 'low', `elastic${v}`);
     } else {

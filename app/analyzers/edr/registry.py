@@ -20,6 +20,7 @@ import threading
 from typing import Callable, Dict, List, Optional, Tuple
 
 from .elastic_edr_analyzer import ElasticEdrAnalyzer
+from .fibratus_edr_analyzer import FibratusEdrAnalyzer
 from .profile import EdrProfile, load_profiles
 
 
@@ -28,6 +29,14 @@ logger = logging.getLogger(__name__)
 
 _PROFILES: Dict[str, EdrProfile] = {}
 _LOADED = False
+
+
+def _make_analyzer(profile: EdrProfile, config: dict):
+    """Pick the right analyzer for a profile's `kind`. New analyzer types
+    plug in here — keep this the single dispatch site."""
+    if profile.kind == "fibratus":
+        return FibratusEdrAnalyzer(config, profile)
+    return ElasticEdrAnalyzer(config, profile)
 
 
 def init(config: dict, profiles_dir: Optional[str] = None) -> None:
@@ -49,7 +58,9 @@ def init(config: dict, profiles_dir: Optional[str] = None) -> None:
 
 def list_profiles() -> List[dict]:
     """Public-facing profile list for the UI. Intentionally omits secrets
-    (apikey) — only the operator-facing identity + agent URL is returned.
+    (apikey, ingest_token) — only the operator-facing identity + agent URL
+    is returned. `kind` is included so the UI can render kind-specific
+    affordances when needed.
     """
     return [
         {
@@ -57,6 +68,7 @@ def list_profiles() -> List[dict]:
             "display_name": p.display_name,
             "agent_url": p.agent_url,
             "elastic_url": p.elastic_url,
+            "kind": p.kind,
         }
         for p in _PROFILES.values()
     ]
@@ -80,7 +92,7 @@ def dispatch(profile_name: str, payload_path: str, config: dict) -> dict:
     if profile is None:
         raise KeyError(f"unknown EDR profile: {profile_name!r}")
 
-    analyzer = ElasticEdrAnalyzer(config, profile)
+    analyzer = _make_analyzer(profile, config)
     analyzer.analyze(payload_path)
     try:
         return analyzer.get_results()
@@ -115,7 +127,7 @@ def dispatch_split(
     if profile is None:
         raise KeyError(f"unknown EDR profile: {profile_name!r}")
 
-    analyzer = ElasticEdrAnalyzer(config, profile)
+    analyzer = _make_analyzer(profile, config)
     phase_1, continuation = analyzer.run_exec(payload_path, executable_args)
 
     if continuation is None:

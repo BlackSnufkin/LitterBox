@@ -155,6 +155,47 @@ class AgentClient:
     def clear_agent_logs(self) -> dict:
         return self._delete("/api/logs/agent")
 
+    # ---- alerts ---------------------------------------------------------
+
+    def get_fibratus_alerts(self, since_iso: str, until_iso: str) -> dict:
+        """Pull Fibratus rule-match alerts from the EDR VM's Application
+        event log via Whiskers, filtered to the given UTC time window.
+
+        Whiskers wevtutil-queries the Application log for events whose
+        Provider name is `Fibratus` (Fibratus's eventlog alert sender
+        writes them there when configured with `format: json`). The agent
+        does no parsing — it returns the raw `<Data>` JSON strings from
+        each matched event record.
+
+        Returns a dict of shape:
+            {
+              "supported": bool,            # false on a non-Fibratus VM
+              "events": [
+                  {"time_created": "...", "event_id": int, "data": "<json>"},
+                  ...
+              ]
+            }
+
+        `supported: false` is a terminal state — Fibratus isn't installed
+        on this VM, so the analyzer should give up and report the run as
+        partial. `events: []` with `supported: true` just means no rule
+        matches in the window yet (the analyzer keeps polling).
+        """
+        # `params=` URL-encodes properly. We can NOT inline the timestamps
+        # into the URL string — `+00:00` would be parsed as a literal `+`
+        # which percent-decodes to space on the server side, and Whiskers
+        # rejects the malformed timestamp with HTTP 400.
+        url = f"{self.agent_url}/api/alerts/fibratus/since"
+        try:
+            resp = self.session.get(
+                url,
+                params={"from": since_iso, "until": until_iso},
+                timeout=self.timeout,
+            )
+        except requests.RequestException as exc:
+            raise AgentUnreachable(f"GET {url}: {exc}") from exc
+        return self._handle(resp, url)
+
     # ---- internals ------------------------------------------------------
 
     def _get(self, path: str) -> dict:

@@ -59,6 +59,11 @@ def create_app():
         config=app.config,
     )
 
+    # Pre-warm the EDR-agent reachability cache so the dashboard never
+    # waits for a fresh probe cycle. Idempotent — safe across reloads.
+    from .services.edr_health import start_poller
+    start_poller(app.extensions['litterbox'])
+
     # Register blueprints
     from .blueprints import (
         analysis_bp,

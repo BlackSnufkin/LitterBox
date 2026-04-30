@@ -129,6 +129,7 @@ async fn main() {
         .route("/api/logs/execution", get(api::logs::execution))
         .route("/api/logs/agent", get(api::logs::agent_logs))
         .route("/api/logs/agent", delete(api::logs::clear_agent_logs))
+        .route("/api/alerts/fibratus/since", get(api::alerts::since))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(addr)

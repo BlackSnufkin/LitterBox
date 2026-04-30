@@ -26,14 +26,28 @@ class EdrProfileError(ValueError):
     """Profile YAML failed validation. Message names the field at fault."""
 
 
+# Recognized profile kinds.
+#   `elastic`  — LitterBox queries an Elastic Defend / Detection-Engine cluster.
+#   `fibratus` — LitterBox polls Whiskers's GET /api/alerts/fibratus/since,
+#                which wevtutil-queries the EDR VM's Application event log
+#                for `Provider=Fibratus` alert records (DetonatorAgent shape).
+_PROFILE_KINDS = {"elastic", "fibratus"}
+
+
 @dataclass
 class EdrProfile:
     name: str
     display_name: str
     agent_url: str
-    elastic_url: str
-    elastic_apikey: str
+    # `kind` discriminates analyzer behavior. Defaults to "elastic" so older
+    # profile YAMLs (no `kind` key) keep working unchanged.
+    kind: str = "elastic"
+
+    # Elastic-only fields. Required when kind=elastic, ignored when kind=fibratus.
+    elastic_url: Optional[str] = None
+    elastic_apikey: Optional[str] = None
     elastic_verify_tls: bool = False
+
     wait_seconds_for_alerts: int = 90
     # Max polling window for the AV-block path. The orchestrator polls
     # Elastic every 2s and early-returns as soon as the prevention alert
@@ -53,12 +67,22 @@ class EdrProfile:
                 f"profile must be a YAML mapping, got {type(data).__name__}"
             )
 
-        required = ("name", "display_name", "agent_url", "elastic_url", "elastic_apikey")
+        kind = (data.get("kind") or "elastic").strip().lower()
+        if kind not in _PROFILE_KINDS:
+            raise EdrProfileError(
+                f"unknown profile kind {kind!r} — must be one of {sorted(_PROFILE_KINDS)}"
+            )
+
+        common_required = ("name", "display_name", "agent_url")
+        if kind == "elastic":
+            required = common_required + ("elastic_url", "elastic_apikey")
+        else:  # fibratus — no extra fields, just the Whiskers agent URL
+            required = common_required
         missing = [k for k in required if not data.get(k)]
         if missing:
             raise EdrProfileError(f"missing required field(s): {', '.join(missing)}")
 
-        if data["elastic_apikey"].startswith("REPLACE_ME"):
+        if kind == "elastic" and data["elastic_apikey"].startswith("REPLACE_ME"):
             raise EdrProfileError(
                 "elastic_apikey is still the example placeholder — fill it in"
             )
@@ -67,8 +91,9 @@ class EdrProfile:
             name=data["name"],
             display_name=data["display_name"],
             agent_url=data["agent_url"].rstrip("/"),
-            elastic_url=data["elastic_url"].rstrip("/"),
-            elastic_apikey=data["elastic_apikey"],
+            kind=kind,
+            elastic_url=(data.get("elastic_url") or "").rstrip("/") or None,
+            elastic_apikey=data.get("elastic_apikey"),
             elastic_verify_tls=bool(data.get("elastic_verify_tls", False)),
             wait_seconds_for_alerts=int(data.get("wait_seconds_for_alerts", 90)),
             av_block_wait_seconds=int(data.get("av_block_wait_seconds", 60)),

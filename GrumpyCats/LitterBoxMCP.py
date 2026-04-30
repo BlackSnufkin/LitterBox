@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
-from grumpycat import LitterBoxClient
+from litterbox_client import LitterBoxClient
 
 # CRITICAL: stdio transport speaks JSON-RPC over stdout. Logs MUST go to
 # stderr or they corrupt the protocol stream and break the connection.
@@ -235,6 +235,25 @@ async def get_edr_index(
 ) -> dict:
     """Index of every saved EDR run for a target (one entry per profile that has data)."""
     return await _call(client.get_edr_index, file_hash)
+
+
+@mcp.tool()
+async def fibratus_alerts_since(
+    profile: Annotated[str, Field(description="Fibratus profile name (must be kind=fibratus).")],
+    since_iso: Annotated[str, Field(description="ISO8601 lower bound in UTC, e.g. '2026-04-30T00:00:00Z'.")],
+    until_iso: Annotated[Optional[str], Field(description="ISO8601 upper bound in UTC; defaults to now.")] = None,
+) -> dict:
+    """Test/debug: pull Fibratus rule-match alerts via Whiskers without dispatching a payload.
+
+    LitterBox proxies the request to the registered profile's Whiskers agent,
+    which `wevtutil`-queries the EDR VM's Application event log for
+    `Provider=Fibratus` records inside the time window. Useful right after
+    Fibratus is set up on a new VM to verify `alertsenders.eventlog` with
+    `format: json` is actually emitting alerts before running real payloads.
+    Returns `{supported, events: [{time_created, event_id, data}]}` —
+    `data` is the raw JSON Fibratus produced.
+    """
+    return await _call(client.fibratus_alerts_since, profile, since_iso, until_iso)
 
 
 # =============================================================================

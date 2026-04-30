@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - RedEdr now captures Microsoft-Windows-Kernel-File / -Network / -Audit-API-Calls / Antimalware-Engine ETW events; new tabs surface File Ops / Network / Audit API / Defender with Process Tree panel and ETW Provider Diagnostics
 - Defender threat verdicts at runtime contribute +50 to the Detection Score (only verdicts; scan activity stays descriptive)
 - Whiskers — single-binary Rust HTTP agent (`Whiskers/`) for dispatching payloads to a separate EDR-instrumented Windows VM
+- Fibratus profile kind (`kind: fibratus` in `Config/edr_profiles/<name>.yml`) — pull-from-event-log alternative to Elastic Defend, matching DetonatorAgent's `FibratusEdrPlugin.cs` integration shape. The operator configures Fibratus on the EDR VM with `alertsenders.eventlog: {enabled: true, format: json}`; rule matches land in the Windows Application event log under `Provider=Fibratus`. Whiskers gains a `GET /api/alerts/fibratus/since?from=…&until=…` endpoint that wevtutil-queries the log for records inside the run window and returns the raw JSON `<Data>` blobs (the agent does no parsing). The new `FibratusEdrAnalyzer` mirrors the Elastic two-phase shape — Phase 1 exec, Phase 2 polls Whiskers — and normalizes Fibratus's actual schema (`events[].proc.{name,exe,cmdline,parent_name,parent_cmdline,ancestors}` + bare `tactic.id`/`technique.id`/`subtechnique.id` labels) into the saved-view renderer's dict shape. No new alert-source coupling on Whiskers beyond one event-log query endpoint.
 - Whiskers `--install` / `--uninstall` flags register an `ONLOGON` Windows scheduled task so the agent auto-starts at user logon (no UAC, runs as the invoking user)
 - Whiskers `--samples-dir` flag; default drop path is now `<agent-exe-dir>/samples/` (auto-created on first write) instead of `C:\Users\Public\Downloads\`
 - Whiskers chunked-XOR write (64 KiB working buffer) — multi-MB payloads finish in milliseconds instead of the 10+ seconds the byte-by-byte loop took, which had been timing out the orchestrator
@@ -25,7 +26,7 @@ All notable changes to this project will be documented in this file.
 - New pages: system dashboard at `/` (live scanner availability + EDR agent reachability, polls every minute), `/whiskers` agent inventory, `/analyze/all/<target>` "All" pipeline coordinator, `/results/edr/<profile>/<target>` saved-view (rich detail — MITRE chips, call stack, expandable per-alert detail, raw `_source` — backed by the same renderer as the live scan view)
 - "All" analysis mode: client-side coordinator runs Static + every EDR profile in parallel; Dynamic waits only for Static (EDR is on a remote VM, no local resource contention)
 - DLL execution support — payloads ending in `.dll` spawn via `rundll32.exe <path>,<entry> [args...]` in both the Whiskers agent and the local Dynamic analyzer; entry point comes from the executable-args field
-- GrumpyCats client gained EDR + scanner-health methods (`analyze_edr`, `get_edr_results`, `get_edr_index`, `list_edr_profiles`, `get_edr_agents_status`, `get_scanners_status`, `wait_for_edr_completion`); CLI subcommands `edr-run` / `edr-results` / `edr-profiles` / `edr-status` / `scanners`; matching MCP tools surface the same to LLM clients
+- GrumpyCats client gained EDR + scanner-health methods (`analyze_edr`, `get_edr_results`, `get_edr_index`, `list_edr_profiles`, `get_edr_agents_status`, `get_scanners_status`, `wait_for_edr_completion`, `fibratus_alerts_since`); CLI subcommands `edr-run` / `edr-results` / `edr-profiles` / `edr-status` / `scanners` / `fibratus-alerts`; matching MCP tools surface the same to LLM clients
 
 ### Changed
 - Drop-zone moved from `/` to `/upload` (GET); `/` is now the system dashboard. Existing POST `/upload` for file uploads is unchanged.
@@ -34,8 +35,8 @@ All notable changes to this project will be documented in this file.
 - Status flow simplified — `blocked_polling_alerts` collapsed into `polling_alerts` plus an orthogonal `summary.blocked_by_av` flag (the polling itself is purely LitterBox→Elastic, so the EDR-VM blocked/clean state shouldn't affect the polling status).
 - Sidebar nav: added Dashboard entry; Upload nav points to `/upload`; "Agents" renamed to "Whiskers" (route also at `/whiskers`).
 - File-info detection score no longer folds in EDR results (EDR is its own analysis type with its own page; it shouldn't bleed into the static + dynamic + PE score).
-
-### Changed
+- Dashboard `/api/edr/agents/status` is now backed by a 30s TTL cache pre-warmed by a background poller (`services.edr_health`); per-probe timeouts dropped from 4s/5s to 2s. Cold path under 2s, every subsequent dashboard load <5ms (warm cache hit), and the auto-refresh tick stays within cache TTL.
+- Whiskers `/api/info` now reports `telemetry_sources: ["fibratus"]` when Fibratus is installed at `C:\Program Files\Fibratus\Bin\fibratus.exe` so the orchestrator can preflight before dispatching to a Fibratus profile.
 - Backend split into Flask blueprints, services, and a `utils/` package; subprocess analyzers consolidated under `BaseSubprocessAnalyzer`
 - Frontend split into per-tool ES6 modules with shared utils; reusable Jinja macros for scanner tables
 - Full UI redesign on a terminal/IDE shell with new `.lb-*` design tokens and JetBrains Mono throughout

@@ -1,0 +1,86 @@
+# Fibratus EDR profile for LitterBox.
+#
+# Copy this file to `fibratus.yml` (drop the .example) and fill in your values.
+# Real profiles (*.yml without .example) are gitignored.
+#
+# Architecture (pull-from-event-log model — the same shape DetonatorAgent's
+# FibratusEdrPlugin.cs uses):
+#
+#   payload --> Whiskers.exe (your EDR VM, port 8080) --> spawned process
+#                                                              |
+#                                                              v ETW
+#                                                          Fibratus
+#                                                              |
+#                                                              v alertsenders.eventlog
+#                                                  Windows Application Event Log
+#                                                              ^
+#                                                              | wevtutil qe Application ...
+#                                                  Whiskers /api/alerts/fibratus/since
+#                                                              ^
+#                                                              | GET (LitterBox initiates)
+#                                                  this profile's analyzer
+#
+# Whiskers stays the same one-binary deployment as for Elastic profiles —
+# only difference is the new GET /api/alerts/fibratus/since endpoint, which
+# wevtutil-queries the local Application log for `Provider=Fibratus`
+# records inside the run's time window. No inbound network direction
+# from the VM, no shared secrets, no buffer.
+#
+# Required setup on the EDR VM (one-time):
+#
+#   1. Install Fibratus from https://github.com/rabbitstack/fibratus/releases
+#      (Whiskers expects the default install path, C:\Program Files\Fibratus\,
+#      to detect Fibratus presence; /api/info will report
+#      `telemetry_sources: ["fibratus"]` once it's there.)
+#
+#   2. Edit `%PROGRAMFILES%\Fibratus\Config\fibratus.yml` so rule matches
+#      land in the Application event log as JSON:
+#
+#        alertsenders:
+#          eventlog:
+#            enabled: true
+#            format: json    # CRITICAL — the analyzer parses the <Data> field as JSON
+#
+#      No other section needs to change. Leave `output.console` / `output.http`
+#      / `output.elasticsearch` alone — we don't use the event-stream outputs.
+#
+#   3. Make sure `filters.rules.enabled: true` and `filters.rules.from-paths`
+#      points at the rule pack you want active. Fibratus ships a useful
+#      default set under `%PROGRAMFILES%\Fibratus\Rules\`.
+#
+#   4. Restart the Fibratus service:
+#        net stop fibratus
+#        net start fibratus
+#
+#   5. Smoke-test the path: trigger a known rule (e.g. spawn `mshta.exe http://...`)
+#      and confirm an entry appears under Event Viewer > Windows Logs >
+#      Application with Source `Fibratus` and a JSON `Data` payload.
+
+name: "fibratus"
+display_name: "Fibratus"
+
+# Kind discriminator — selects the analyzer + alert source. Without this,
+# the loader assumes elastic and will demand elastic_url / elastic_apikey.
+kind: "fibratus"
+
+# Whiskers agent on the EDR VM. The agent self-reports its hostname via
+# GET /api/info — no need to set it here. Move the agent to a different
+# VM and the integration follows it.
+agent_url: "http://192.168.1.100:8080"
+
+# How long to wait after a successful payload exit before giving up on
+# alert correlation. Fibratus writes alerts to the event log in real-time
+# so this is much shorter than the Elastic equivalent.
+wait_seconds_for_alerts: 30
+
+# Schema parity with Elastic profiles — Fibratus is detection-only so the
+# AV-block path doesn't really apply, but the analyzer reads this anyway.
+av_block_wait_seconds: 30
+
+# Hard cap on payload runtime. Whiskers kills the process after this many
+# seconds and the analyzer collects whatever stdout/stderr was captured.
+exec_timeout_seconds: 60
+
+# Optional: where on the EDR VM to drop the payload. Defaults to Whiskers's
+# own samples/ directory if unset.
+# drop_path: "C:\\Users\\Public\\sample.exe"

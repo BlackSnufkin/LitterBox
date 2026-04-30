@@ -86,17 +86,19 @@
             </div>
             <div class="lb-agent-divider"></div>
             <div class="lb-agent-row">
-                <span class="lb-eyebrow">Elastic</span>
+                <span class="lb-eyebrow">Backend</span>
                 <span id="agentElastic-{{ profile.name }}" class="lb-muted">Probing…</span>
             </div>
             <div class="lb-agent-row">
                 <span class="lb-eyebrow">Cluster</span>
                 <span id="agentCluster-{{ profile.name }}" class="lb-mono lb-muted">—</span>
             </div>
+            {% if profile.elastic_url %}
             <div class="lb-agent-row">
                 <span class="lb-eyebrow">Elastic URL</span>
                 <span class="lb-mono" style="font-size: 11px; word-break: break-all;">{{ profile.elastic_url }}</span>
             </div>
+            {% endif %}
             <div id="agentError-{{ profile.name }}" class="lb-agent-error hidden"></div>
         </div>
     </div>

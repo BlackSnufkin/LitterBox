@@ -35,13 +35,21 @@ function applyStatus(agent) {
 
     const a = agent.agent || {};
     const e = agent.elastic || {};
+    // Fibratus profiles have no Elastic backend — alerts arrive via the
+    // /api/edr/fibratus/ingest push endpoint. Health = agent reachable.
+    const isFibratus = agent.kind === 'fibratus';
 
-    // Aggregate dot: green if both sides reachable, yellow if only one,
-    // red if neither.
-    const reachable = (a.reachable ? 1 : 0) + (e.reachable ? 1 : 0);
-    if (reachable === 2)      setDot(p, 'ok', 'Agent + Elastic reachable');
-    else if (reachable === 1) setDot(p, 'partial', 'Partial — see status fields');
-    else                       setDot(p, 'down', 'Agent + Elastic unreachable');
+    if (isFibratus) {
+        setDot(p, a.reachable ? 'ok' : 'down',
+               a.reachable ? 'Agent reachable (Fibratus push model)' : 'Agent unreachable');
+    } else {
+        // Aggregate dot: green if both sides reachable, yellow if only one,
+        // red if neither.
+        const reachable = (a.reachable ? 1 : 0) + (e.reachable ? 1 : 0);
+        if (reachable === 2)      setDot(p, 'ok', 'Agent + Elastic reachable');
+        else if (reachable === 1) setDot(p, 'partial', 'Partial — see status fields');
+        else                       setDot(p, 'down', 'Agent + Elastic unreachable');
+    }
 
     // Agent side
     if (a.reachable) {
@@ -68,8 +76,13 @@ function applyStatus(agent) {
         setColor(`agentLock-${p}`, 'var(--lb-text-mute)');
     }
 
-    // Elastic side
-    if (e.reachable) {
+    // Backend side. Elastic profiles: probe the cluster. Fibratus
+    // profiles: no remote backend — show the push-buffer label.
+    if (isFibratus) {
+        setText(`agentElastic-${p}`, 'Push-mode (no remote backend)');
+        setColor(`agentElastic-${p}`, 'var(--lb-text-mute)');
+        setText(`agentCluster-${p}`, '—');
+    } else if (e.reachable) {
         const v = e.version ? ` v${e.version}` : '';
         setText(`agentElastic-${p}`, `Reachable${v}`);
         setColor(`agentElastic-${p}`, 'var(--lb-sev-low)');
