@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+    Files
+    <span class="lb-tb-sep">›</span> <span class="lb-mono">{{ file_info.original_name if file_info else (file_info.md5[:12] if file_info else '') }}</span>
+    <span class="lb-tb-sep">›</span> EDR ({{ edr_profile }})
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>{{ edr_results.display_name or edr_profile }} Results
+        <span class="lb-panel-badge">EDR · {{ edr_profile }}</span>
+        <div style="margin-left: auto; display: flex; gap: 6px;">
+            <button onclick="window.location.href='/results/info/{{ file_info.md5 }}'" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 12px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
+                Back to File Info
+            </button>
+            <button onclick="window.location.href='/analyze/edr/{{ edr_profile }}/{{ file_info.md5 }}'" class="lb-btn" style="padding: 2px 10px; font-size: 12px; color: var(--lb-sev-medium); border-color: var(--lb-sev-medium);" title="Re-dispatch the payload to the EDR VM">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114-5M20 14a8 8 0 01-14 5"/></svg>
+                Re-run
+            </button>
+        </div>
+    </div>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 12px; margin: 0 0 6px 0;">Saved EDR detonation results. To trigger a fresh dispatch, use the Re-run button above.</p>
+        <div class="lb-hash-row">
+            <div class="lb-hash-label">Sample</div>
+            <div class="lb-hash-value lb-mono">{{ file_info.original_name }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Run summary panel — populated by tools/edr.js (renderSummary writes to #edrSummary) -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Run Summary</div>
+    <div class="lb-panel-body">
+        <div id="edrSummary"></div>
+    </div>
+</div>
+
+<!-- Detection alerts panel — full rich rendering (expandable rows with
+     MITRE chips, call stack, API trigger, memory region, raw _source) -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>Detection Alerts
+    </div>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">Alerts raised by the EDR backend during the run window, filtered by hostname and payload. Click any row to expand for the full forensic detail.</p>
+        <div id="edrAlertsStats" style="display: flex; gap: 8px; margin-bottom: 12px;"></div>
+        <div id="edrAlertsResults"></div>
+    </div>
+</div>
+
+<!-- Execution output panel — stdout / stderr / behavior verdict -->
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Execution Output</div>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 12px; margin-bottom: 12px;">stdout/stderr captured by the Whiskers agent on the EDR VM.</p>
+        <div id="edrExecutionResults"></div>
+    </div>
+</div>
+
+<!-- Embed the saved findings as a JS global — the renderer reads it on load. -->
+<script>
+window.__edrSavedResults = {{ edr_results | tojson }};
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/results/edr-saved.js') }}"></script>
+{% endblock %}

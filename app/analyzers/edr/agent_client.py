@@ -40,10 +40,18 @@ class AgentClient:
         self,
         agent_url: str,
         timeout: float = 10.0,
+        exec_timeout: float = 180.0,
         session: Optional[requests.Session] = None,
     ):
         self.agent_url = agent_url.rstrip("/")
+        # `timeout` covers the cheap endpoints (info / lock / logs) where 10s
+        # is plenty. `exec_timeout` is for /api/execute/exec specifically —
+        # multipart upload of a 100 MB sample over a slow link plus the
+        # agent's XOR-decode write can take well past 10s, so we give it a
+        # much longer ceiling. 3 min is enough for any realistic payload
+        # the orchestrator dispatches.
         self.timeout = timeout
+        self.exec_timeout = exec_timeout
         self.session = session or requests.Session()
 
     # ---- info -----------------------------------------------------------
@@ -107,7 +115,7 @@ class AgentClient:
 
         url = f"{self.agent_url}/api/execute/exec"
         try:
-            resp = self.session.post(url, files=files, data=data, timeout=self.timeout)
+            resp = self.session.post(url, files=files, data=data, timeout=self.exec_timeout)
         except requests.RequestException as exc:
             raise AgentUnreachable(f"POST {url}: {exc}") from exc
 

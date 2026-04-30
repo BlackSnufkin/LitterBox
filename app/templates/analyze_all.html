@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+    Analyze
+    <span class="lb-tb-sep">›</span> All
+    <span class="lb-tb-sep">›</span> <span class="lb-mono">{{ file_hash[:12] }}</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="lb-panel">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">▸</span>All-in-One Analysis
+        <span id="allOverallTimer" class="lb-tag muted lb-mono" style="margin-left: 12px;">00:00</span>
+        <div style="margin-left: auto; display: flex; gap: 6px;">
+            <button onclick="window.location.href='/results/info/{{ file_hash }}'" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 12px;">
+                Back to File Info
+            </button>
+        </div>
+    </div>
+    <div class="lb-panel-body">
+        <p class="lb-muted" style="font-size: 12px; margin: 0 0 4px 0;">
+            Static and every registered EDR profile fire immediately in parallel.
+            Dynamic waits only for Static to finish — EDR runs on a remote VM
+            with no contention against the local Dynamic analyzers, so it
+            keeps running in parallel with Dynamic. The page redirects to the
+            file-info view when everything settles.
+        </p>
+    </div>
+</div>
+
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Local + Remote (parallel)</div>
+    <div class="lb-panel-body" id="allStage1">
+        <div class="lb-all-row" data-stage="static">
+            <span class="lb-all-dot lb-all-dot--queued" data-role="dot"></span>
+            <div class="lb-all-row-body">
+                <div class="lb-strong" style="font-size: 13px;">Static Analysis</div>
+                <div class="lb-muted lb-all-detail" data-role="detail" style="font-size: 12px;">Queued</div>
+            </div>
+            <span class="lb-all-elapsed lb-mono" data-role="elapsed">—</span>
+        </div>
+        {% for profile in edr_profiles %}
+        <div class="lb-all-row" data-stage="edr" data-profile="{{ profile.name }}">
+            <span class="lb-all-dot lb-all-dot--queued" data-role="dot"></span>
+            <div class="lb-all-row-body">
+                <div class="lb-strong" style="font-size: 13px;">{{ profile.display_name }} <span class="lb-muted" style="font-size: 11px;">EDR</span></div>
+                <div class="lb-muted lb-all-detail" data-role="detail" style="font-size: 12px;">Queued</div>
+            </div>
+            <span class="lb-all-elapsed lb-mono" data-role="elapsed">—</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="lb-panel">
+    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>After Static</div>
+    <div class="lb-panel-body" id="allStage2">
+        <div class="lb-all-row" data-stage="dynamic">
+            <span class="lb-all-dot lb-all-dot--queued" data-role="dot"></span>
+            <div class="lb-all-row-body">
+                <div class="lb-strong" style="font-size: 13px;">Dynamic Analysis</div>
+                <div class="lb-muted lb-all-detail" data-role="detail" style="font-size: 12px;">Waiting for Static to finish</div>
+            </div>
+            <span class="lb-all-elapsed lb-mono" data-role="elapsed">—</span>
+        </div>
+    </div>
+</div>
+
+<div class="lb-panel hidden" id="allDoneBanner">
+    <div class="lb-panel-body" style="text-align: center; padding: 24px;">
+        <div class="lb-strong" style="font-size: 14px;">Pipeline complete — redirecting…</div>
+        <div class="lb-muted" style="font-size: 12px; margin-top: 4px;">Taking you to <span class="lb-mono">/results/info/{{ file_hash }}</span></div>
+    </div>
+</div>
+
+<style>
+.lb-all-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--lb-border);
+}
+.lb-all-row:last-child { border-bottom: 0; }
+.lb-all-row-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.lb-all-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0;
+}
+.lb-all-dot--queued  { background: var(--lb-text-mute); }
+.lb-all-dot--running { background: var(--lb-sev-medium); animation: lb-all-pulse 1.2s ease-in-out infinite; }
+.lb-all-dot--done    { background: var(--lb-sev-low); }
+.lb-all-dot--failed  { background: var(--lb-accent); }
+.lb-all-elapsed { font-size: 12px; color: var(--lb-text-mute); min-width: 60px; text-align: right; }
+@keyframes lb-all-pulse { 50% { opacity: 0.35; } }
+</style>
+
+<script>
+window.__allRunCfg = {
+    fileHash: {{ file_hash | tojson }},
+    edrProfiles: {{ edr_profiles | map(attribute='name') | list | tojson }},
+};
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/analyze-all/core.js') }}"></script>
+{% endblock %}

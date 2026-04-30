@@ -657,6 +657,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     elements.fileAnalysisArea.classList.remove('opacity-0', 'scale-95');
                 });
                 
+            } else if (type === 'all') {
+                // "All" pipeline: static + (every registered EDR) in parallel,
+                // then dynamic. Args (if any) shared across dynamic + EDR.
+                const argsInput = document.getElementById('allAnalysisArgs');
+                const argsValue = argsInput ? argsInput.value : '';
+                const args = argsValue.split(' ').filter(arg => arg.trim() !== '');
+                localStorage.setItem('analysisArgs', JSON.stringify(args));
+                window.location.href = `/analyze/all/${currentFileHash}`;
             } else if (type === 'dynamic') {
                 // Get user-specified arguments for dynamic analysis
                 const argsInput = document.getElementById('analysisArgs').value;

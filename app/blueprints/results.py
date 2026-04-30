@@ -15,6 +15,34 @@ def _deps():
     return current_app.extensions['litterbox']
 
 
+@results_bp.route('/results/edr/<profile>/<target>', methods=['GET'])
+@error_handler
+def get_edr_saved_results(profile, target):
+    """Saved-data view of an EDR run — does NOT re-dispatch to Whiskers.
+    Mirrors the static_info / dynamic_info pattern for the EDR analyzer.
+    The live-runner page is /analyze/edr/<profile>/<target>."""
+    app = current_app
+    deps = _deps()
+
+    data, error_msg, is_error = deps.helpers.load_analysis_data(target)
+    if is_error:
+        return render_template('error.html', error=error_msg), 404
+
+    edr_results = (data.get('edr_results') or {}).get(profile)
+    if not edr_results:
+        return render_template(
+            'error.html',
+            error=f'No saved EDR results for profile {profile!r} on this sample',
+        ), 404
+
+    return render_template(
+        'edr_info.html',
+        file_info=data['file_info'],
+        edr_results=edr_results,
+        edr_profile=profile,
+    )
+
+
 @results_bp.route('/results/<analysis_type>/<target>', methods=['GET'])
 @error_handler
 def get_analysis_results(target, analysis_type):

@@ -71,6 +71,10 @@
              driver) at runtime by updateAnalysisOptions(). EDR profile tabs
              are appended server-side, one per registered profile. -->
         <div class="lb-tabs" id="modeTabs">
+            <button type="button" class="lb-tab" data-mode="all" data-family="regular">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h7"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 16l3 3 5-5"/></svg>
+                All
+            </button>
             <button type="button" class="lb-tab" data-mode="static" data-family="regular">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 Static
@@ -99,7 +103,30 @@
         <!-- Per-mode body. updateModeBody(mode) toggles which one is visible. -->
         <div class="lb-panel-body">
 
-            <div class="lb-mode-body" data-mode="static">
+            <div class="lb-mode-body" data-mode="all">
+                <div class="lb-mode-head">
+                    <div class="lb-strong" style="font-size: 14px;">All</div>
+                    <div class="lb-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">Static + EDR (parallel) → Dynamic</div>
+                </div>
+                <p class="lb-dim" style="font-size: 12px;">One-click pipeline: kicks off Static analysis on the LitterBox host AND dispatches to every registered EDR profile in parallel, then runs Dynamic analysis once those finish. Any failure in a parallel stage doesn't block the dynamic phase.</p>
+                <ul class="lb-mode-features lb-mode-features-2col">
+                    <li class="lb-ok">Static (YARA / CheckPlz / Stringnalyzer)</li>
+                    <li class="lb-ok">EDR Detonation{% if edr_profiles %} ({{ edr_profiles|map(attribute='display_name')|join(', ') }}){% endif %}</li>
+                    <li class="lb-ok">Dynamic (RedEdr / Moneta / PE-Sieve / HSB / Patriot)</li>
+                    <li class="lb-ok">Per-stage progress + parallel where safe</li>
+                </ul>
+                <div>
+                    <label for="allAnalysisArgs" class="lb-eyebrow" style="display: block; margin-bottom: 6px;">Command-line Arguments</label>
+                    <input type="text" id="allAnalysisArgs" placeholder="Enter arguments separated by spaces" class="lb-input lb-mono"/>
+                    <p class="lb-muted" style="margin-top: 6px; font-size: 12px;">Shared across the dynamic + EDR runs. <span class="lb-strong">For DLL files</span> the first argument is the exported entry point (e.g. <span class="lb-mono">DllMain</span>) — passed to <span class="lb-mono">rundll32.exe</span> on both sides.</p>
+                </div>
+                <button type="button" onclick="selectAnalysisType('all')" class="lb-mode-cta">
+                    Run All
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+
+            <div class="lb-mode-body hidden" data-mode="static">
                 {{ _mode_header('Static Analysis', 'No Execution Required') if false }}
                 <div class="lb-mode-head">
                     <div class="lb-strong" style="font-size: 14px;">Static Analysis</div>

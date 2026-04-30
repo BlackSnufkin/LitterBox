@@ -110,11 +110,15 @@ def render_file_info(data):
                 f"Calculated: {checksum['calculated_checksum']}"
             )
 
+    deps = current_app.extensions['litterbox']
+    edr_profiles = deps.edr_registry.list_profiles() if hasattr(deps, 'edr_registry') else []
+
     logger.debug("Rendering file_info.html template")
     return render_template(
         'file_info.html',
         file_info=file_info,
         entropy_risk_levels={'High': 7.2, 'Medium': 6.8, 'Low': 0},
+        edr_profiles=edr_profiles,
     )
 
 

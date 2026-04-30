@@ -166,6 +166,21 @@ def _handle_analysis_results(results, result_path, results_filename):
     return jsonify({'status': 'success', 'results': results})
 
 
+@analysis_bp.route('/analyze/all/<target>', methods=['GET'])
+def analyze_all_page(target):
+    """Coordinator page for the "All" pipeline. The page itself is a
+    progress shell — orchestration happens in JS, hitting the existing
+    /analyze/static, /analyze/edr/<profile>, and /analyze/dynamic
+    endpoints. No new analyzer code on the server side."""
+    deps = current_app.extensions['litterbox']
+    return render_template(
+        'analyze_all.html',
+        config=current_app.config,
+        file_hash=target,
+        edr_profiles=deps.edr_registry.list_profiles(),
+    )
+
+
 @analysis_bp.route('/whiskers', methods=['GET'])
 def whiskers_page():
     """Render the Whiskers (EDR agents) inventory page. Live status data
