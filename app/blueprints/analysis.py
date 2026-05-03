@@ -8,7 +8,7 @@ from flask import Blueprint, current_app, jsonify, render_template, request
 from ..analyzers.holygrail import HolyGrailAnalyzer
 from ..services.error_handling import error_handler
 from ..services.rendering import is_kernel_driver_file
-from ..utils import file_io, path_manager, validators
+from ..utils import file_io, json_helpers, path_manager, validators
 
 analysis_bp = Blueprint('analysis', __name__)
 
@@ -377,13 +377,18 @@ def _run_byovd_analysis(target_hash):
         app.logger.debug(f"Analysis completed with status: {results.get('status')}")
 
         if results['status'] == 'completed':
+            # The PE was already fully parsed at upload time — compile_time
+            # lives in file_info.json under pe_info.compile_time. Reading
+            # the JSON saves a redundant pefile.PE() + generate_checksum()
+            # round trip that, on a multi-MB driver, was costing seconds
+            # purely to extract a single field.
             compile_time = None
             try:
-                pe = file_io.get_pe_info(file_path, app.config['utils']['malapi_path'])
-                pe_info = (pe or {}).get('pe_info') or {}
-                compile_time = pe_info.get('compile_time')
+                file_info_path = os.path.join(result_path, 'file_info.json')
+                file_info = json_helpers.load_json_file(file_info_path) or {}
+                compile_time = (file_info.get('pe_info') or {}).get('compile_time')
             except Exception as e:
-                app.logger.debug(f"Compile time extraction failed: {e}")
+                app.logger.debug(f"Compile time lookup failed: {e}")
 
             if compile_time:
                 results['compile_time'] = compile_time

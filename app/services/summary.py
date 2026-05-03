@@ -2,11 +2,21 @@
 """Aggregation helpers for the /files endpoint."""
 import os
 
+from . import summary_cache
 from ..utils import json_helpers, risk_analyzer
 
 
 def process_pid_summary(item, item_path, pid_based_summary, logger):
     pid = item.replace('dynamic_', '')
+
+    # Cache hit short-circuits the multi-MB JSON parse + risk recompute.
+    # The cache validates against source mtimes on read, so a stale
+    # entry is impossible — no manual invalidation needed at save sites.
+    cached = summary_cache.get_cached(item_path)
+    if cached is not None:
+        pid_based_summary[pid] = cached
+        return
+
     logger.debug(f"Processing dynamic analysis results for PID: {pid}")
 
     dynamic_results_path = os.path.join(item_path, 'dynamic_analysis_results.json')
@@ -30,7 +40,7 @@ def process_pid_summary(item, item_path, pid_based_summary, logger):
         moneta_findings = dynamic_results.get('moneta', {}).get('findings', {})
         hsb_detections = dynamic_results.get('hsb', {}).get('findings', {}).get('detections', [])
 
-        pid_based_summary[pid] = {
+        result = {
             'pid': pid,
             'process_name': process_info.get('name', 'unknown'),
             'process_path': process_info.get('path', 'unknown'),
@@ -67,6 +77,8 @@ def process_pid_summary(item, item_path, pid_based_summary, logger):
                 },
             },
         }
+        pid_based_summary[pid] = result
+        summary_cache.store(item_path, result)
         logger.debug(f"Processed dynamic analysis for PID: {pid}")
     except Exception as e:
         logger.error(f"Error processing PID {pid}: {e}")
@@ -76,6 +88,13 @@ def process_file_summary(item, item_path, file_based_summary, logger):
     file_info_path = os.path.join(item_path, 'file_info.json')
     if not os.path.exists(file_info_path):
         logger.debug(f"No file_info.json found in {item_path}. Skipping.")
+        return
+
+    # Cache hit short-circuits the per-sample 4-6 disk reads + risk
+    # recompute. Validated against source mtimes on read.
+    cached = summary_cache.get_cached(item_path)
+    if cached is not None:
+        file_based_summary[item] = cached
         return
 
     try:
@@ -162,7 +181,7 @@ def process_file_summary(item, item_path, file_based_summary, logger):
                     'killed_by_edr': exec_block.get('killed_by_edr'),
                 })
 
-        file_based_summary[item] = {
+        result = {
             'md5': file_info.get('md5', 'unknown'),
             'sha256': file_info.get('sha256', 'unknown'),
             'filename': filename,
@@ -181,6 +200,10 @@ def process_file_summary(item, item_path, file_based_summary, logger):
                 'factors': risk_factors,
             },
         }
+        file_based_summary[item] = result
+        # Persist for the next dashboard load — saves the 4-6 disk
+        # reads + risk recompute we just paid for.
+        summary_cache.store(item_path, result)
         logger.debug(f"Processed file-based analysis for item: {item}")
     except Exception as e:
         logger.error(f"Error processing file item {item}: {e}")
