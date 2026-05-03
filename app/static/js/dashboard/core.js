@@ -157,11 +157,34 @@ function escapeHtml(s) {
 
 window.refreshDashboard = refreshDashboard;
 
+function startTimer() {
+    if (_refreshTimer != null) return;
+    _refreshTimer = setInterval(refreshDashboard, REFRESH_MS);
+}
+
+function stopTimer() {
+    if (_refreshTimer != null) {
+        clearInterval(_refreshTimer);
+        _refreshTimer = null;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     refreshDashboard();
-    _refreshTimer = setInterval(refreshDashboard, REFRESH_MS);
+    startTimer();
 });
 
-window.addEventListener('beforeunload', () => {
-    if (_refreshTimer) clearInterval(_refreshTimer);
+// Pause the auto-refresh while the tab is hidden — no point pulling
+// /api/system/scanners + /api/edr/agents/status every minute when nobody's
+// looking. Resume on visible AND fire one immediate refresh so the user
+// sees fresh data the moment they come back.
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        stopTimer();
+    } else {
+        refreshDashboard();
+        startTimer();
+    }
 });
+
+window.addEventListener('beforeunload', stopTimer);

@@ -130,9 +130,32 @@ async function refreshAgents() {
 // Expose for the inline onclick on the Refresh button.
 window.refreshAgents = refreshAgents;
 
+function startAgentsTimer() {
+    if (_refreshTimer != null) return;
+    _refreshTimer = setInterval(refreshAgents, REFRESH_MS);
+}
+function stopAgentsTimer() {
+    if (_refreshTimer != null) {
+        clearInterval(_refreshTimer);
+        _refreshTimer = null;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     refreshAgents();
-    _refreshTimer = setInterval(refreshAgents, REFRESH_MS);
+    startAgentsTimer();
+});
+
+// Pause polling when the tab is hidden; on resume fire one immediate
+// refresh so the page shows fresh data the moment the operator looks
+// back at it.
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        stopAgentsTimer();
+    } else {
+        refreshAgents();
+        startAgentsTimer();
+    }
 });
 
 window.addEventListener('beforeunload', () => {

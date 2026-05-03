@@ -224,6 +224,11 @@ async function pollEdr(profile, intervalMs = 3000, maxMs = 180000) {
     const deadline = Date.now() + maxMs;
     while (Date.now() < deadline) {
         await new Promise(r => setTimeout(r, intervalMs));
+        // Skip the fetch (but keep ticking on the timer) while the tab
+        // is hidden. The deadline still applies — if the user
+        // backgrounds the tab for the full 180s window, we surface a
+        // timeout the same way as if they were watching.
+        if (document.visibilityState === 'hidden') continue;
         try {
             const resp = await fetch(
                 `/api/results/edr/${encodeURIComponent(profile)}/${cfg.fileHash}`,

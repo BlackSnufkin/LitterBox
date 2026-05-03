@@ -63,9 +63,17 @@
     </div>
 </div>
 
-<!-- Embed the saved findings as a JS global — the renderer reads it on load. -->
+<!-- Saved findings are fetched lazily by edr-saved.js via the existing
+     /api/results/edr/<profile>/<target> endpoint on DOMContentLoaded.
+     Inlining the dict via `tojson` previously bloated the HTML by N×
+     raw-_source blobs + call stacks per alert and slowed TTFB on
+     alert-heavy runs. The dispatch ref the JS needs (profile + target)
+     is small enough to inline. -->
 <script>
-window.__edrSavedResults = {{ edr_results | tojson }};
+window.__edrSavedRef = {
+    profile: {{ edr_profile | tojson }},
+    target:  {{ file_info.md5 | tojson }},
+};
 </script>
 
 {% endblock %}

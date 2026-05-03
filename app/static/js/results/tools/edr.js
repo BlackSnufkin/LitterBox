@@ -29,18 +29,51 @@ import summaryTool from './summary.js';
 
 const HIGH_SEVERITY = new Set(['high', 'critical']);
 const POLLING_STATUS = 'polling_alerts';
-const POLL_INTERVAL_MS = 3000;
+// Phase-2 poll cadence — starts tight (so first hits land fast), backs
+// off on consecutive ticks where the alert count didn't move, and gets
+// reset whenever new alerts arrive. Caps at POLL_MAX_MS so even a long
+// quiet window doesn't drift the dashboard out of sync. Tab-hidden
+// pauses stop ticking entirely.
+const POLL_INTERVAL_MS = 2000;
+const POLL_MAX_MS      = 15000;
+const POLL_BACKOFF     = 1.5;
 
 // Module-level handle so a re-render with a new payload aborts the old
 // poll loop (defensive — only one EDR result per page in practice).
 let _pollTimer = null;
+let _pollDelay = POLL_INTERVAL_MS;
+let _pollLastCount = -1;
+let _pollPausedDueToHidden = false;
+let _pollResumeArgs = null;     // (profile,) for resumeIfPaused
 
 function clearPoll() {
     if (_pollTimer != null) {
         clearTimeout(_pollTimer);
         _pollTimer = null;
     }
+    _pollDelay = POLL_INTERVAL_MS;
+    _pollLastCount = -1;
+    _pollResumeArgs = null;
+    _pollPausedDueToHidden = false;
 }
+
+// Pause the poll loop when the tab is hidden (no point pulling JSON
+// the user can't see), resume on visible. Wired once at module load.
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        if (_pollTimer != null) {
+            clearTimeout(_pollTimer);
+            _pollTimer = null;
+            _pollPausedDueToHidden = true;
+        }
+    } else if (_pollPausedDueToHidden && _pollResumeArgs) {
+        _pollPausedDueToHidden = false;
+        // Reset to the tight interval — fresh page focus, the user
+        // wants to see new alerts now, not wait through the back-off.
+        _pollDelay = POLL_INTERVAL_MS;
+        schedulePoll(..._pollResumeArgs);
+    }
+});
 
 function isPolling(results) {
     return results?.status === POLLING_STATUS;
@@ -190,6 +223,7 @@ function renderAlerts(results) {
             'No alerts raised',
             `${profileLabel(results)} did not raise alerts during the ${summary.wait_seconds_for_alerts || '?'}s correlation window.`
         );
+        target.dataset.alertsKey = '';
         return;
     }
 
@@ -200,6 +234,18 @@ function renderAlerts(results) {
         return String(b.detected_at || '').localeCompare(String(a.detected_at || ''));
     });
 
+    // Diff-skip: only re-render when the alert set has actually changed.
+    // Phase-2 polling fires every few seconds and the alert array is
+    // identical between most ticks. Re-rendering wipes user-expanded
+    // detail rows AND re-`JSON.stringify`s every alert's `raw` (heavy
+    // on alert-rich runs). Fingerprint = count + identity-of-each-alert.
+    const fingerprint = sorted.map(alertKey).join('|');
+    if (target.dataset.alertsKey === fingerprint) return;
+    target.dataset.alertsKey = fingerprint;
+
+    // Stash the sorted alerts on the table element so the click handler
+    // can lazy-build a detail body on first expand without re-running
+    // sort or re-locating the row data.
     const rows = sorted.map((a, i) => renderAlertRow(a, i)).join('');
 
     target.innerHTML = `
@@ -215,16 +261,33 @@ function renderAlerts(results) {
             <tbody>${rows}</tbody>
         </table>`;
 
+    const tbl = target.querySelector('table');
+    tbl._sortedAlerts = sorted;
+
     // Wire expand/collapse — one click handler delegated to the table.
-    target.querySelector('table').addEventListener('click', (ev) => {
+    // Detail body is BUILT lazily on first expand (and cached) so a
+    // collapsed row never pays the renderAlertDetail cost (which
+    // includes `JSON.stringify(a.raw, null, 2)` on the full payload).
+    tbl.addEventListener('click', (ev) => {
         const expander = ev.target.closest('.lb-edr-expand');
         if (!expander) return;
-        const idx = expander.dataset.idx;
+        const idx = +expander.dataset.idx;
         const detail = target.querySelector(`tr.lb-edr-detail[data-idx="${idx}"]`);
         if (!detail) return;
+        if (!detail.dataset.built) {
+            const cell = detail.querySelector('td');
+            if (cell) cell.innerHTML = renderAlertDetail(tbl._sortedAlerts[idx]);
+            detail.dataset.built = '1';
+        }
         const isOpen = detail.classList.toggle('open');
         expander.textContent = isOpen ? '▾' : '▸';
     });
+}
+
+/** Stable identity for an alert across polls — prefer rule UUID/ID,
+ *  fall back to timestamp + title which is unique enough in practice. */
+function alertKey(a) {
+    return a.rule_uuid || a.rule_id || `${a.detected_at}:${a.title}`;
 }
 
 function renderAlertRow(a, idx) {
@@ -246,6 +309,10 @@ function renderAlertRow(a, idx) {
         }
         return '<span class="lb-muted">—</span>';
     })();
+    // Detail row's body is intentionally empty — populated lazily on
+    // first expand click (see the click handler in renderAlerts). With
+    // a typical run-and-collapsed-list-of-N-alerts pattern, this saves
+    // N JSON.stringifies per render tick.
     return `
         <tr class="lb-edr-row">
             <td><button type="button" class="lb-edr-expand" data-idx="${idx}" aria-label="Expand"
@@ -256,9 +323,7 @@ function renderAlertRow(a, idx) {
             <td>${trigger}</td>
             <td class="lb-muted" style="font-size: 12px; white-space: nowrap;">${escapeHtml(fmtDate(a.detected_at))}</td>
         </tr>
-        <tr class="lb-edr-detail" data-idx="${idx}">
-            <td colspan="6">${renderAlertDetail(a)}</td>
-        </tr>`;
+        <tr class="lb-edr-detail" data-idx="${idx}"><td colspan="6"></td></tr>`;
 }
 
 function renderAlertDetail(a) {
@@ -590,9 +655,24 @@ function fileHashFromPath() {
 }
 
 function schedulePoll(profile) {
-    clearPoll();
+    // Don't replace the resume-state on chained reschedules; the
+    // backoff state lives across ticks. clearPoll resets it on every
+    // explicit caller-driven (re)start.
+    if (_pollTimer != null) {
+        clearTimeout(_pollTimer);
+        _pollTimer = null;
+    }
     const hash = fileHashFromPath();
     if (!hash || !profile) return;
+    _pollResumeArgs = [profile];
+
+    // While the tab is hidden we don't need to be polling at all —
+    // visibilitychange will resume us on focus.
+    if (document.visibilityState === 'hidden') {
+        _pollPausedDueToHidden = true;
+        return;
+    }
+
     _pollTimer = setTimeout(async () => {
         try {
             const resp = await fetch(`/api/results/edr/${encodeURIComponent(profile)}/${encodeURIComponent(hash)}`, {
@@ -604,15 +684,28 @@ function schedulePoll(profile) {
                 return;
             }
             const updated = await resp.json();
+
+            // Adapt the next-tick delay based on whether the alert
+            // count moved. Same count two ticks in a row → back off.
+            // Movement → snap back to the tight base interval so new
+            // alerts surface fast.
+            const total = (updated.summary || {}).total_alerts ?? (updated.alerts || []).length;
+            if (total === _pollLastCount) {
+                _pollDelay = Math.min(_pollDelay * POLL_BACKOFF, POLL_MAX_MS);
+            } else {
+                _pollDelay = POLL_INTERVAL_MS;
+            }
+            _pollLastCount = total;
+
             // Re-render the EDR-specific panes (Alerts, Execution).
+            // The alerts pane uses its own diff-skip (alertsKey on the
+            // target element) so this call is cheap when nothing
+            // actually changed.
             const ctx = { element: document.getElementById('edrAlertsResults') };
             edrModule.render(updated, ctx);
             // Re-render the Summary tab too — the scanner table row
             // should reflect the new alert count, and Process Output
-            // should pick up any newly-arrived stdout/stderr. Calling
-            // summaryTool.render with `{edr: updated}` is correct for
-            // EDR-only runs (no other tools contribute to summary in
-            // this flow).
+            // should pick up any newly-arrived stdout/stderr.
             const summaryStats = document.getElementById('scannerResultsBody');
             if (summaryStats) {
                 summaryTool.render({ edr: updated }, {
@@ -620,11 +713,18 @@ function schedulePoll(profile) {
                     statsElement: summaryStats,
                 });
             }
+
+            // Stop polling once the run is terminal.
+            if (updated.status && updated.status !== POLLING_STATUS) {
+                clearPoll();
+                updatePageStatus(false);
+                return;
+            }
         } catch (err) {
             console.error('[edr] poll failed:', err);
-            schedulePoll(profile);
         }
-    }, POLL_INTERVAL_MS);
+        if (_pollResumeArgs) schedulePoll(profile);
+    }, _pollDelay);
 }
 
 /**
