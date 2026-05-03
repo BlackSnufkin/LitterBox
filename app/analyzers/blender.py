@@ -6,7 +6,6 @@ import logging
 import glob
 import json
 import re
-import difflib
 from typing import Optional
 from datetime import datetime
 from .dynamic.moneta_analyzer import MonetaAnalyzer
@@ -330,11 +329,7 @@ class BlenderAnalyzer:
                                 # Extract instance counts if present
                                 p_instances = self._extract_instance_count(p_ioc['description'])
                                 s_instances = self._extract_instance_count(s_ioc['description'])
-                                
-                                # Compare descriptions without memory addresses
-                                p_desc = self._normalize_description(p_ioc['description'])
-                                s_desc = self._normalize_description(s_ioc['description'])
-                                
+
                                 # Calculate match score based on instances
                                 instance_score = 1.0
                                 if p_instances and s_instances:

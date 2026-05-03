@@ -32,26 +32,27 @@ class PatriotAnalyzer(BaseSubprocessAnalyzer):
             'findings': [],
         }
 
-        current_section = None
         current_finding = None
         collecting_module_info = False
+
+        # Section-header markers that the absorbers don't need to see.
+        # The absorbers detect their own field labels; these banner lines
+        # are just visual separators in Patriot's stdout.
+        SECTION_BANNERS = {
+            '=== Process Information ===',
+            '=== Memory Statistics ===',
+            '=== Scan Summary ===',
+            '=== Detailed Findings ===',
+        }
 
         for line in output.splitlines():
             line = line.rstrip()
             if not line:
                 continue
 
-            if line.startswith('== Patriot Memory Scanner =='):
-                current_section = 'header'
-            elif line == '=== Process Information ===':
-                current_section = 'process_info'
-            elif line == '=== Memory Statistics ===':
-                current_section = 'memory_stats'
-            elif line == '=== Scan Summary ===':
-                current_section = 'scan_summary'
-            elif line == '=== Detailed Findings ===':
-                current_section = 'detailed_findings'
-            elif line.startswith('--- Finding #'):
+            if line.startswith('== Patriot Memory Scanner ==') or line in SECTION_BANNERS:
+                continue
+            if line.startswith('--- Finding #'):
                 if current_finding:
                     sections['findings'].append(current_finding)
                 current_finding = {'finding_number': int(re.search(r'#(\d+)', line).group(1))}

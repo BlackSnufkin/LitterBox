@@ -21,7 +21,6 @@ def get_edr_saved_results(profile, target):
     """Saved-data view of an EDR run — does NOT re-dispatch to Whiskers.
     Mirrors the static_info / dynamic_info pattern for the EDR analyzer.
     The live-runner page is /analyze/edr/<profile>/<target>."""
-    app = current_app
     deps = _deps()
 
     data, error_msg, is_error = deps.helpers.load_analysis_data(target)

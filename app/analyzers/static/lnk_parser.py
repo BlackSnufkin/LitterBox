@@ -33,7 +33,7 @@ import os
 import struct
 import datetime
 import hashlib
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Any
 
 class LnkForensicsError(Exception):
     """Custom exception for LNK parsing errors."""

@@ -24,7 +24,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 # Server identity used as the dict key inside each client's "mcpServers" map.
 MCP_SERVER_NAME = "litterbox"

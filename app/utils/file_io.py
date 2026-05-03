@@ -381,7 +381,6 @@ def save_uploaded_file(file, config):
     sha256_hash = hashlib.sha256(file_content).hexdigest()
 
     original_filename = secure_filename(file.filename)
-    extension = os.path.splitext(original_filename)[1].lower()
     filename = f"{md5_hash}_{original_filename}"
 
     upload_folder = config['utils']['upload_folder']

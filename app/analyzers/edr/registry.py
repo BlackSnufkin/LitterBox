@@ -17,7 +17,7 @@ the rest of the analyzer config).
 
 import logging
 import threading
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional
 
 from .elastic_edr_analyzer import ElasticEdrAnalyzer
 from .fibratus_edr_analyzer import FibratusEdrAnalyzer

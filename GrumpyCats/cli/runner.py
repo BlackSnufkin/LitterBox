@@ -4,7 +4,6 @@ Lifted out of `grumpycat.py` so the orchestrator stays a few lines.
 """
 
 import logging
-import sys
 
 from litterbox_client import LitterBoxAPIError, LitterBoxError
 

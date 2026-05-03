@@ -4,7 +4,6 @@ import logging
 import subprocess
 import time
 import psutil
-import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Type, Optional, Tuple
 from abc import ABC, abstractmethod
@@ -541,7 +540,7 @@ class AnalysisManager:
                     raise Exception(f"Process terminated after {elapsed:.1f} seconds (Command: {cmd_str})")
             
             if not ps_process.is_running():
-                raise Exception(f"Process terminated during initialization")
+                raise Exception("Process terminated during initialization")
                 
         except psutil.NoSuchProcess:
             cmd_str = ' '.join(command)
