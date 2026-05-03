@@ -152,23 +152,33 @@ export default {
             const killedByEdr = !!(r.execution && r.execution.killed_by_edr);
             totalDetections += totalAlerts;
             const status = r.status || 'unknown';
+            const isPolling = status === 'polling_alerts';
+            const isTerminal = !isPolling;
+
+            // Detail string — describes the row state for the operator.
+            // The DETECTED badge below is driven *only* by alert count,
+            // and only after the run is terminal: a scan in progress
+            // shouldn't claim a verdict, and signals like killed_by_edr
+            // / blocked_by_av without alert evidence are heuristics that
+            // can fire on self-inflicted crashes.
             let detail;
-            let isFailureState = false;
-            let isPolling = false;
-            if (status === 'agent_unreachable')         { detail = 'Agent unreachable'; isFailureState = true; }
-            else if (status === 'busy')                 { detail = 'Agent busy with another run'; isFailureState = true; }
-            else if (status === 'partial')              { detail = 'Run completed but Elastic query failed'; isFailureState = true; }
-            else if (status === 'error')                { detail = `Error: ${r.error || 'unknown'}`; isFailureState = true; }
-            else if (status === 'polling_alerts' && summary.blocked_by_av) { detail = 'EDR blocked spawn — correlating alerts…'; isPolling = true; }
-            else if (status === 'polling_alerts' && killedByEdr) { detail = 'Killed by EDR — correlating alerts…'; isPolling = true; }
-            else if (status === 'polling_alerts')       { detail = 'Exec finished — correlating alerts…'; isPolling = true; }
+            if (status === 'agent_unreachable')         detail = 'Agent unreachable';
+            else if (status === 'busy')                 detail = 'Agent busy with another run';
+            else if (status === 'partial')              detail = 'Run completed but alert query failed';
+            else if (status === 'error')                detail = `Error: ${r.error || 'unknown'}`;
+            else if (isPolling && summary.blocked_by_av) detail = 'EDR blocked spawn — correlating alerts…';
+            else if (isPolling && killedByEdr)          detail = 'Killed by EDR — correlating alerts…';
+            else if (isPolling)                         detail = 'Exec finished — correlating alerts…';
+            else if (status === 'blocked_by_av' && totalAlerts > 0) detail = `Blocked by EDR · ${totalAlerts} alert${totalAlerts === 1 ? '' : 's'} raised`;
             else if (status === 'blocked_by_av')        detail = 'Blocked by EDR before execution';
             else if (killedByEdr && totalAlerts > 0)    detail = `Killed by EDR · ${totalAlerts} alert${totalAlerts === 1 ? '' : 's'} raised`;
+            else if (killedByEdr)                       detail = 'Process exited non-zero — no correlating alerts';
             else if (totalAlerts > 0)                   detail = `${totalAlerts} alert${totalAlerts === 1 ? '' : 's'} raised`;
             else                                        detail = 'No alerts raised';
+
             rows.push(summaryRow({
                 name: r.display_name || r.profile || 'EDR',
-                triggered: totalAlerts > 0 || status === 'blocked_by_av' || killedByEdr || isFailureState || isPolling,
+                triggered: isTerminal && totalAlerts > 0,
                 count: totalAlerts,
                 detail,
             }));

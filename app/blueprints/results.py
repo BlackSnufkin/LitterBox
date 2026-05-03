@@ -35,12 +35,38 @@ def get_edr_saved_results(profile, target):
             error=f'No saved EDR results for profile {profile!r} on this sample',
         ), 404
 
+    # Defensive cap on stdout/stderr for the inline `tojson` embed in
+    # edr_info.html. Pre-cap analyzers wrote multi-hundred-MB stdouts
+    # (mimikatz spamming `mimikatz # ` 18M times when launched without
+    # a script) that hung the browser at parse time. Going forward
+    # AgentClient caps at 256 KB, but old saved files predate that.
+    edr_results = _cap_saved_stdio(edr_results)
+
     return render_template(
         'edr_info.html',
         file_info=data['file_info'],
         edr_results=edr_results,
         edr_profile=profile,
     )
+
+
+def _cap_saved_stdio(edr_results: dict, cap: int = 256 * 1024) -> dict:
+    """Truncate `execution.{stdout,stderr}` if a saved findings dict
+    predates the AgentClient cap. Returns the dict in place (and back).
+    """
+    exec_blk = edr_results.get('execution') if isinstance(edr_results, dict) else None
+    if not isinstance(exec_blk, dict):
+        return edr_results
+    for field in ('stdout', 'stderr'):
+        value = exec_blk.get(field)
+        if isinstance(value, str) and len(value.encode('utf-8', errors='replace')) > cap:
+            raw = value.encode('utf-8', errors='replace')
+            head = raw[:cap].decode('utf-8', errors='replace')
+            exec_blk[field] = (
+                f"{head}\n\n... [truncated by saved-view loader — "
+                f"original was {len(raw):,} bytes, kept first {cap:,}]"
+            )
+    return edr_results
 
 
 @results_bp.route('/results/<analysis_type>/<target>', methods=['GET'])

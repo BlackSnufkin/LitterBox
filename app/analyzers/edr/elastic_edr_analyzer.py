@@ -558,19 +558,19 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
         filename: Optional[str] = None,
         alerts: Optional[list] = None,
     ) -> bool:
-        """If Whiskers didn't issue a kill and the process didn't exit
-        cleanly, something external terminated it. For .exe payloads on
-        an EDR-instrumented host, "something external" is overwhelmingly
-        the EDR — the heuristic alone is reliable.
+        """Decide whether the run was killed by EDR behavior protection.
 
-        For .dll payloads spawned via rundll32, exit_code != 0 is much
-        noisier: GetProcAddress failure on a missing export, DllMain
-        returning FALSE, even a malformed DLL all produce non-zero exits
-        with no EDR involvement. So for DLLs we additionally require at
-        least one Elastic alert as evidence before flagging killed_by_edr.
+        Heuristic gate: agent didn't issue the kill AND exit_code is
+        non-zero AND we have at least one Elastic alert correlating to
+        the run. A non-zero exit alone is not enough — payloads crash
+        for plenty of self-inflicted reasons (panic, missing dependency,
+        rundll32 GetProcAddress failure, ...). Requiring alert evidence
+        keeps this aligned with what the operator actually sees in the
+        UI: Fibratus / Defend / etc. claims a kill only when there's
+        a corresponding detection event.
 
-        Phase 1 has no alerts yet, so for DLLs Phase 1 always returns
-        False; Phase 2 re-evaluates after correlation and may flip True.
+        Phase 1 has no alerts yet, so this always returns False there;
+        Phase 2 re-evaluates after correlation and may flip True.
         """
         raw_status = (exec_logs.get("status") or "").lower()
         if raw_status == "killed":
@@ -579,12 +579,7 @@ class ElasticEdrAnalyzer(BaseAnalyzer):
         exit_code = exec_logs.get("exit_code")
         if exit_code in (0, None):
             return False
-
-        is_dll = bool(filename and filename.lower().endswith(".dll"))
-        if is_dll:
-            # DLL exit codes are unreliable — require alert evidence.
-            return bool(alerts)
-        return True
+        return bool(alerts)
 
     def _success_result(
         self,

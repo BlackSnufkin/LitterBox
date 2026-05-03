@@ -507,19 +507,18 @@ class FibratusEdrAnalyzer(BaseAnalyzer):
         filename: Optional[str] = None,
         alerts: Optional[list] = None,
     ) -> bool:
-        """Same heuristic the Elastic analyzer uses — see the docstring
-        there. For .dll payloads we require alert evidence to flag
-        killed_by_edr because rundll32 exits non-zero for benign reasons."""
+        """Same heuristic the Elastic analyzer uses: agent didn't issue
+        the kill AND exit_code is non-zero AND we have alert evidence.
+        Fibratus is detect-only (no preventive action) so a non-zero
+        exit without a Fibratus alert is overwhelmingly a self-inflicted
+        crash, not an EDR kill."""
         raw_status = (exec_logs.get("status") or "").lower()
         if raw_status == "killed":
             return False
         exit_code = exec_logs.get("exit_code")
         if exit_code in (0, None):
             return False
-        is_dll = bool(filename and filename.lower().endswith(".dll"))
-        if is_dll:
-            return bool(alerts)
-        return True
+        return bool(alerts)
 
     # ---- result builders -----------------------------------------------
 

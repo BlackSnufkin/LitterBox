@@ -17,6 +17,22 @@ import requests
 logger = logging.getLogger(__name__)
 
 
+def _truncate(s, cap: int) -> str:
+    """Return `s` capped at `cap` bytes (UTF-8) with a marker tail when
+    truncation happened. Non-string inputs round-trip as empty strings."""
+    if not isinstance(s, str):
+        return ""
+    raw = s.encode("utf-8", errors="replace")
+    if len(raw) <= cap:
+        return s
+    head = raw[:cap].decode("utf-8", errors="replace")
+    return (
+        f"{head}\n\n"
+        f"... [truncated by Whiskers client — original was "
+        f"{len(raw):,} bytes, kept first {cap:,}]"
+    )
+
+
 class AgentError(RuntimeError):
     """Whiskers responded but the response indicates a problem."""
 
@@ -145,9 +161,27 @@ class AgentClient:
 
     # ---- logs -----------------------------------------------------------
 
+    # Cap stdout/stderr at 256 KB. Real malware output (mimikatz left in
+    # interactive mode, beacons spamming a prompt, etc.) can balloon to
+    # hundreds of MB — a 263 MB stdout once made the saved-view template
+    # hang the browser at parse time. The detail panel only shows enough
+    # of stdout/stderr to be useful for triage; anything past this is
+    # noise from a runaway process.
+    _STDIO_CAP = 256 * 1024
+
     def get_execution_logs(self) -> dict:
-        """Returns {pid, stdout, stderr, exit_code, status} for the last run."""
-        return self._get("/api/logs/execution")
+        """Returns {pid, stdout, stderr, exit_code, status} for the last run.
+
+        stdout / stderr are capped at `_STDIO_CAP` (256 KB) — anything
+        above that gets truncated with a marker noting the original size.
+        Capping at the client edge means every downstream consumer
+        (analyzers, route handlers, persistence) is automatically safe.
+        """
+        logs = self._get("/api/logs/execution")
+        if isinstance(logs, dict):
+            logs["stdout"] = _truncate(logs.get("stdout"), self._STDIO_CAP)
+            logs["stderr"] = _truncate(logs.get("stderr"), self._STDIO_CAP)
+        return logs
 
     def get_agent_logs(self) -> dict:
         """The agent's own debug log buffer (last ~1000 lines)."""
