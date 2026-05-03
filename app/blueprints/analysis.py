@@ -276,13 +276,28 @@ def analyze_edr(profile, target):
         app.logger.error(f"EDR dispatch failed: {e}", exc_info=True)
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
-    # Persist the Phase 1 snapshot. If Phase 2 is in flight, the background
-    # thread will overwrite this file when it completes; the frontend polls
-    # the GET endpoint to pick up the final state.
-    deps.helpers.save_analysis_results(results, result_path, results_filename)
+    status = results.get('status', 'completed')
+
+    # Persist the Phase 1 snapshot ONLY when something real actually
+    # happened on the agent. Pre-execution transport failures
+    # (agent_unreachable, busy, error) leave us with an empty error
+    # envelope that has no execution / alerts / hostname — saving it
+    # would just clutter the saved-view route later with a fake
+    # "result" that's really just the error message. The dispatch
+    # error is still surfaced to the caller via the HTTP response.
+    PRE_EXEC_FAILURES = {'agent_unreachable', 'busy', 'error'}
+    if status not in PRE_EXEC_FAILURES:
+        # If Phase 2 is in flight, the background thread will overwrite
+        # this file when it completes; the frontend polls the GET
+        # endpoint to pick up the final state.
+        deps.helpers.save_analysis_results(results, result_path, results_filename)
+    else:
+        app.logger.debug(
+            f"Skipping save for EDR profile={profile} target={target}: "
+            f"status={status} (pre-execution failure)"
+        )
 
     payload = {'edr': results}
-    status = results.get('status', 'completed')
     if status in ('error', 'agent_unreachable'):
         return jsonify({'status': status, 'results': payload}), 502
     if status == 'busy':

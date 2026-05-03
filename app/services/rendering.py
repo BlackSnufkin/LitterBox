@@ -110,8 +110,25 @@ def render_file_info(data):
                 f"Calculated: {checksum['calculated_checksum']}"
             )
 
+    # Hero buttons are dynamic — only render the analyses that actually
+    # have saved data on disk for THIS sample. Listing every registered
+    # tool regardless of whether it ever ran for this file was confusing
+    # (e.g. clicking "Elastic Defend" on a sample only ever dispatched to
+    # Fibratus, or "Static Analysis" on a freshly-uploaded driver that
+    # only went through HolyGrail). Each `*_results` field is populated
+    # by helpers._load_file_data based on JSON file presence; pre-exec
+    # failures don't write a JSON, so the presence of each file is a
+    # clean "this analysis actually ran for this sample" signal.
     deps = current_app.extensions['litterbox']
-    edr_profiles = deps.edr_registry.list_profiles() if hasattr(deps, 'edr_registry') else []
+    all_profiles = deps.edr_registry.list_profiles() if hasattr(deps, 'edr_registry') else []
+    saved_profile_names = set((data.get('edr_results') or {}).keys())
+    edr_profiles = [p for p in all_profiles if p['name'] in saved_profile_names]
+
+    available = {
+        'static':    data.get('static_results') is not None,
+        'dynamic':   data.get('dynamic_results') is not None,
+        'holygrail': data.get('byovd_results') is not None,
+    }
 
     logger.debug("Rendering file_info.html template")
     return render_template(
@@ -119,6 +136,7 @@ def render_file_info(data):
         file_info=file_info,
         entropy_risk_levels={'High': 7.2, 'Medium': 6.8, 'Low': 0},
         edr_profiles=edr_profiles,
+        available=available,
     )
 
 

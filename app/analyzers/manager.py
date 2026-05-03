@@ -5,6 +5,7 @@ import subprocess
 import time
 import psutil
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Type, Optional, Tuple
 from abc import ABC, abstractmethod
 
@@ -46,6 +47,14 @@ class AnalysisManager:
         'hsb': HSBAnalyzer,
         'rededr': RedEdrAnalyzer
     }
+
+    # Analyzers that must run serially AFTER the parallel batch finishes.
+    # HSB (Hunt-Sleeping-Beacons) measures the target's sleep / thread
+    # timing — concurrent inspection by PE-Sieve / Moneta / Patriot
+    # opens handles, walks VAD, and can briefly suspend threads, which
+    # would distort the timing pattern HSB observes. Run it solo at the
+    # end so its measurements are clean.
+    _SERIAL_DYNAMIC_ANALYZERS = frozenset({'hsb'})
 
     def __init__(self, config: dict, logger: Optional[logging.Logger] = None):
         self.logger = logger or logging.getLogger(__name__)
@@ -90,6 +99,25 @@ class AnalysisManager:
         self.logger.debug("Analyzer initialization completed")
 
     def _run_analyzers(self, analyzers: Dict[str, BaseAnalyzer], target, analysis_type: str) -> dict:
+        """Run a group of analyzers and return their findings keyed by name.
+
+        Static analyzers all run in parallel — they're independent
+        subprocesses operating on the same on-disk file with their own
+        output dirs / stdout. Wall time drops from sum(tools) to
+        max(tools).
+
+        Dynamic analyzers split into two groups: parallel-safe (yara,
+        pe_sieve, moneta, patriot — read-only IOC scanners) and serial
+        (anything in `_SERIAL_DYNAMIC_ANALYZERS`, currently just hsb,
+        whose sleep-timing measurements are perturbed by concurrent
+        process inspection from the others). The serial group runs AFTER
+        the parallel batch completes so HSB sees a quiescent target.
+
+        Each analyzer is wrapped so a single failure can't bring down
+        the rest of the group — the failed entry gets a
+        `{status: 'error', error: ...}` envelope and the others keep
+        running.
+        """
         results = {}
         if not analyzers:
             self.logger.warning(f"No {analysis_type} analyzers are enabled")
@@ -100,16 +128,67 @@ class AnalysisManager:
             if not self._validate_dynamic_target(target):
                 return {'status': 'error', 'error': 'Process does not exist or is not running'}
 
-        self.logger.debug(f"Running {len(analyzers)} {analysis_type} analyzers")
-        for name, analyzer in analyzers.items():
-            try:
-                self.logger.debug(f"Running {name}")
-                analyzer.analyze(target)
-                results[name] = analyzer.get_results()
-            except Exception as e:
-                self.logger.error(f"Error in {name}: {str(e)}")
-                results[name] = {'status': 'error', 'error': str(e)}
+        # Partition into parallel + serial groups. Static is fully
+        # parallel; dynamic respects the _SERIAL_DYNAMIC_ANALYZERS set.
+        if analysis_type == 'dynamic':
+            parallel = {n: a for n, a in analyzers.items() if n not in self._SERIAL_DYNAMIC_ANALYZERS}
+            serial   = {n: a for n, a in analyzers.items() if n in self._SERIAL_DYNAMIC_ANALYZERS}
+        else:
+            parallel = dict(analyzers)
+            serial   = {}
 
+        self.logger.debug(
+            f"Running {analysis_type} analyzers — parallel: {list(parallel)}, "
+            f"serial: {list(serial)}"
+        )
+
+        if parallel:
+            results.update(self._run_in_parallel(parallel, target))
+        for name, analyzer in serial.items():
+            results[name] = self._run_one(name, analyzer, target)
+
+        return results
+
+    def _run_one(self, name: str, analyzer: BaseAnalyzer, target) -> dict:
+        """Run one analyzer, catching exceptions so a single failure
+        doesn't take down the rest of the batch. Logs start + completion
+        with per-tool wall time so the operator can see progress in the
+        debug log."""
+        self.logger.debug(f"Running {name}")
+        t0 = time.monotonic()
+        try:
+            analyzer.analyze(target)
+            result = analyzer.get_results()
+        except Exception as e:
+            self.logger.error(f"Error in {name}: {str(e)}")
+            result = {'status': 'error', 'error': str(e)}
+        elapsed = time.monotonic() - t0
+        self.logger.debug(f"{name} finished in {elapsed:.2f}s")
+        return result
+
+    def _run_in_parallel(self, analyzers: Dict[str, BaseAnalyzer], target) -> dict:
+        """Drive `analyzers` concurrently via a thread pool sized to the
+        batch. All analyzers shell out to subprocesses, so the GIL doesn't
+        bottleneck wall time — this gets us roughly max(per-tool wall
+        time) instead of sum(per-tool wall time)."""
+        results: Dict[str, dict] = {}
+        max_workers = min(len(analyzers), 8) or 1
+        t0 = time.monotonic()
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix='analyzer') as pool:
+            futures = {pool.submit(self._run_one, name, a, target): name
+                       for name, a in analyzers.items()}
+            for fut in as_completed(futures):
+                name = futures[fut]
+                try:
+                    results[name] = fut.result()
+                except Exception as e:
+                    # _run_one already swallows exceptions; this is the
+                    # belt-and-braces path for anything that escapes it.
+                    self.logger.error(f"Error in {name}: {str(e)}")
+                    results[name] = {'status': 'error', 'error': str(e)}
+        self.logger.debug(
+            f"Parallel batch finished in {time.monotonic() - t0:.2f}s: {list(results)}"
+        )
         return results
 
     def _validate_dynamic_target(self, target) -> bool:

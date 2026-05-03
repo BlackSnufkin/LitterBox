@@ -8,90 +8,249 @@
 
 {% block content %}
 
+<!-- Header / hero -->
 <div class="lb-panel">
     <div class="lb-panel-hdr">
         <span class="lb-glyph">▸</span>All-in-One Analysis
-        <span id="allOverallTimer" class="lb-tag muted lb-mono" style="margin-left: 12px;">00:00</span>
-        <div style="margin-left: auto; display: flex; gap: 6px;">
+        <span class="lb-panel-badge lb-mono">{{ file_hash[:12] }}…</span>
+        <div style="margin-left: auto; display: flex; gap: 6px; align-items: center;">
+            <span id="allOverallTimer" class="lb-tag muted lb-mono" style="font-size: 12px;">00:00</span>
             <button onclick="window.location.href='/results/info/{{ file_hash }}'" class="lb-btn lb-btn-ghost" style="padding: 2px 10px; font-size: 12px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/></svg>
                 Back to File Info
             </button>
         </div>
     </div>
     <div class="lb-panel-body">
-        <p class="lb-muted" style="font-size: 12px; margin: 0 0 4px 0;">
-            Static and every registered EDR profile fire immediately in parallel.
+        <div class="lb-all-stats">
+            <div class="lb-all-stat">
+                <span class="lb-eyebrow">Stages</span>
+                <span id="allStagesCounter" class="lb-all-stat-value">0 / {{ 2 + (edr_profiles|length) }}</span>
+            </div>
+            <div class="lb-all-stat">
+                <span class="lb-eyebrow">EDR Alerts</span>
+                <span id="allAlertsCounter" class="lb-all-stat-value lb-mono">—</span>
+            </div>
+            <div class="lb-all-stat">
+                <span class="lb-eyebrow">Elapsed</span>
+                <span id="allElapsedDisplay" class="lb-all-stat-value lb-mono">00:00</span>
+            </div>
+        </div>
+        <p class="lb-muted" style="font-size: 12px; margin: 12px 0 0 0;">
+            Static and every reachable EDR profile fire immediately in parallel.
             Dynamic waits only for Static to finish — EDR runs on a remote VM
-            with no contention against the local Dynamic analyzers, so it
-            keeps running in parallel with Dynamic. The page redirects to the
-            file-info view when everything settles.
+            with no resource contention against the local Dynamic analyzers, so
+            it keeps running in parallel with Dynamic.
         </p>
     </div>
 </div>
 
-<div class="lb-panel">
-    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>Local + Remote (parallel)</div>
-    <div class="lb-panel-body" id="allStage1">
+<!-- Pipeline rows -->
+<div class="lb-panel" style="margin-top: 12px;">
+    <div class="lb-panel-body" style="padding: 0;">
+
+        <!-- Phase 1 — parallel -->
+        <div class="lb-all-phase-hdr">
+            <span class="lb-eyebrow">Phase 1 · Parallel</span>
+            <span class="lb-muted" style="font-size: 11px;">Static + every reachable EDR profile</span>
+        </div>
+
+        <!-- Static -->
         <div class="lb-all-row" data-stage="static">
             <span class="lb-all-dot lb-all-dot--queued" data-role="dot"></span>
             <div class="lb-all-row-body">
-                <div class="lb-strong" style="font-size: 13px;">Static Analysis</div>
-                <div class="lb-muted lb-all-detail" data-role="detail" style="font-size: 12px;">Queued</div>
+                <div class="lb-all-row-title">
+                    <span class="lb-strong">Static</span>
+                    <span class="lb-tag muted lb-all-kind">YARA · CheckPlz · Stringnalyzer</span>
+                </div>
+                <div class="lb-all-detail" data-role="detail">Queued</div>
             </div>
+            <span class="lb-tag muted lb-all-state" data-role="state">QUEUED</span>
             <span class="lb-all-elapsed lb-mono" data-role="elapsed">—</span>
+            <span class="lb-all-arrow" data-role="arrow">→</span>
         </div>
+
+        <!-- EDR profiles -->
         {% for profile in edr_profiles %}
         <div class="lb-all-row" data-stage="edr" data-profile="{{ profile.name }}">
             <span class="lb-all-dot lb-all-dot--queued" data-role="dot"></span>
             <div class="lb-all-row-body">
-                <div class="lb-strong" style="font-size: 13px;">{{ profile.display_name }} <span class="lb-muted" style="font-size: 11px;">EDR</span></div>
-                <div class="lb-muted lb-all-detail" data-role="detail" style="font-size: 12px;">Queued</div>
+                <div class="lb-all-row-title">
+                    <span class="lb-strong">{{ profile.display_name }}</span>
+                    <span class="lb-tag info lb-all-kind">EDR{% if profile.kind %} · {{ profile.kind }}{% endif %}</span>
+                </div>
+                <div class="lb-all-detail" data-role="detail">Queued</div>
             </div>
+            <span class="lb-tag muted lb-all-state" data-role="state">QUEUED</span>
             <span class="lb-all-elapsed lb-mono" data-role="elapsed">—</span>
+            <span class="lb-all-arrow" data-role="arrow">→</span>
         </div>
         {% endfor %}
-    </div>
-</div>
 
-<div class="lb-panel">
-    <div class="lb-panel-hdr"><span class="lb-glyph">▸</span>After Static</div>
-    <div class="lb-panel-body" id="allStage2">
+        <!-- Phase 2 — sequential after Static -->
+        <div class="lb-all-phase-hdr">
+            <span class="lb-eyebrow">Phase 2 · After Static</span>
+            <span class="lb-muted" style="font-size: 11px;">Local payload detonation + memory scanners</span>
+        </div>
+
         <div class="lb-all-row" data-stage="dynamic">
             <span class="lb-all-dot lb-all-dot--queued" data-role="dot"></span>
             <div class="lb-all-row-body">
-                <div class="lb-strong" style="font-size: 13px;">Dynamic Analysis</div>
-                <div class="lb-muted lb-all-detail" data-role="detail" style="font-size: 12px;">Waiting for Static to finish</div>
+                <div class="lb-all-row-title">
+                    <span class="lb-strong">Dynamic</span>
+                    <span class="lb-tag muted lb-all-kind">YARA · PE-Sieve · Moneta · Patriot · HSB · RedEdr</span>
+                </div>
+                <div class="lb-all-detail" data-role="detail">Waiting for Static to finish</div>
             </div>
+            <span class="lb-tag muted lb-all-state" data-role="state">QUEUED</span>
             <span class="lb-all-elapsed lb-mono" data-role="elapsed">—</span>
+            <span class="lb-all-arrow" data-role="arrow">→</span>
         </div>
     </div>
 </div>
 
-<div class="lb-panel hidden" id="allDoneBanner">
-    <div class="lb-panel-body" style="text-align: center; padding: 24px;">
-        <div class="lb-strong" style="font-size: 14px;">Pipeline complete — redirecting…</div>
-        <div class="lb-muted" style="font-size: 12px; margin-top: 4px;">Taking you to <span class="lb-mono">/results/info/{{ file_hash }}</span></div>
+<!-- Done banner — hidden until the pipeline settles -->
+<div class="lb-panel hidden" id="allDoneBanner" style="margin-top: 12px;">
+    <div class="lb-panel-hdr">
+        <span class="lb-glyph">✓</span>Pipeline Complete
+    </div>
+    <div class="lb-panel-body">
+        <p class="lb-strong" style="font-size: 13px; margin: 0 0 4px 0;">
+            All stages settled — click any completed row above to view its detailed results.
+        </p>
+        <p class="lb-muted" style="font-size: 12px; margin: 0 0 12px 0;">
+            Or jump straight to one of the saved views:
+        </p>
+        <div class="lb-all-jump-row"></div>
     </div>
 </div>
 
 <style>
-.lb-all-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 12px;
+/* ============================================================
+ * All-in-One pipeline page
+ * ============================================================ */
+
+/* Top stats strip */
+.lb-all-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.lb-all-stat {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 10px 14px;
+    background: var(--lb-bg-soft);
+    border: 1px solid var(--lb-border);
+}
+.lb-all-stat-value {
+    font-size: 20px;
+    color: var(--lb-text);
+    font-weight: 500;
+}
+
+/* Phase header bands */
+.lb-all-phase-hdr {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 10px 16px 6px;
+    background: var(--lb-bg-soft);
     border-bottom: 1px solid var(--lb-border);
 }
+
+/* Row */
+.lb-all-row {
+    display: grid;
+    grid-template-columns: 18px 1fr auto auto 16px;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--lb-border);
+    transition: background 0.1s;
+}
 .lb-all-row:last-child { border-bottom: 0; }
-.lb-all-row-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.lb-all-row.is-clickable { cursor: pointer; }
+.lb-all-row.is-clickable:hover { background: var(--lb-bg-soft); }
+.lb-all-row.is-skipped { opacity: 0.6; }
+
+.lb-all-row-body {
+    display: flex; flex-direction: column; gap: 4px;
+    min-width: 0;
+}
+.lb-all-row-title {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+}
+.lb-all-row-title .lb-strong { font-size: 14px; }
+.lb-all-kind {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+}
+.lb-all-detail {
+    font-size: 12px;
+    color: var(--lb-text-dim);
+    word-break: break-word;
+}
+
+/* Status indicator dot */
 .lb-all-dot {
-    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 0 4px transparent;
+    transition: box-shadow 0.2s;
 }
 .lb-all-dot--queued  { background: var(--lb-text-mute); }
-.lb-all-dot--running { background: var(--lb-sev-medium); animation: lb-all-pulse 1.2s ease-in-out infinite; }
-.lb-all-dot--done    { background: var(--lb-sev-low); }
-.lb-all-dot--failed  { background: var(--lb-accent); }
-.lb-all-elapsed { font-size: 12px; color: var(--lb-text-mute); min-width: 60px; text-align: right; }
-@keyframes lb-all-pulse { 50% { opacity: 0.35; } }
+.lb-all-dot--running { background: var(--lb-sev-medium); animation: lb-all-pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.12); }
+.lb-all-dot--done    { background: var(--lb-sev-low); box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.12); }
+.lb-all-dot--failed  { background: var(--lb-accent); box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.12); }
+.lb-all-dot--skipped { background: var(--lb-text-mute); opacity: 0.4; }
+
+/* State pill on the right */
+.lb-all-state {
+    min-width: 70px;
+    text-align: center;
+    font-size: 10px;
+}
+
+/* Elapsed timer */
+.lb-all-elapsed {
+    font-size: 12px;
+    color: var(--lb-text-mute);
+    min-width: 50px;
+    text-align: right;
+}
+
+/* Arrow chevron — only visible when row is clickable */
+.lb-all-arrow {
+    color: var(--lb-text-mute);
+    font-size: 14px;
+    text-align: center;
+    visibility: hidden;
+}
+.lb-all-row.is-clickable .lb-all-arrow { visibility: visible; }
+
+/* Jump-row buttons */
+.lb-all-jump-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.lb-all-jump-row a.lb-btn {
+    padding: 4px 14px;
+    font-size: 12px;
+}
+
+@keyframes lb-all-pulse { 50% { opacity: 0.45; } }
+
+@media (max-width: 720px) {
+    .lb-all-stats { grid-template-columns: 1fr; }
+    .lb-all-row {
+        grid-template-columns: 14px 1fr auto;
+        gap: 10px;
+    }
+    .lb-all-row .lb-all-elapsed,
+    .lb-all-row .lb-all-arrow { display: none; }
+}
 </style>
 
 <script>

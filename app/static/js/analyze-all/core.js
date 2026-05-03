@@ -35,14 +35,71 @@ function row(stage, profile = null) {
     return document.querySelector(sel);
 }
 
+// Map row kind → human label + lb-tag severity class for the state pill.
+const STATE_LABEL = {
+    queued:  { label: 'QUEUED',    cls: 'muted' },
+    running: { label: 'RUNNING',   cls: 'medium' },
+    done:    { label: 'COMPLETED', cls: 'low' },
+    failed:  { label: 'FAILED',    cls: 'high' },
+    skipped: { label: 'SKIPPED',   cls: 'muted' },
+};
+
 function setStatus(stage, profile, kind, detailText) {
     const r = row(stage, profile);
     if (!r) return;
-    const dot = r.querySelector('[data-role="dot"]');
+    const dot    = r.querySelector('[data-role="dot"]');
     const detail = r.querySelector('[data-role="detail"]');
+    const state  = r.querySelector('[data-role="state"]');
     if (dot) dot.className = `lb-all-dot lb-all-dot--${kind}`;
     if (detail && detailText != null) detail.textContent = detailText;
+    if (state) {
+        const meta = STATE_LABEL[kind] || STATE_LABEL.queued;
+        state.className = `lb-tag ${meta.cls} lb-all-state`;
+        state.textContent = meta.label;
+    }
+    r.classList.toggle('is-skipped', kind === 'skipped');
+    refreshStagesCounter();
 }
+
+// Refresh the "N / total" stages counter at the top of the page based on
+// how many rows are in a terminal state (done / failed / skipped).
+function refreshStagesCounter() {
+    const counter = document.getElementById('allStagesCounter');
+    if (!counter) return;
+    const rows = document.querySelectorAll('.lb-all-row');
+    let total = rows.length;
+    let settled = 0;
+    rows.forEach(r => {
+        const dot = r.querySelector('[data-role="dot"]');
+        if (!dot) return;
+        if (dot.classList.contains('lb-all-dot--done') ||
+            dot.classList.contains('lb-all-dot--failed') ||
+            dot.classList.contains('lb-all-dot--skipped')) {
+            settled += 1;
+        }
+    });
+    counter.textContent = `${settled} / ${total}`;
+}
+
+// Track total EDR alerts seen across all profiles, surface in the top tile.
+let _totalAlerts = 0;
+function bumpAlertCounter(n) {
+    _totalAlerts += n;
+    const el = document.getElementById('allAlertsCounter');
+    if (el) {
+        el.textContent = String(_totalAlerts);
+        el.style.color = _totalAlerts > 0 ? 'var(--lb-accent-soft)' : '';
+    }
+}
+function setAlertCounter(n) {
+    _totalAlerts = n;
+    const el = document.getElementById('allAlertsCounter');
+    if (el) {
+        el.textContent = String(_totalAlerts);
+        el.style.color = _totalAlerts > 0 ? 'var(--lb-accent-soft)' : '';
+    }
+}
+setAlertCounter(0);
 
 function setElapsed(stage, profile, ms) {
     const r = row(stage, profile);
@@ -55,12 +112,18 @@ function setElapsed(stage, profile, ms) {
 }
 
 // Top-of-page overall timer. Runs from page load until all done.
-const overallEl = document.getElementById('allOverallTimer');
+// Mirrors into both the badge in the title bar AND the big tile at the
+// top of the page (which gets sub-second updates via the same interval).
+const overallEl    = document.getElementById('allOverallTimer');
+const elapsedTileEl = document.getElementById('allElapsedDisplay');
+function fmtElapsed(ms) {
+    const s = Math.floor(ms / 1000);
+    return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+}
 let overallTimer = setInterval(() => {
-    const elapsed = Date.now() - PAGE_START;
-    const s = Math.floor(elapsed / 1000);
-    if (overallEl) overallEl.textContent =
-        `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+    const text = fmtElapsed(Date.now() - PAGE_START);
+    if (overallEl)     overallEl.textContent = text;
+    if (elapsedTileEl) elapsedTileEl.textContent = text;
 }, 1000);
 
 // Per-row live elapsed ticker — only running rows tick.
@@ -149,6 +212,7 @@ async function runEdrProfile(profile) {
         );
         const failed = (final.status === 'partial' || final.status === 'error');
         setStatus('edr', profile, failed ? 'failed' : 'done', failed ? `${final.status}: ${final.error || ''}` : detail);
+        if (!failed && totalAlerts > 0) bumpAlertCounter(totalAlerts);
     } catch (err) {
         setStatus('edr', profile, 'failed', `Error: ${err.message}`);
     } finally {
@@ -198,11 +262,49 @@ async function runDynamic() {
     }
 }
 
+// ---- Agent preflight ----------------------------------------------------
+//
+// Hit /api/edr/agents/status (server-cached, ~instant) before kicking off
+// the EDR profiles. Profiles whose agent isn't reachable get marked as
+// "skipped" with no dispatch attempt — saves the 4-5s timeout each agent
+// would otherwise burn just to fail.
+async function probeReachableProfiles() {
+    if (!cfg.edrProfiles.length) return new Set();
+    try {
+        const resp = await fetch('/api/edr/agents/status', { cache: 'no-store' });
+        if (!resp.ok) return null;     // soft-fail → caller dispatches all
+        const data = await resp.json();
+        const byName = new Map(
+            (data.agents || []).map(a => [a.name, !!(a.agent && a.agent.reachable)])
+        );
+        const reachable = new Set();
+        for (const p of cfg.edrProfiles) {
+            // Profiles we don't have status for get the benefit of the
+            // doubt — let the dispatch attempt surface the real error.
+            if (!byName.has(p) || byName.get(p)) reachable.add(p);
+        }
+        return reachable;
+    } catch {
+        return null;     // soft-fail
+    }
+}
+
 // ---- Orchestration ------------------------------------------------------
 async function run() {
-    // Static + every EDR profile fire immediately, all in parallel.
+    // Preflight EDR agents — skip the ones the dashboard says are down.
+    const reachable = await probeReachableProfiles();
+    const edrToDispatch = [];
+    for (const p of cfg.edrProfiles) {
+        if (reachable === null || reachable.has(p)) {
+            edrToDispatch.push(p);
+        } else {
+            setStatus('edr', p, 'skipped', 'Agent unreachable — skipped');
+        }
+    }
+
+    // Static + reachable EDR profiles fire immediately, all in parallel.
     const staticPromise = runStatic();
-    const edrPromises = cfg.edrProfiles.map(p => runEdrProfile(p));
+    const edrPromises = edrToDispatch.map(p => runEdrProfile(p));
 
     // Dynamic waits ONLY for Static — EDR is on a remote VM, no resource
     // contention with the local Dynamic analyzers. EDR continues in
@@ -224,9 +326,10 @@ async function run() {
     showDoneBanner();
 }
 
-/** Once the pipeline settles, turn each row into a link to its saved
- *  detailed view (e.g. /results/static/<hash>, /results/dynamic/<hash>,
- *  /results/edr/<profile>/<hash>). Failed rows stay un-linked. */
+/** Once the pipeline settles, mark each completed row as clickable so
+ *  it links to its saved detailed view. Failed / skipped rows stay
+ *  non-interactive. The arrow chevron is built into the template and
+ *  the `.is-clickable` class controls its visibility (CSS). */
 function linkifyCompletedRows() {
     document.querySelectorAll('.lb-all-row').forEach(r => {
         const dot = r.querySelector('[data-role="dot"]');
@@ -240,15 +343,9 @@ function linkifyCompletedRows() {
                                   null
         );
         if (!url) return;
-        r.style.cursor = 'pointer';
+        r.classList.add('is-clickable');
         r.title = `View saved ${stage} results`;
         r.addEventListener('click', () => { window.location.href = url; });
-        // Visual cue — drop a small chevron at the right edge.
-        const arrow = document.createElement('span');
-        arrow.className = 'lb-muted lb-mono';
-        arrow.style.cssText = 'margin-left: 8px; font-size: 13px;';
-        arrow.textContent = '→';
-        r.appendChild(arrow);
     });
 }
 
@@ -256,31 +353,49 @@ function showDoneBanner() {
     const banner = document.getElementById('allDoneBanner');
     if (!banner) return;
     banner.classList.remove('hidden');
-    banner.querySelector('.lb-strong').textContent =
-        'Pipeline complete — click any completed row to view its detailed results.';
-    banner.querySelector('.lb-muted').textContent = '';
-    // Add explicit jump buttons.
-    const body = banner.querySelector('.lb-panel-body');
-    if (body && !body.querySelector('.lb-all-jump-row')) {
-        const div = document.createElement('div');
-        div.className = 'lb-all-jump-row';
-        div.style.cssText = 'display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap;';
-        const links = [
-            ['Static',  `/results/static/${cfg.fileHash}`],
-            ...cfg.edrProfiles.map(p => [p, `/results/edr/${encodeURIComponent(p)}/${cfg.fileHash}`]),
-            ['Dynamic', `/results/dynamic/${cfg.fileHash}`],
-            ['File Info', `/results/info/${cfg.fileHash}`],
-        ];
-        for (const [label, url] of links) {
-            const a = document.createElement('a');
-            a.href = url;
-            a.className = 'lb-btn lb-btn-ghost';
-            a.style.cssText = 'padding: 4px 12px; font-size: 12px;';
-            a.textContent = label;
-            div.appendChild(a);
-        }
-        body.appendChild(div);
+
+    // Populate the jump-row with one link per stage that actually
+    // produced saved data — skip failed / skipped EDR profiles since
+    // they don't have a saved view to navigate to.
+    const jumpRow = banner.querySelector('.lb-all-jump-row');
+    if (!jumpRow || jumpRow.children.length) return;
+
+    const links = [];
+    if (rowState('static') === 'done') {
+        links.push(['Static', `/results/static/${cfg.fileHash}`, 'low']);
     }
+    for (const p of cfg.edrProfiles) {
+        if (rowState('edr', p) === 'done') {
+            const profLabel = document.querySelector(
+                `.lb-all-row[data-stage="edr"][data-profile="${p}"] .lb-strong`
+            )?.textContent || p;
+            links.push([profLabel, `/results/edr/${encodeURIComponent(p)}/${cfg.fileHash}`, 'low']);
+        }
+    }
+    if (rowState('dynamic') === 'done') {
+        links.push(['Dynamic', `/results/dynamic/${cfg.fileHash}`, 'low']);
+    }
+    links.push(['File Info', `/results/info/${cfg.fileHash}`, 'muted']);
+
+    for (const [label, url, sev] of links) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.className = `lb-btn lb-btn-ghost lb-tag-${sev}`;
+        a.textContent = label;
+        jumpRow.appendChild(a);
+    }
+}
+
+/** Read the terminal state of a row. Returns 'done' | 'failed' |
+ *  'skipped' | 'queued' | 'running' based on the dot class. */
+function rowState(stage, profile = null) {
+    const r = row(stage, profile);
+    const dot = r?.querySelector('[data-role="dot"]');
+    if (!dot) return 'queued';
+    for (const cls of ['done', 'failed', 'skipped', 'running', 'queued']) {
+        if (dot.classList.contains(`lb-all-dot--${cls}`)) return cls;
+    }
+    return 'queued';
 }
 
 document.addEventListener('DOMContentLoaded', run);
