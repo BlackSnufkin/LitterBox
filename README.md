@@ -1,6 +1,6 @@
 # LitterBox
 
-![LitterBox Logo](https://github.com/user-attachments/assets/20030454-55b8-4473-b7b7-f65bb7150d51)
+![LitterBox Logo](Screenshots/lb-logo.png)
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=plastic&logo=python&logoColor=white)]()
 [![Windows](https://img.shields.io/badge/Windows-Supported-0078D6?style=plastic&logo=onlyfans&logoColor=black)]()
