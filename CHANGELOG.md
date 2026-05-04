@@ -87,6 +87,16 @@ All notable changes to this project will be documented in this file.
 - Dead code in `grumpycat.py` and `LitterBoxMCP.py` (cache, unused imports, exception envelope, lazy client wrapper)
 - `etw_wait_time` config key (replaced by event-driven readiness signal)
 
+### Scanners
+- New "Scanners" tracking table in README — version + last-updated date + source per scanner/rule pack so operators can tell at a glance whether each binary is current
+- PE-Sieve refreshed to 0.4.1.2 (commit `f1dc39d`, 2026-05-02)
+- Hollows-Hunter refreshed to 0.4.1.2 (commit `e271f7e`, 2026-04-18)
+- Moneta refreshed (commit `5b65395`, 2024-03-16)
+- Hunt-Sleeping-Beacons refreshed (commit `84dd3a9`, 2026-01-25)
+- YARA rules restructured under `Scanners/Yara/rules/` into `elastic-yara/` and `YARAForge/` subdirs; orchestrator `LitterBox.yar` regenerated to match the new layout
+- Elastic YARA rules synced to upstream `d131ea8` (2026-04-30, 686 rules — 684 upstream + Morpes/Torii retained locally after Elastic rotated them out)
+- YARA-Forge bumped to 0.9.1 (release `20260503`, 2026-05-03) — separate `YARAForge_Extended.yar` pack alongside the Elastic rules
+
 ### Notes
 - New runtime dependency: `requests==2.32.3`
 - Whiskers binary not committed — build via `cargo build --release` (see `Whiskers/BUILD.md`)

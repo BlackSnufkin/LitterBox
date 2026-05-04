@@ -66,6 +66,29 @@ The setup script provisions a Windows 10 container with KVM and runs LitterBox i
 
 Drop one or more profile YAMLs under `Config/edr_profiles/` and the upload page picks them up at boot. Full walkthroughs in the wiki: [Whiskers Agent](../../wiki/Whiskers-Agent) → [Elastic Defend Setup](../../wiki/Elastic-Defend-Setup) or [Fibratus Setup](../../wiki/Fibratus-Setup).
 
+## Scanners
+
+Bundled binaries under `Scanners/`. Versions and last-update dates tracked here so operators can tell at a glance whether a scanner is current.
+
+| Scanner | Version | Last updated | Source |
+|---|---|---|---|
+| [PE-Sieve](https://github.com/hasherezade/pe-sieve) | 0.4.1.2 (`f1dc39d`) | 2026-05-02 | hasherezade/pe-sieve |
+| [Hollows-Hunter](https://github.com/hasherezade/hollows_hunter) | 0.4.1.2 (`e271f7e`) | 2026-04-18 | hasherezade/hollows_hunter |
+| [Moneta](https://github.com/forrest-orr/moneta) | `5b65395` | 2024-03-16 | forrest-orr/moneta |
+| [Patriot](https://github.com/joe-desimone/patriot) | — | 2024-12-29 | joe-desimone/patriot |
+| [Hunt-Sleeping-Beacons](https://github.com/thefLink/Hunt-Sleeping-Beacons) | `84dd3a9` | 2026-01-25 | thefLink/Hunt-Sleeping-Beacons |
+| [RedEdr](https://github.com/dobin/RedEdr) | 0.9 (release) | 2026-04-12 | dobin/RedEdr |
+| [YARA](https://github.com/VirusTotal/yara/releases) (engine `yara64.exe`) | — | 2024-12-29 | VirusTotal/yara |
+| Elastic YARA rules (`Scanners/Yara/rules/elastic-yara/`) | `d131ea8` | 2026-04-30 | elastic/protections-artifacts |
+| YARA-Forge Extended (`Scanners/Yara/rules/YARAForge/`) | 0.9.1 (release `20260503`) | 2026-05-03 | YARAHQ/yara-forge |
+| [CheckPlz](https://github.com/BlackSnufkin/CheckPlz) | — | 2024-12-29 | BlackSnufkin/CheckPlz |
+| [Stringnalyzer](https://github.com/BlackSnufkin/Rusty-Playground/tree/main/Stringnalyzer) | — | 2025-01-27 | BlackSnufkin/Rusty-Playground |
+| [HolyGrail](https://github.com/BlackSnufkin/HolyGrail) | — | 2025-08-18 | BlackSnufkin/HolyGrail |
+
+Version format: `<release-version>` or `<release-version> (release)` when the binary is pulled from an upstream release; `<release-version> (\`<commit>\`)` or just `\`<commit>\`` when built from source. Last-updated date is the upstream commit / release date, not the local build date.
+
+When you refresh a scanner: replace the binary under its `Scanners/<Name>/` directory and update the row above (version + date).
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md). Work in feature branches on personal forks.
