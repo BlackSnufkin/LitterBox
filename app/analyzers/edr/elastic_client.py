@@ -365,6 +365,32 @@ def _build_details(src: dict) -> dict:
     memory_region = proc_ext.get("memory_region") or {}
     token = proc_ext.get("token") or {}
 
+    # File identity — populated on Defend malware-prevention alerts
+    # (event.action="creation", event.code="malicious_file") where the
+    # relevant subject of the alert is the file that got prevented, NOT
+    # the process that wrote it. The writer process is often Whiskers
+    # itself in our pipeline; surfacing it as the "subject" misleads
+    # operators into thinking Whiskers got flagged when really it's
+    # the payload that did. The renderer prefers `file.name` over
+    # `process.name` when this block is populated.
+    file_obj = src.get("file") or {}
+    file_ext = file_obj.get("Ext") or {}
+    malware_sig = (file_ext.get("malware_signature") or {}).get("primary") or {}
+    sig_block = malware_sig.get("signature") or {}
+    file_info = None
+    if file_obj.get("name") or file_obj.get("path"):
+        file_info = {
+            "name": file_obj.get("name"),
+            "path": file_obj.get("path"),
+            "directory": file_obj.get("directory"),
+            "size": file_obj.get("size"),
+            "sha256": (file_obj.get("hash") or {}).get("sha256"),
+            "code_signature": _normalize_code_signature(file_obj.get("code_signature")),
+            "pe": file_obj.get("pe") or None,
+            "signature_name": sig_block.get("name"),
+            "signature_id": sig_block.get("id"),
+        }
+
     # Process identity (subset that's useful to the operator).
     process_info = {
         "name": proc.get("name"),
@@ -510,9 +536,11 @@ def _build_details(src: dict) -> dict:
         "risk_score": _flat(src, "kibana.alert.risk_score", "event.risk_score"),
         "event_action": _flat(src, "event.action"),
         "event_category": _flat(src, "event.category"),
+        "event_code": _flat(src, "event.code"),
         "event_outcome": _flat(src, "event.outcome"),
         "process": process_info,
         "parent": parent_info,
+        "file": file_info,
         "api": api_info,
         "memory_region": memory_info,
         "call_stack": call_stack,

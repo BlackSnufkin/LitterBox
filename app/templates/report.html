@@ -492,6 +492,24 @@
     .mt-24   { margin-top: 24px; }
     .stack   { display: flex; flex-direction: column; gap: 4px; }
 
+    /* Expandable "show all" sections — used wherever a section truncates
+       at N items so reviewers can still see everything when needed. Pure
+       <details>/<summary>; no JS. Hidden in print so the printed report
+       stays compact. */
+    details.report-more { margin-top: 8px; }
+    details.report-more > summary {
+      cursor: pointer; user-select: none; list-style: none;
+      color: var(--text-muted); font-size: 12px;
+      padding: 4px 8px; border: 1px dashed var(--border);
+      border-radius: 4px; display: inline-block;
+    }
+    details.report-more > summary::-webkit-details-marker { display: none; }
+    details.report-more > summary::before { content: '▸ '; color: var(--text-faint); }
+    details.report-more[open] > summary::before { content: '▾ '; }
+    details.report-more[open] > summary { margin-bottom: 8px; }
+    details.report-more table.report-table { margin-top: 0; }
+    @media print { details.report-more { display: none; } }
+
     /* Print */
     @media print {
       body { background: white; color: #111; }
@@ -789,11 +807,26 @@
                   <td class="muted">{{ imp.note|truncate(120, true) }}</td>
                 </tr>
               {% endfor %}
-              {% if pe.suspicious_imports|length > 30 %}
-                <tr><td colspan="4" class="center">… and {{ pe.suspicious_imports|length - 30 }} more</td></tr>
-              {% endif %}
             </tbody>
           </table>
+          {% if pe.suspicious_imports|length > 30 %}
+            <details class="report-more">
+              <summary>… and {{ pe.suspicious_imports|length - 30 }} more (click to expand)</summary>
+              <table class="report-table">
+                <thead><tr><th>DLL</th><th>Function</th><th>Category</th><th>Note</th></tr></thead>
+                <tbody>
+                  {% for imp in pe.suspicious_imports[30:] %}
+                    <tr>
+                      <td class="mono">{{ imp.dll }}</td>
+                      <td class="mono">{{ imp.function }}</td>
+                      <td>{{ imp.category }}</td>
+                      <td class="muted">{{ imp.note|truncate(120, true) }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </details>
+          {% endif %}
         {% endif %}
       {% endif %}
     </section>
@@ -854,10 +887,25 @@
                   {% endif %}
                 </li>
               {% endfor %}
-              {% if yara.matches|length > 10 %}
-                <li class="muted">… and {{ yara.matches|length - 10 }} more</li>
-              {% endif %}
             </ul>
+            {% if yara.matches|length > 10 %}
+              <details class="report-more">
+                <summary>… and {{ yara.matches|length - 10 }} more (click to expand)</summary>
+                <ul class="finding-list">
+                  {% for m in yara.matches[10:] %}
+                    <li>
+                      <span class="finding-rule">{{ m.rule }}</span>
+                      {% if m.metadata and m.metadata.severity is defined %}
+                        <span class="finding-meta">severity {{ m.metadata.severity }}</span>
+                      {% endif %}
+                      {% if m.strings %}
+                        <span class="finding-meta">{{ m.strings|length }} string match{{ 'es' if m.strings|length != 1 else '' }}</span>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </details>
+            {% endif %}
           {% endif %}
         </div>
       </div>
@@ -946,7 +994,14 @@
                 {% if items %}
                   <h4 class="subsection-title mt-12">{{ label }} ({{ items|length }})</h4>
                   <pre class="code">{% for item in items[:100] %}{{ item }}
-{% endfor %}{% if items|length > 100 %}… and {{ items|length - 100 }} more{% endif %}</pre>
+{% endfor %}</pre>
+                  {% if items|length > 100 %}
+                    <details class="report-more">
+                      <summary>… and {{ items|length - 100 }} more (click to expand)</summary>
+                      <pre class="code">{% for item in items[100:] %}{{ item }}
+{% endfor %}</pre>
+                    </details>
+                  {% endif %}
                 {% endif %}
               {% endfor %}
             {% else %}
@@ -1111,11 +1166,28 @@
                     <td class="muted">{{ (f.details or '')|truncate(120, true) }}</td>
                   </tr>
                 {% endfor %}
-                {% if pa_findings|length > 15 %}
-                  <tr><td colspan="3" class="center">… and {{ pa_findings|length - 15 }} more</td></tr>
-                {% endif %}
               </tbody>
             </table>
+            {% if pa_findings|length > 15 %}
+              <details class="report-more">
+                <summary>… and {{ pa_findings|length - 15 }} more (click to expand)</summary>
+                <table class="report-table">
+                  <thead><tr><th>Type</th><th>Level</th><th>Details</th></tr></thead>
+                  <tbody>
+                    {% for f in pa_findings[15:] %}
+                      <tr>
+                        <td>{{ f.type or '—' }}</td>
+                        <td>
+                          {% set lvl = (f.level or '')|lower %}
+                          <span class="pill {% if lvl in ['critical','high','suspect'] %}critical{% elif lvl == 'medium' %}medium{% else %}muted{% endif %}">{{ f.level or '—' }}</span>
+                        </td>
+                        <td class="muted">{{ (f.details or '')|truncate(120, true) }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </details>
+            {% endif %}
           {% endif %}
         </div>
       </div>
@@ -1201,11 +1273,29 @@
                     <td>{% if d.verdict %}<span class="pill {% if is_threat %}critical{% else %}medium{% endif %}">{{ d.verdict }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
                   </tr>
                 {% endfor %}
-                {% if re_defender|length > 15 %}
-                  <tr><td colspan="4" class="center">… and {{ re_defender|length - 15 }} more</td></tr>
-                {% endif %}
               </tbody>
             </table>
+            {% if re_defender|length > 15 %}
+              <details class="report-more">
+                <summary>… and {{ re_defender|length - 15 }} more (click to expand)</summary>
+                <table class="report-table">
+                  <thead><tr><th>Provider</th><th>Event</th><th>Scan Target</th><th>Verdict</th></tr></thead>
+                  <tbody>
+                    {% for d in re_defender[15:] %}
+                      {% set evt = (d.event or '')|lower %}
+                      {% set is_threat = (d.verdict and (d.verdict|string)|trim) %}
+                      {% if not is_threat %}{% for s in threat_signals %}{% if s in evt %}{% set is_threat = true %}{% endif %}{% endfor %}{% endif %}
+                      <tr>
+                        <td class="mono">{{ d.provider or '—' }}</td>
+                        <td class="mono">{{ d.event or '—' }}</td>
+                        <td class="mono muted">{{ (d.scan_target or '—')|truncate(80, true) }}</td>
+                        <td>{% if d.verdict %}<span class="pill {% if is_threat %}critical{% else %}medium{% endif %}">{{ d.verdict }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </details>
+            {% endif %}
           {% endif %}
 
           {% if re_proc and (re_proc.pid or re_children) %}
@@ -1229,11 +1319,27 @@
                     <td class="mono muted">{{ n.size if n.size is not none else '—' }}</td>
                   </tr>
                 {% endfor %}
-                {% if re_net|length > 25 %}
-                  <tr><td colspan="5" class="center">… and {{ re_net|length - 25 }} more</td></tr>
-                {% endif %}
               </tbody>
             </table>
+            {% if re_net|length > 25 %}
+              <details class="report-more">
+                <summary>… and {{ re_net|length - 25 }} more (click to expand)</summary>
+                <table class="report-table">
+                  <thead><tr><th>Proto</th><th>Local</th><th>Remote</th><th>Op</th><th>Size</th></tr></thead>
+                  <tbody>
+                    {% for n in re_net[25:] %}
+                      <tr>
+                        <td class="mono">{{ n.proto or '?' }}</td>
+                        <td class="mono muted">{{ n.local_addr or '—' }}{% if n.local_port %}:{{ n.local_port }}{% endif %}</td>
+                        <td class="mono">{{ n.remote_addr or '—' }}{% if n.remote_port %}:{{ n.remote_port }}{% endif %}</td>
+                        <td class="mono muted">{{ n.operation or '—' }}</td>
+                        <td class="mono muted">{{ n.size if n.size is not none else '—' }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </details>
+            {% endif %}
           {% endif %}
 
           {% if re_files %}
@@ -1248,11 +1354,25 @@
                     <td class="mono muted">{{ f.thread_id if f.thread_id is not none else '—' }}</td>
                   </tr>
                 {% endfor %}
-                {% if re_files|length > 25 %}
-                  <tr><td colspan="3" class="center">… and {{ re_files|length - 25 }} more</td></tr>
-                {% endif %}
               </tbody>
             </table>
+            {% if re_files|length > 25 %}
+              <details class="report-more">
+                <summary>… and {{ re_files|length - 25 }} more (click to expand)</summary>
+                <table class="report-table">
+                  <thead><tr><th>Path</th><th>Operation</th><th>Thread</th></tr></thead>
+                  <tbody>
+                    {% for f in re_files[25:] %}
+                      <tr>
+                        <td class="mono" style="word-break: break-all;">{{ (f.path or '—')|truncate(120, true) }}</td>
+                        <td class="mono muted">{{ f.operation or '—' }}</td>
+                        <td class="mono muted">{{ f.thread_id if f.thread_id is not none else '—' }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </details>
+            {% endif %}
           {% endif %}
 
           {% if re_audit %}
@@ -1268,11 +1388,26 @@
                     <td class="mono muted">{{ a.caller_pid if a.caller_pid is not none else '—' }} / {{ a.caller_tid if a.caller_tid is not none else '—' }}</td>
                   </tr>
                 {% endfor %}
-                {% if re_audit|length > 25 %}
-                  <tr><td colspan="4" class="center">… and {{ re_audit|length - 25 }} more</td></tr>
-                {% endif %}
               </tbody>
             </table>
+            {% if re_audit|length > 25 %}
+              <details class="report-more">
+                <summary>… and {{ re_audit|length - 25 }} more (click to expand)</summary>
+                <table class="report-table">
+                  <thead><tr><th>API</th><th>Target PID</th><th>Target TID</th><th>Caller PID/TID</th></tr></thead>
+                  <tbody>
+                    {% for a in re_audit[25:] %}
+                      <tr>
+                        <td class="mono">{{ a.api or '—' }}</td>
+                        <td class="mono">{{ a.target_pid if a.target_pid is not none else '—' }}</td>
+                        <td class="mono muted">{{ a.target_tid if a.target_tid is not none else '—' }}</td>
+                        <td class="mono muted">{{ a.caller_pid if a.caller_pid is not none else '—' }} / {{ a.caller_tid if a.caller_tid is not none else '—' }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </details>
+            {% endif %}
           {% endif %}
         </div>
       </div>
@@ -1376,11 +1511,28 @@
                       <td class="mono muted">{{ a.detected_at or '—' }}</td>
                     </tr>
                   {% endfor %}
-                  {% if edr_alerts|length > 25 %}
-                    <tr><td colspan="4" class="center">… and {{ edr_alerts|length - 25 }} more</td></tr>
-                  {% endif %}
                 </tbody>
               </table>
+              {% if edr_alerts|length > 25 %}
+                <details class="report-more">
+                  <summary>… and {{ edr_alerts|length - 25 }} more (click to expand)</summary>
+                  <table class="report-table">
+                    <thead><tr><th>Severity</th><th>Rule</th><th>Rule ID</th><th>Detected</th></tr></thead>
+                    <tbody>
+                      {% for a in edr_alerts[25:] %}
+                        {% set sev = (a.severity or 'unknown')|lower %}
+                        {% set sev_class = 'critical' if sev in ('high', 'critical') else ('medium' if sev == 'medium' else 'muted') %}
+                        <tr>
+                          <td><span class="pill {{ sev_class }}">{{ sev|upper }}</span></td>
+                          <td>{{ a.title or 'Unknown alert' }}</td>
+                          <td class="mono muted">{{ a.rule_id or '—' }}</td>
+                          <td class="mono muted">{{ a.detected_at or '—' }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </details>
+              {% endif %}
             {% endif %}
 
             {% if edr_exec.stdout or edr_exec.stderr or edr_exec.message %}

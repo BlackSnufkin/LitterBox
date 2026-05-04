@@ -133,6 +133,12 @@ class RouteHelpers:
 
     def save_analysis_results(self, results, result_path, results_filename):
         results_file_path = os.path.join(result_path, results_filename)
+        # The result directory may have been deleted between the analyzer
+        # launch and this save (operator-triggered cleanup mid-run, or a
+        # `Run All` race). Re-create the directory rather than crashing —
+        # the operator can delete again if they want it gone. Alternative
+        # was an unhandled FileNotFoundError that took down the request.
+        os.makedirs(os.path.dirname(results_file_path), exist_ok=True)
         with open(results_file_path, 'w') as f:
             json.dump(results, f)
         self.logger.debug(f"Analysis results saved to: {results_file_path}")

@@ -290,14 +290,43 @@ function alertKey(a) {
     return a.rule_uuid || a.rule_id || `${a.detected_at}:${a.title}`;
 }
 
+// Defend malware-prevention alerts (event.action="creation",
+// event.code="malicious_file") are *about the file* — the writer
+// process recorded as `process.name` is incidental (often Whiskers
+// in our pipeline, since Whiskers writes the payload to disk).
+// Render the file as the row subject for these so the operator sees
+// "this alert is about <payload>", not "this alert is about Whiskers".
+function isFilePreventionAlert(d) {
+    if (!d) return false;
+    if (d.event_code === 'malicious_file') return true;
+    const cats = d.event_category;
+    const catList = Array.isArray(cats) ? cats : (cats ? [cats] : []);
+    if (d.event_action === 'creation' && catList.some(c => /malware/i.test(c))) {
+        return true;
+    }
+    return false;
+}
+
 function renderAlertRow(a, idx) {
     const d = a.details || {};
     const sevClass = severityTagClass(a.severity);
     const sevText  = String(a.severity || 'unknown').toUpperCase();
     const proc = d.process || {};
-    const procCell = proc.name
-        ? `${escapeHtml(proc.name)}${proc.pid != null ? ` <span class="lb-muted">(${proc.pid})</span>` : ''}`
-        : '—';
+    const file = d.file || {};
+
+    // Subject column: file for prevention alerts, process for behavior alerts.
+    let subjectCell;
+    if (isFilePreventionAlert(d) && file.name) {
+        const writer = proc.name && proc.name.toLowerCase() !== file.name.toLowerCase()
+            ? ` <span class="lb-muted">(writer: ${escapeHtml(proc.name)})</span>`
+            : '';
+        subjectCell = `${escapeHtml(file.name)}${writer}`;
+    } else {
+        subjectCell = proc.name
+            ? `${escapeHtml(proc.name)}${proc.pid != null ? ` <span class="lb-muted">(${proc.pid})</span>` : ''}`
+            : '—';
+    }
+    const procCell = subjectCell;
     const trigger = (() => {
         if (d.api && d.api.name) {
             return `<span class="lb-mono" style="font-size: 12px; color: var(--lb-accent-soft);">${escapeHtml(d.api.summary || d.api.name + '()')}</span>`;
