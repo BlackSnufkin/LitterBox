@@ -77,7 +77,7 @@ Bundled binaries under `Scanners/`. Versions and last-update dates tracked here 
 | [Moneta](https://github.com/forrest-orr/moneta) | `5b65395` | 2024-03-16 | forrest-orr/moneta |
 | [Patriot](https://github.com/joe-desimone/patriot) | — | 2024-12-29 | joe-desimone/patriot |
 | [Hunt-Sleeping-Beacons](https://github.com/thefLink/Hunt-Sleeping-Beacons) | `84dd3a9` | 2026-01-25 | thefLink/Hunt-Sleeping-Beacons |
-| [RedEdr](https://github.com/dobin/RedEdr) | 0.9 (release) | 2026-04-12 | dobin/RedEdr |
+| [RedEdr](https://github.com/dobin/RedEdr) | `3bd6b97` (EXE-only build) | 2026-05-03 | dobin/RedEdr |
 | [YARA](https://github.com/VirusTotal/yara/releases) (engine `yara64.exe`) | — | 2024-12-29 | VirusTotal/yara |
 | Elastic YARA rules (`Scanners/Yara/rules/elastic-yara/`) | `d131ea8` | 2026-04-30 | elastic/protections-artifacts |
 | YARA-Forge Extended (`Scanners/Yara/rules/YARAForge/`) | 0.9.1 (release `20260503`) | 2026-05-03 | YARAHQ/yara-forge |

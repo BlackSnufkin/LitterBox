@@ -93,6 +93,7 @@ All notable changes to this project will be documented in this file.
 - Hollows-Hunter refreshed to 0.4.1.2 (commit `e271f7e`, 2026-04-18)
 - Moneta refreshed (commit `5b65395`, 2024-03-16)
 - Hunt-Sleeping-Beacons refreshed (commit `84dd3a9`, 2026-01-25)
+- RedEdr switched from upstream release binary (0.9, 5.6 MB) to source-built EXE-only (`3bd6b97`, 2026-05-03, 640 KB) — Driver / DLL / PplService projects skipped (`/t:RedEdr`); LitterBox's RedEdr usage is ETW-only so the bundled components weren't needed
 - YARA rules restructured under `Scanners/Yara/rules/` into `elastic-yara/` and `YARAForge/` subdirs; orchestrator `LitterBox.yar` regenerated to match the new layout
 - Elastic YARA rules synced to upstream `d131ea8` (2026-04-30, 686 rules — 684 upstream + Morpes/Torii retained locally after Elastic rotated them out)
 - YARA-Forge bumped to 0.9.1 (release `20260503`, 2026-05-03) — separate `YARAForge_Extended.yar` pack alongside the Elastic rules
