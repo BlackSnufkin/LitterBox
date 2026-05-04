@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 
-from flask import Blueprint, Response, current_app, jsonify, redirect, render_template, request
+from flask import Blueprint, Response, current_app, jsonify, redirect, request
 
 from ..services.error_handling import error_handler
 from ..utils import path_manager, reporting
@@ -16,88 +16,52 @@ def _deps():
     return current_app.extensions['litterbox']
 
 
-@api_bp.route('/api/results/static/<target>', methods=['GET'])
+# File backing for each saved result-type. PID branch is special-cased
+# below (live-process dynamic analysis lives under dynamic_<pid>/).
+_RESULT_FILES = {
+    'info':      'file_info.json',
+    'static':    'static_analysis_results.json',
+    'dynamic':   'dynamic_analysis_results.json',
+    'holygrail': 'byovd_results.json',
+}
+
+
+@api_bp.route(
+    "/api/results/<any(info,static,dynamic,holygrail):result_type>/<target>",
+    methods=['GET'],
+)
 @error_handler
-def api_static_results(target):
+def api_saved_results(result_type, target):
+    """Return the saved JSON for one of the four file-backed result types.
+
+    Replaces the four near-identical handlers that used to live here. The
+    URL shape is preserved (`/api/results/<type>/<target>`), so existing
+    callers (frontend JS, GrumpyCats wrappers, MCP tools) don't change.
+    """
     app = current_app
-    app.logger.debug(f"Fetching static analysis results for target: {target}")
-    result_path = path_manager.find_file_by_hash(target, app.config['utils']['result_folder'])
-    if not result_path:
-        app.logger.warning(f"Static results not found for target: {target}")
-        return jsonify({'error': 'Results not found'}), 404
+    filename = _RESULT_FILES[result_type]
+    app.logger.debug(f"Fetching {result_type} results for target: {target}")
 
-    static_path = os.path.join(result_path, 'static_analysis_results.json')
-    if not os.path.exists(static_path):
-        app.logger.warning(f"Static analysis results not found for target: {target}")
-        return jsonify({'error': 'Static analysis results not found'}), 404
-
-    with open(static_path, 'r') as f:
-        app.logger.debug(f"Returning static analysis results for target: {target}")
-        return jsonify(json.load(f))
-
-
-@api_bp.route('/api/results/dynamic/<target>', methods=['GET'])
-@error_handler
-def api_dynamic_results(target):
-    app = current_app
-    app.logger.debug(f"Fetching dynamic analysis results for target: {target}")
-
-    if target.isdigit():
-        result_folder = os.path.join(app.config['utils']['result_folder'], f'dynamic_{target}')
-        dynamic_path = os.path.join(result_folder, 'dynamic_analysis_results.json')
+    # Live-PID dynamic analysis is the one special case — the folder is
+    # `dynamic_<pid>/` instead of being looked up by hash.
+    if result_type == 'dynamic' and target.isdigit():
+        json_path = os.path.join(
+            app.config['utils']['result_folder'], f'dynamic_{target}', filename,
+        )
     else:
-        result_path = path_manager.find_file_by_hash(target, app.config['utils']['result_folder'])
+        result_path = path_manager.find_file_by_hash(
+            target, app.config['utils']['result_folder']
+        )
         if not result_path:
-            app.logger.warning(f"Dynamic results not found for target: {target}")
+            app.logger.warning(f"{result_type} results not found for target: {target}")
             return jsonify({'error': 'Results not found'}), 404
-        dynamic_path = os.path.join(result_path, 'dynamic_analysis_results.json')
+        json_path = os.path.join(result_path, filename)
 
-    if not os.path.exists(dynamic_path):
-        app.logger.warning(f"Dynamic analysis results not found for target: {target}")
-        return jsonify({'error': 'Dynamic analysis results not found'}), 404
+    if not os.path.exists(json_path):
+        app.logger.warning(f"{result_type} results not found for target: {target}")
+        return jsonify({'error': f'{result_type} results not found'}), 404
 
-    with open(dynamic_path, 'r') as f:
-        app.logger.debug(f"Returning dynamic analysis results for target: {target}")
-        return jsonify(json.load(f))
-
-
-@api_bp.route('/api/results/info/<target>', methods=['GET'])
-@error_handler
-def api_file_info(target):
-    app = current_app
-    app.logger.debug(f"Fetching file info for target: {target}")
-    result_path = path_manager.find_file_by_hash(target, app.config['utils']['result_folder'])
-    if not result_path:
-        app.logger.warning(f"File info not found for target: {target}")
-        return jsonify({'error': 'File info not found'}), 404
-
-    file_info_path = os.path.join(result_path, 'file_info.json')
-    if not os.path.exists(file_info_path):
-        app.logger.warning(f"File info not found for target: {target}")
-        return jsonify({'error': 'File info not found'}), 404
-
-    with open(file_info_path, 'r') as f:
-        app.logger.debug(f"Returning file info for target: {target}")
-        return jsonify(json.load(f))
-
-
-@api_bp.route('/api/results/holygrail/<target>', methods=['GET'])
-@error_handler
-def api_byovd_info(target):
-    app = current_app
-    app.logger.debug(f"Fetching BYOVD info for target: {target}")
-    result_path = path_manager.find_file_by_hash(target, app.config['utils']['result_folder'])
-    if not result_path:
-        app.logger.warning(f"BYOVD info not found for target: {target}")
-        return jsonify({'error': 'File info not found'}), 404
-
-    file_info_path = os.path.join(result_path, 'byovd_results.json')
-    if not os.path.exists(file_info_path):
-        app.logger.warning(f"BYOVD info not found for target: {target}")
-        return jsonify({'error': 'File info not found'}), 404
-
-    with open(file_info_path, 'r') as f:
-        app.logger.debug(f"Returning BYOVD info for target: {target}")
+    with open(json_path, 'r') as f:
         return jsonify(json.load(f))
 
 
@@ -273,13 +237,6 @@ def generate_report(target):
 @api_bp.route('/report/<target>', methods=['GET'])
 @error_handler
 def report_page(target):
-    app = current_app
-    deps = _deps()
-    app.logger.debug(f"Redirecting to download report for target: {target}")
-
-    data, error_msg, is_error = deps.helpers.load_analysis_data(target)
-    if is_error:
-        app.logger.warning(f"Error loading data for report page: {error_msg}")
-        return render_template('error.html', error=error_msg), 404
-
+    """Convenience alias — redirects to the download form of /api/report/<target>.
+    Validation runs once at the redirect target; no need to double-load here."""
     return redirect(f'/api/report/{target}?download=true')
