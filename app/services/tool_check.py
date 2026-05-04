@@ -1,6 +1,51 @@
 # app/services/tool_check.py
-"""Tool/path validation helpers for the /health endpoint."""
+"""Tool/path validation + inventory helpers for the /health endpoint."""
 import os
+
+
+def scanner_inventory(analysis_cfg):
+    """Per-scanner inventory: enabled flag, configured path, exists-on-disk.
+
+    Walks the static + dynamic + holygrail sections of analysis config and
+    returns `(rows, counts)` for the unified /health response. Same shape as
+    the (now-removed) /api/system/scanners endpoint.
+    """
+    def _row(group, name, scanner_cfg):
+        tool_path = (scanner_cfg or {}).get('tool_path', '').strip()
+        enabled = bool((scanner_cfg or {}).get('enabled', False))
+        exists = bool(tool_path) and os.path.isfile(tool_path)
+        return {
+            'group': group,
+            'name': name,
+            'enabled': enabled,
+            'tool_path': tool_path,
+            'exists': exists,
+            'status': (
+                'ok' if enabled and exists else
+                'missing' if enabled and not exists else
+                'disabled'
+            ),
+        }
+
+    cfg = analysis_cfg or {}
+    rows = []
+    for group_key in ('static', 'dynamic'):
+        group_cfg = cfg.get(group_key) or {}
+        for scanner_name, scanner_cfg in group_cfg.items():
+            if isinstance(scanner_cfg, dict):
+                rows.append(_row(group_key, scanner_name, scanner_cfg))
+
+    holygrail = cfg.get('holygrail')
+    if isinstance(holygrail, dict):
+        rows.append(_row('holygrail', 'holygrail', holygrail))
+
+    counts = {
+        'total':    len(rows),
+        'ok':       sum(1 for r in rows if r['status'] == 'ok'),
+        'missing':  sum(1 for r in rows if r['status'] == 'missing'),
+        'disabled': sum(1 for r in rows if r['status'] == 'disabled'),
+    }
+    return rows, counts
 
 
 def check_analysis_tool(section, tool_name, issues, logger):

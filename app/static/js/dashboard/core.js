@@ -1,9 +1,8 @@
 // app/static/js/dashboard/core.js
 //
-// Drives the index dashboard. Polls /api/system/scanners for analyzer
-// availability and /api/edr/agents/status for live agent + Elastic state.
-// Auto-refreshes every 60s; the manual Refresh button forces an immediate
-// poll. Both fetches are kicked off in parallel.
+// Drives the index dashboard. Single /health fetch returns scanner
+// inventory + live EDR agent reachability in one shot. Auto-refreshes
+// every 60s; the manual Refresh button forces an immediate poll.
 
 const REFRESH_MS = 60000;
 let _refreshTimer = null;
@@ -27,7 +26,7 @@ function statusTagClass(status) {
 function renderScanners(payload) {
     const host = document.getElementById('scannersTable');
     if (!host) return;
-    const scanners = (payload && payload.scanners) || [];
+    const scanners = (payload && payload.rows) || [];
     const counts = (payload && payload.counts) || {};
     setText('scannersCount',
         `${counts.ok ?? 0} ok · ${counts.missing ?? 0} missing · ${counts.disabled ?? 0} disabled`);
@@ -119,23 +118,20 @@ async function refreshDashboard() {
     if (btn) btn.disabled = true;
 
     try {
-        const [scannersResp, agentsResp] = await Promise.all([
-            fetch('/api/system/scanners', { cache: 'no-store' }),
-            fetch('/api/edr/agents/status', { cache: 'no-store' }),
-        ]);
-
-        if (scannersResp.ok) {
-            renderScanners(await scannersResp.json());
-        } else {
+        // Single /health fetch returns both scanner inventory and EDR
+        // reachability. /health responds 200 (ok) or 503 (degraded) — both
+        // carry a usable payload, so we read JSON either way.
+        const resp = await fetch('/health', { cache: 'no-store' });
+        if (resp.status !== 200 && resp.status !== 503) {
             const host = document.getElementById('scannersTable');
             if (host) host.innerHTML =
-                `<div class="lb-muted">Failed to load scanners (HTTP ${scannersResp.status}).</div>`;
+                `<div class="lb-muted">Failed to load health (HTTP ${resp.status}).</div>`;
+            return;
         }
 
-        if (agentsResp.ok) {
-            const data = await agentsResp.json();
-            for (const agent of (data.agents || [])) applyAgentRow(agent);
-        }
+        const data = await resp.json();
+        renderScanners(data.scanners || {});
+        for (const agent of ((data.edr_agents || {}).agents || [])) applyAgentRow(agent);
     } catch (err) {
         console.error('[dashboard] refresh failed:', err);
     } finally {
@@ -175,9 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Pause the auto-refresh while the tab is hidden — no point pulling
-// /api/system/scanners + /api/edr/agents/status every minute when nobody's
-// looking. Resume on visible AND fire one immediate refresh so the user
-// sees fresh data the moment they come back.
+// /health every minute when nobody's looking. Resume on visible AND fire
+// one immediate refresh so the user sees fresh data the moment they come back.
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
         stopTimer();

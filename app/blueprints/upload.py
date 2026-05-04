@@ -11,8 +11,8 @@ upload_bp = Blueprint('upload', __name__)
 @upload_bp.route('/')
 def index():
     """System health dashboard: agents + scanner availability.
-    Live data is fetched async by the page's JS via /api/edr/agents/status
-    and /api/system/scanners."""
+    Live data is fetched async by the page's JS via /health (single
+    request returns scanner inventory + EDR agent reachability)."""
     deps = current_app.extensions['litterbox']
     return render_template(
         'dashboard.html',

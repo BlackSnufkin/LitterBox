@@ -55,9 +55,9 @@ class SystemMixin:
 
     def get_scanners_status(self) -> Dict:
         """Inventory of configured analyzers and whether their binaries
-        exist on disk (drives the dashboard scanner panel)."""
-        response = self._make_request("GET", "/api/system/scanners")
-        return response.json()
+        exist on disk. Returns the `scanners` field of the unified /health
+        response: `{rows: [...], counts: {...}}`."""
+        return (self.check_health() or {}).get("scanners", {"rows": [], "counts": {}})
 
     # ---- destructive ---------------------------------------------------
 

@@ -8,7 +8,11 @@ from datetime import datetime
 from flask import Blueprint, current_app, jsonify
 
 from ..services.error_handling import error_handler
-from ..services.tool_check import check_analysis_tool, check_holygrail_tool
+from ..services.tool_check import (
+    check_analysis_tool,
+    check_holygrail_tool,
+    scanner_inventory,
+)
 from ..utils import path_manager
 
 management_bp = Blueprint('management', __name__)
@@ -100,6 +104,16 @@ def cleanup():
 @management_bp.route('/health', methods=['GET'])
 @error_handler
 def health_check():
+    """Unified sandbox health: boot validation + scanner inventory + EDR agents.
+
+    Replaces the previous narrow scanner-config-only response. Three sections:
+      - `sandbox`  — upload folder + boot-config issues
+      - `scanners` — per-analyzer inventory (was `/api/system/scanners`)
+      - `edr_agents` — live agent + backend reachability
+                       (delegates to the same TTL-cached probe `/api/edr/agents/status` uses)
+    """
+    from ..services import edr_health
+
     app = current_app
     app.logger.debug("Starting health check.")
     config = app.config
@@ -127,15 +141,11 @@ def health_check():
 
     check_holygrail_tool(holygrail_section, issues, app.logger)
 
-    static_tools = {
-        tool: static_section.get(tool, {}).get('enabled', False)
-        for tool in static_section.keys()
-    }
-    dynamic_tools = {
-        tool: dynamic_section.get(tool, {}).get('enabled', False)
-        for tool in dynamic_section.keys()
-    }
-    holygrail_status = holygrail_section.get('enabled', False)
+    scanner_rows, scanner_counts = scanner_inventory(analysis_config)
+
+    deps = current_app.extensions['litterbox']
+    profiles = list(deps.edr_registry._PROFILES.values())
+    edr_snapshot = edr_health.get_status_snapshot(profiles)
 
     status = 'ok' if not issues else 'degraded'
     app.logger.debug(f"Health check completed. Status: {status}")
@@ -143,13 +153,15 @@ def health_check():
     return jsonify({
         'status': status,
         'timestamp': datetime.now().isoformat(),
-        'upload_folder_accessible': os.path.isdir(upload_folder) if upload_folder else False,
         'issues': issues,
-        'configuration': {
-            'static_analysis': static_tools,
-            'dynamic_analysis': dynamic_tools,
-            'holygrail_analysis': holygrail_status,
+        'sandbox': {
+            'upload_folder_accessible': os.path.isdir(upload_folder) if upload_folder else False,
         },
+        'scanners': {
+            'rows': scanner_rows,
+            'counts': scanner_counts,
+        },
+        'edr_agents': edr_snapshot,
     }), 200 if status == 'ok' else 503
 
 
