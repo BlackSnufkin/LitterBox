@@ -1,10 +1,14 @@
 # app/utils/forensics.py
-"""PE/Office forensic analysis: entropy, runtime detection, MalAPI lookup."""
+"""PE forensic analysis: entropy, runtime detection, MalAPI lookup.
+
+Office / LNK / HTML-smuggling analyzers live in their own modules
+(`utils/office.py`, `utils/lnk.py`, `utils/htmlsmuggle.py`) so each file-type
+inspector is self-contained and easy to maintain. This module is now strictly
+PE-focused.
+"""
 import json
 import math
 from collections import Counter
-
-from oletools.olevba import VBA_Parser
 
 
 # Known runtime imports for compiled languages — used to flag PE imports as
@@ -250,46 +254,6 @@ class SecurityAnalyzer:
             })
 
         return sections_info
-
-    def analyze_office_macros(self, filepath):
-        """Inspect Office VBA macros for suspicious patterns."""
-        try:
-            vbaparser = VBA_Parser(filepath)
-            detection_notes = []
-
-            info = {
-                'file_type': 'Microsoft Office Document',
-                'has_macros': vbaparser.detect_vba_macros(),
-                'macro_info': None,
-                'detection_notes': detection_notes,
-            }
-
-            if vbaparser.detect_vba_macros():
-                macro_analysis = vbaparser.analyze_macros()
-                info['macro_info'] = macro_analysis
-
-                macro_text = str(macro_analysis).lower()
-                detection_patterns = {
-                    'shell': 'Shell command execution detected',
-                    'wscript': 'WScript execution detected',
-                    'powershell': 'PowerShell execution detected',
-                    'http': 'Network communication detected',
-                    'auto': 'Auto-execution mechanism detected',
-                    'document_open': 'Document open auto-execution',
-                    'windowshide': 'Hidden window execution',
-                    'createobject': 'COM object creation detected',
-                }
-
-                for pattern, note in detection_patterns.items():
-                    if pattern in macro_text:
-                        detection_notes.append(note)
-
-            vbaparser.close()
-            return {'office_info': info}
-        except Exception as e:
-            print(f"Error analyzing Office file: {e}")
-            return {'office_info': None}
-
 
 _security_analyzer_cache = {}
 

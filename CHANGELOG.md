@@ -98,6 +98,13 @@ All notable changes to this project will be documented in this file.
 - Elastic YARA rules synced to upstream `d131ea8` (2026-04-30, 686 rules — 684 upstream + Morpes/Torii retained locally after Elastic rotated them out)
 - YARA-Forge bumped to 0.9.1 (release `20260503`, 2026-05-03) — separate `YARAForge_Extended.yar` pack alongside the Elastic rules
 
+### File-type analyzers
+- HTML smuggling analyzer (`app/utils/htmlsmuggle.py`) — pattern set + scoring model ported from RootUp/SmuggleShield. Runs at upload time on `.html` / `.htm` files. Catches in-page payload assembly (atob → Uint8Array → Blob → URL.createObjectURL → `<a download>` click), GWT smuggling artifacts, WebAssembly drop chains, dataset-driven payload tags, and ~80 other regex signatures. Output lands in `file_info.html_smuggle_info`.
+- Office macro detail surfacing — the existing olevba pipeline now exposes per-module VBA source, autoexec triggers, suspicious keyword hits, and IOCs as structured tables on the upload-result page (was previously only a one-line "5 auto-execution triggers detected" summary).
+- T1221 Remote Template Injection detection — `_scan_external_relationships` walks every OOXML container's `*.rels` files looking for external `attachedTemplate` / `oleObject` / `subDocument` / `frame` references. Catches Atomic Red Team's `Calculator.docx` (and the wider class) where `has_macros: false` but the malicious VBA lives in a remote `.dotm`.
+- File-type analyzers split into dedicated modules — `utils/office.py`, `utils/lnk.py`, `utils/htmlsmuggle.py`. `forensics.py` is now strictly PE / MalAPI / entropy. Re-exports preserved through `app/utils/__init__.py` so existing call sites keep working.
+- `allowed_extensions` expanded to cover macro-enabled Office (`docm`, `dotm`, `xlsm`, `xltm`), legacy CFBF binaries (`doc`, `xls`, `rtf`), and HTML (`html`, `htm`). Upload page now gates analysis tabs by file family: office + html files only show Static (Dynamic / EDR aren't relevant for these without an Office install on the target host); driver files keep the existing static-driver + HolyGrail flow.
+
 ### Notes
 - New runtime dependency: `requests==2.32.3`
 - Whiskers binary not committed — build via `cargo build --release` (see `Whiskers/BUILD.md`)

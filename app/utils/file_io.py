@@ -1,5 +1,15 @@
 # app/utils/file_io.py
-"""File ingestion: type detection, PE/Office/LNK metadata, upload handling."""
+"""File ingestion: type detection, upload handling.
+
+Per-file-type inspectors (PE / Office / LNK / HTML-smuggling) are dispatched
+from `save_uploaded_file` based on the detected family. Each inspector lives
+in its own module:
+
+  * PE                  -- get_pe_info (this module, uses forensics.SecurityAnalyzer)
+  * Office              -- utils/office.py  (get_office_info)
+  * LNK                 -- utils/lnk.py     (get_lnk_info)
+  * HTML smuggling      -- utils/htmlsmuggle.py (get_html_smuggle_info)
+"""
 import datetime
 import hashlib
 import json
@@ -11,8 +21,10 @@ import struct
 import pefile
 from werkzeug.utils import secure_filename
 
-from ..analyzers.static.lnk_parser import LnkForensics
 from .forensics import calculate_entropy, get_security_analyzer
+from .htmlsmuggle import get_html_smuggle_info
+from .lnk import get_lnk_info
+from .office import get_office_info
 from .risk_analyzer import RiskCalculator
 
 
@@ -41,6 +53,12 @@ class FileTypeDetector:
                 return cls._detect_zip_type(filepath)
             elif header.startswith(cls.LNK_HEADER):
                 return cls._detect_lnk_type(filepath)
+
+            # HTML / HTM detection -- file-extension based since HTML has no
+            # consistent magic. Cheap to check after the binary-header tests
+            # already missed.
+            if p.suffix.lower() in ('.html', '.htm'):
+                return {"family": "html", "type": p.suffix.lower().lstrip('.')}
 
             return {"family": "unknown", "type": "unknown"}
 
@@ -142,8 +160,20 @@ class FileTypeDetector:
                         "visio/document.xml": "vsdx",
                     }
 
+                    # Flag macro-enabled OOXML by presence of vbaProject.bin --
+                    # promotes docx/xlsx/pptx -> docm/xlsm/pptm so the dashboard
+                    # Type field reflects what's actually in the container.
+                    has_vba = any(n.endswith("vbaproject.bin") for n in names)
+                    macro_enabled_map = {
+                        "docx": "docm",
+                        "xlsx": "xlsm",
+                        "pptx": "pptm",
+                    }
+
                     for path, file_type in ooxml_types.items():
                         if path in names:
+                            if has_vba and file_type in macro_enabled_map:
+                                file_type = macro_enabled_map[file_type]
                             return {"family": "office", "type": file_type}
 
                     return {"family": "office", "type": "ooxml-unknown"}
@@ -331,24 +361,9 @@ def _build_pe_detection_notes(is_valid_checksum, suspicious_imports,
     return detection_notes
 
 
-def get_office_info(filepath, malapi_path):
-    """Analyze Office macros (delegates to SecurityAnalyzer)."""
-    return get_security_analyzer(malapi_path).analyze_office_macros(filepath)
-
-
-def get_lnk_info(filepath):
-    """Analyze a Windows .LNK shortcut for forensic data."""
-    try:
-        lnk = LnkForensics(filepath)
-        if not lnk.is_valid():
-            return {'lnk_info': None}
-
-        forensic_data = lnk.get_forensic_data()
-        return {'lnk_info': forensic_data}
-
-    except Exception as e:
-        print(f"Error analyzing LNK file: {e}")
-        return {'lnk_info': None}
+# Office / LNK / HTML-smuggling inspectors live in their own modules
+# (imported at the top of this file). PE inspection stays here because it's
+# tightly coupled to the SecurityAnalyzer cache (MalAPI lookup + entropy).
 
 
 def _build_entropy_analysis(entropy_value):
@@ -455,6 +470,11 @@ def save_uploaded_file(file, config):
         lnk_result = get_lnk_info(filepath)
         if 'error' not in lnk_result:
             file_info.update(lnk_result)
+
+    elif file_type_info['family'] == 'html':
+        # Always update -- get_html_smuggle_info returns a usable dict even
+        # for clean files (just with is_smuggling=false / score=0).
+        file_info.update(get_html_smuggle_info(filepath))
 
     with open(os.path.join(result_folder, filename, 'file_info.json'), 'w') as f:
         json.dump(file_info, f)

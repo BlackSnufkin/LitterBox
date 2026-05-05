@@ -8,8 +8,6 @@ Prefer importing directly from submodules in new code:
 from .file_io import (
     FileTypeDetector,
     detect_file_type,
-    get_lnk_info,
-    get_office_info,
     get_pe_info,
     save_uploaded_file,
 )
@@ -19,6 +17,9 @@ from .forensics import (
     calculate_entropy,
     get_security_analyzer,
 )
+from .htmlsmuggle import get_html_smuggle_info
+from .lnk import get_lnk_info
+from .office import get_office_info
 from .json_helpers import (
     extract_detection_counts,
     format_hex,
@@ -41,7 +42,7 @@ __all__ = [
     'allowed_file', 'calculate_entropy', 'calculate_risk', 'calculate_yara_risk',
     'check_tool', 'detect_file_type', 'extract_detection_counts',
     'find_file_by_hash', 'format_hex', 'format_size', 'generate_html_report',
-    'get_entropy_risk_level', 'get_lnk_info', 'get_office_info', 'get_pe_info',
-    'get_risk_level', 'get_security_analyzer', 'load_json_file',
-    'save_uploaded_file', 'validate_pid',
+    'get_entropy_risk_level', 'get_html_smuggle_info', 'get_lnk_info',
+    'get_office_info', 'get_pe_info', 'get_risk_level',
+    'get_security_analyzer', 'load_json_file', 'save_uploaded_file', 'validate_pid',
 ]

@@ -75,7 +75,7 @@
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h7"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 16l3 3 5-5"/></svg>
                 All
             </button>
-            <button type="button" class="lb-tab" data-mode="static" data-family="regular">
+            <button type="button" class="lb-tab" data-mode="static" data-family="regular office html">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 Static
             </button>
@@ -361,6 +361,16 @@
                 </div>
                 <div id="macroDetectionNotes" style="font-size: 12px; color: var(--lb-text-dim); margin-bottom: 6px;"></div>
                 <div id="macroInfo" style="font-size: 12px; color: var(--lb-text-dim);"></div>
+            </div>
+
+            <!-- HTML smuggling info -->
+            <div id="htmlSmuggleInfo" class="hidden" style="border: 1px solid var(--lb-border); padding: 12px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span class="lb-eyebrow">HTML Smuggling Analysis</span>
+                    <span id="smuggleStatus" class="lb-tag muted"></span>
+                </div>
+                <div id="smuggleDetectionNotes" style="font-size: 12px; color: var(--lb-text-dim); margin-bottom: 6px;"></div>
+                <div id="smuggleInfo" style="font-size: 12px; color: var(--lb-text-dim);"></div>
             </div>
 
             <!-- File-specific info -->

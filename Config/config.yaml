@@ -8,13 +8,26 @@ application:
 
 utils:
   allowed_extensions:
+    # Executables / loaders / drivers
     - exe
     - dll
     - bin
-    - docx
-    - xlsx
-    - lnk
     - sys
+    - lnk
+    # Word (OOXML + legacy CFBF)
+    - docx        # no macros per spec, but still uploadable for T1221 template injection samples
+    - docm        # macro-enabled
+    - dotm        # template macro-enabled (T1221 target)
+    - doc         # Word 97-2003 -- frequently weaponised with VBA macros
+    - rtf         # Rich Text Format -- OLE-embedded payloads, T1203 patterns
+    # Excel (OOXML + legacy CFBF)
+    - xlsx        # no macros per spec; still routed through olevba in case of XLM smuggling
+    - xlsm        # macro-enabled
+    - xltm        # template macro-enabled
+    - xls         # Excel 97-2003 -- carries VBA + Excel 4.0 / XLM macros
+    # HTML / HTML Application -- routed through the SmuggleShield-derived static analyzer
+    - html        # plain HTML
+    - htm         # alternate HTML extension
   max_file_size: 104857600  # 100MB in bytes
   upload_folder: "Uploads"
   result_folder: "Results"

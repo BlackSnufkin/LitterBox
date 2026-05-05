@@ -64,6 +64,10 @@ document.addEventListener('DOMContentLoaded', function() {
         officeInfo: document.getElementById('officeInfo'),
         macroStatus: document.getElementById('macroStatus'),
         macroDetectionNotes: document.getElementById('macroDetectionNotes'),
+        htmlSmuggleInfo: document.getElementById('htmlSmuggleInfo'),
+        smuggleStatus: document.getElementById('smuggleStatus'),
+        smuggleDetectionNotes: document.getElementById('smuggleDetectionNotes'),
+        smuggleInfo: document.getElementById('smuggleInfo'),
         checksumInfo: document.getElementById('checksumInfo'),
         checksumStatus: document.getElementById('checksumStatus'),
         storedChecksum: document.getElementById('storedChecksum'),
@@ -193,19 +197,42 @@ document.addEventListener('DOMContentLoaded', function() {
     //
     // The analysis-mode selector is a single segmented control with one tab
     // per mode (Static / Dynamic / each EDR profile / HolyGrail). Each tab
-    // is tagged data-family="regular" or "driver"; we only show the family
-    // matching the uploaded file. The first visible tab becomes active.
+    // is tagged with one or more `data-family` values (space-separated) and
+    // only tabs matching the uploaded file's family are shown.
+    //
+    // Four families:
+    //   driver  -- .sys (-> static-driver, holygrail)
+    //   office  -- Word / Excel macro-bearing documents (-> static only;
+    //              dynamic / EDR don't make sense without an Office install
+    //              on the target host -- olevba is the relevant scanner)
+    //   html    -- .html / .htm (-> static only; SmuggleShield-derived
+    //              pattern analyzer runs at upload time as html_smuggle_info)
+    //   regular -- everything else (-> all / static / dynamic / edr:*)
+    const DRIVER_EXTS = new Set(['sys']);
+    const OFFICE_EXTS = new Set([
+        'docx', 'docm', 'dotm', 'doc', 'rtf',
+        'xlsx', 'xlsm', 'xltm', 'xls',
+    ]);
+    const HTML_EXTS = new Set(['html', 'htm']);
+
     function updateAnalysisOptions(fileExtension) {
-        isDriverFile = fileExtension.toLowerCase() === 'sys';
-        const family = isDriverFile ? 'driver' : 'regular';
+        const ext = (fileExtension || '').toLowerCase();
+        isDriverFile = DRIVER_EXTS.has(ext);
+        const family = isDriverFile ? 'driver'
+                     : OFFICE_EXTS.has(ext) ? 'office'
+                     : HTML_EXTS.has(ext)   ? 'html'
+                     : 'regular';
 
         const tabs = document.querySelectorAll('#modeTabs .lb-tab');
         const bodies = document.querySelectorAll('.lb-mode-body');
 
-        // Show only tabs for this file family; active state moves to first.
+        // Show only tabs whose `data-family` list contains this file's family.
+        // Multiple families are space-separated (e.g. `regular office` for the
+        // Static tab, which serves both classes).
         let firstVisible = null;
         tabs.forEach(t => {
-            const matches = t.dataset.family === family;
+            const families = (t.dataset.family || '').split(/\s+/);
+            const matches = families.includes(family);
             t.classList.toggle('hidden', !matches);
             t.classList.remove('active');
             if (matches && !firstVisible) firstVisible = t;
@@ -245,6 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderFileTypeSpecificInfo(fileInfo) {
         elements.peInfo.classList.add('hidden');
         elements.officeInfo.classList.add('hidden');
+        if (elements.htmlSmuggleInfo) elements.htmlSmuggleInfo.classList.add('hidden');
         elements.suspiciousImports.classList.add('hidden');
 
         if (fileInfo.entropy_analysis) {
@@ -359,24 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         else if (fileInfo.office_info) {
             elements.officeInfo.classList.remove('hidden');
-            const office = fileInfo.office_info;
-
-            elements.macroStatus.className = `px-3 py-1 text-sm rounded-full ${
-                office.has_macros ? 'bg-red-500/8 text-red-300 border border-red-500/22' : 'bg-green-500/8 text-green-300 border border-green-500/22'
-            }`;
-            elements.macroStatus.textContent = office.has_macros ? 'Macros Present' : 'No Macros';
-
-            if (office.detection_notes && office.detection_notes.length > 0) {
-                elements.macroDetectionNotes.innerHTML = office.detection_notes.map(note => `
-                    <div class="flex items-center space-x-2">
-                        <svg class="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                        <span>${note}</span>
-                    </div>
-                `).join('');
-            }
+            renderOfficeInfo(fileInfo.office_info);
         }
         else if (fileInfo.lnk_info) {
             // Show LNK-specific information section
@@ -384,6 +395,293 @@ document.addEventListener('DOMContentLoaded', function() {
             lnkInfoSection.classList.remove('hidden');
             renderLnkInfo(fileInfo.lnk_info);
         }
+        else if (fileInfo.html_smuggle_info) {
+            const htmlSection = document.getElementById('htmlSmuggleInfo');
+            if (htmlSection) htmlSection.classList.remove('hidden');
+            renderHtmlSmuggleInfo(fileInfo.html_smuggle_info);
+        }
+    }
+
+    // -- Office macro / template-injection rendering --------------------
+    //
+    // Surfaces every non-empty piece of the `office_info` structure:
+    //   * Status pill: Macros Present / No Macros
+    //   * Detection notes (one-line summaries)
+    //   * Autoexec triggers           (table: keyword + description)
+    //   * Suspicious keywords         (table: keyword + description)
+    //   * IOCs                        (table: type + value)
+    //   * External refs               (table: relationship + target -- T1221 etc.)
+    //   * Per-module VBA source code  (collapsible <details>)
+    //   * Hex / Base64 / VBA strings  (collapsible)
+    //
+    // The DOM container (#officeInfo) already exists in upload.html; this
+    // function rewrites #macroDetectionNotes (status notes) and #macroInfo
+    // (detail blocks) every time it runs.
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => (
+            { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+        ));
+    }
+
+    function macroSeverityClass(office) {
+        // Treat external attachedTemplate references and live macros as the
+        // strong signals. Everything else goes "info".
+        if (office.has_macros) return 'critical';
+        if ((office.external_refs || []).some(r => r.relationship === 'attachedTemplate')) return 'critical';
+        if ((office.external_refs || []).length > 0) return 'medium';
+        return 'low';
+    }
+
+    function renderTable(headers, rows) {
+        if (!rows.length) return '';
+        const head = headers.map(h => `<th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--lb-border);font-size:11px;color:var(--lb-text-dim);text-transform:uppercase;letter-spacing:0.5px;">${escapeHtml(h)}</th>`).join('');
+        const body = rows.map(r => `<tr>${r.map(c => `<td style="padding:4px 8px;font-size:12px;vertical-align:top;border-bottom:1px solid rgba(255,255,255,0.04);">${c}</td>`).join('')}</tr>`).join('');
+        return `<table style="width:100%;border-collapse:collapse;margin:6px 0 12px 0;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function renderSection(title, body, opts) {
+        opts = opts || {};
+        if (!body) return '';
+        const collapsible = opts.collapsible;
+        const open = opts.open === undefined ? false : opts.open;
+        const heading = `<div style="font-size:11px;color:var(--lb-text-dim);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 4px 0;">${escapeHtml(title)}</div>`;
+        if (collapsible) {
+            return `${heading}<details ${open ? 'open' : ''} style="border:1px solid var(--lb-border);padding:8px;border-radius:3px;background:rgba(255,255,255,0.02);"><summary style="cursor:pointer;font-size:12px;color:var(--lb-text);">${escapeHtml(opts.summary || 'show')}</summary>${body}</details>`;
+        }
+        return `${heading}${body}`;
+    }
+
+    function renderOfficeInfo(office) {
+        // Status pill
+        const sev = macroSeverityClass(office);
+        const sevClassMap = {
+            critical: 'bg-red-500/8 text-red-300 border border-red-500/22',
+            medium:   'bg-yellow-500/8 text-yellow-300 border border-yellow-500/22',
+            low:      'bg-green-500/8 text-green-300 border border-green-500/22',
+        };
+        elements.macroStatus.className = `px-3 py-1 text-sm rounded-full ${sevClassMap[sev]}`;
+        elements.macroStatus.textContent = office.has_macros
+            ? 'Macros Present'
+            : ((office.external_refs || []).length > 0 ? 'External Refs' : 'No Macros');
+
+        // Top-level detection notes (one-line summaries)
+        const notes = office.detection_notes || [];
+        elements.macroDetectionNotes.innerHTML = notes.map(note => `
+            <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:3px;">
+                <span style="color:var(--lb-warn);">⚠</span>
+                <span>${escapeHtml(note)}</span>
+            </div>
+        `).join('');
+
+        // Detailed sections
+        const macroInfo = document.getElementById('macroInfo');
+        if (!macroInfo) return;
+        const parts = [];
+
+        // External references (T1221 etc.) -- shown FIRST when present
+        // since they're often the only signal for documents that have no VBA.
+        const refs = office.external_refs || [];
+        if (refs.length > 0) {
+            const rows = refs.map(r => [
+                `<span class="lb-tag ${r.relationship === 'attachedTemplate' ? 'critical' : 'medium'}">${escapeHtml(r.relationship)}</span>`,
+                `<span class="lb-mono" style="word-break:break-all;font-size:11px;"><a href="${escapeHtml(r.target)}" target="_blank" rel="noopener noreferrer" style="color:var(--lb-accent-soft);">${escapeHtml(r.target)}</a></span>`,
+                `<span class="lb-mono" style="font-size:11px;color:var(--lb-text-dim);">${escapeHtml(r.rels_file)}</span>`,
+            ]);
+            parts.push(renderSection('External References (Remote Targets)', renderTable(['Relationship', 'Target', 'In .rels'], rows)));
+        }
+
+        const a = office.analysis || {};
+
+        // Autoexec triggers
+        if ((a.autoexec || []).length > 0) {
+            const rows = a.autoexec.map(e => [
+                `<span class="lb-tag critical">${escapeHtml(e.keyword || '?')}</span>`,
+                `<span style="font-size:12px;">${escapeHtml(e.description || '')}</span>`,
+            ]);
+            parts.push(renderSection(`Auto-Execution Triggers (${a.autoexec.length})`, renderTable(['Keyword', 'Description'], rows)));
+        }
+
+        // Suspicious keywords
+        if ((a.suspicious || []).length > 0) {
+            const rows = a.suspicious.map(e => [
+                `<span class="lb-tag medium">${escapeHtml(e.keyword || '?')}</span>`,
+                `<span style="font-size:12px;">${escapeHtml(e.description || '')}</span>`,
+            ]);
+            parts.push(renderSection(`Suspicious Keywords (${a.suspicious.length})`, renderTable(['Keyword', 'Description'], rows)));
+        }
+
+        // IOCs (URLs, IPs, EXEs, etc. that olevba pulled out of the macro body)
+        if ((a.iocs || []).length > 0) {
+            const rows = a.iocs.map(ioc => [
+                `<span class="lb-tag info">${escapeHtml(ioc.type || '?')}</span>`,
+                `<span class="lb-mono" style="word-break:break-all;font-size:11px;">${escapeHtml(ioc.value || '')}</span>`,
+            ]);
+            parts.push(renderSection(`IOCs Extracted from Macro (${a.iocs.length})`, renderTable(['Type', 'Value'], rows)));
+        }
+
+        // Hex / Base64 / VBA-encoded strings (decoded by olevba)
+        const stringSets = [
+            ['Hex Strings', a.hex_strings || []],
+            ['Base64 Strings', a.base64_strings || []],
+            ['VBA-Encoded Strings', a.vba_strings || []],
+        ];
+        for (const [label, items] of stringSets) {
+            if (items.length === 0) continue;
+            const body = items.map(e => `<div class="lb-mono" style="word-break:break-all;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><strong>${escapeHtml(e.keyword || '')}:</strong> ${escapeHtml(e.description || '')}</div>`).join('');
+            parts.push(renderSection(`${label} (${items.length})`, body, { collapsible: true, summary: `${items.length} item(s) -- click to expand` }));
+        }
+
+        // Per-module VBA source code -- collapsible
+        const modules = office.modules || [];
+        if (modules.length > 0) {
+            const body = modules.map(m => `
+                <div style="margin-top:8px;">
+                    <div style="font-size:12px;color:var(--lb-text);margin-bottom:4px;">
+                        <span class="lb-mono" style="color:var(--lb-accent-soft);">${escapeHtml(m.vba_filename || '?')}</span>
+                        <span class="lb-muted" style="font-size:11px;"> -- ${escapeHtml(m.stream || '')}</span>
+                    </div>
+                    <pre style="background:rgba(0,0,0,0.3);padding:8px;border:1px solid var(--lb-border);font-size:11px;overflow-x:auto;max-height:240px;overflow-y:auto;white-space:pre-wrap;color:var(--lb-text);">${escapeHtml(m.code || '')}</pre>
+                </div>
+            `).join('');
+            parts.push(renderSection(`VBA Source (${modules.length} module${modules.length !== 1 ? 's' : ''})`, body, { collapsible: true, summary: `${modules.length} module(s) -- click to view source code` }));
+        }
+
+        macroInfo.innerHTML = parts.join('');
+    }
+
+    // -- HTML smuggling rendering --------------------------------------
+    //
+    // Surfaces every non-empty piece of the `html_smuggle_info` structure
+    // produced by app/utils/htmlsmuggle.py:
+    //   * Status pill: SMUGGLING / SUSPICIOUS / CLEAN with score
+    //   * Detection notes (one-line summaries)
+    //   * Score bar + matched-categories pill row
+    //   * Matched patterns         (table: name + category + weight)
+    //   * Surface features         (table: feature + value)
+    //   * IOCs                     (download filenames, dataset blobs, largest base64 preview)
+    //
+    // Reuses the renderTable / renderSection / escapeHtml helpers defined
+    // for the office macro renderer.
+    function smuggleSeverityClass(h) {
+        if (h.is_smuggling) return 'critical';
+        if ((h.score || 0) > 0) return 'medium';
+        return 'low';
+    }
+
+    function renderHtmlSmuggleInfo(h) {
+        // Status pill
+        const sev = smuggleSeverityClass(h);
+        const sevClassMap = {
+            critical: 'bg-red-500/8 text-red-300 border border-red-500/22',
+            medium:   'bg-yellow-500/8 text-yellow-300 border border-yellow-500/22',
+            low:      'bg-green-500/8 text-green-300 border border-green-500/22',
+        };
+        if (elements.smuggleStatus) {
+            elements.smuggleStatus.className = `px-3 py-1 text-sm rounded-full ${sevClassMap[sev]}`;
+            const label = h.is_smuggling
+                ? `SMUGGLING (score ${h.score}/${h.threshold})`
+                : (h.score > 0 ? `SUSPICIOUS (score ${h.score}/${h.threshold})` : 'CLEAN');
+            elements.smuggleStatus.textContent = label;
+        }
+
+        // Detection notes
+        const notes = h.detection_notes || [];
+        if (elements.smuggleDetectionNotes) {
+            elements.smuggleDetectionNotes.innerHTML = notes.map(note => `
+                <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:3px;">
+                    <span style="color:var(--lb-warn);">⚠</span>
+                    <span>${escapeHtml(note)}</span>
+                </div>
+            `).join('');
+        }
+
+        // Detail blocks
+        const host = elements.smuggleInfo;
+        if (!host) return;
+        const parts = [];
+
+        // Score line + matched-category pills
+        const cats = h.matched_categories || {};
+        if (Object.keys(cats).length > 0) {
+            const pills = Object.entries(cats).map(([cat, count]) =>
+                `<span class="lb-tag medium" style="margin-right:4px;">${escapeHtml(cat)} × ${count}</span>`
+            ).join(' ');
+            parts.push(renderSection('Pattern Categories', `<div style="padding:4px 0;">${pills}</div>`));
+        }
+
+        // Matched patterns -- the actual signatures that fired
+        const matches = h.matched_patterns || [];
+        if (matches.length > 0) {
+            const rows = matches.map(m => [
+                `<span class="lb-mono" style="font-size:11px;">${escapeHtml(m.name)}</span>`,
+                `<span class="lb-tag info">${escapeHtml(m.category || '?')}</span>`,
+                `<span class="lb-mono" style="font-size:11px;">+${m.weight || 0}</span>`,
+            ]);
+            parts.push(renderSection(`Matched Patterns (${matches.length})`, renderTable(['Pattern', 'Category', 'Weight'], rows)));
+        }
+
+        // Surface features
+        const f = h.features || {};
+        if (Object.keys(f).length > 0) {
+            const featureRows = [
+                ['File size (bytes)', f.file_size],
+                ['Script tags', f.script_tags],
+                ['iframe tags', f.iframe_tags],
+                ['embed tags', f.embed_tags],
+                ['Base64 blob count (>=50 chars)', f.base64_blob_count],
+                ['Largest base64 blob (chars)', f.largest_base64_chars],
+                ['Has blob()', f.has_blob],
+                ['Has atob()', f.has_atob],
+                ['Has Uint8Array', f.has_uint8array],
+                ['Has URL.createObjectURL', f.has_createobjecturl],
+                ['Has <a download="...">', f.has_download_attr],
+                ['Has String.fromCharCode', f.has_fromcharcode],
+            ].filter(([, v]) => v !== undefined && v !== null && v !== false && v !== 0)
+             .map(([label, v]) => [
+                `<span style="font-size:12px;">${escapeHtml(label)}</span>`,
+                `<span class="lb-mono" style="font-size:12px;">${escapeHtml(String(v))}</span>`,
+             ]);
+            if (featureRows.length > 0) {
+                parts.push(renderSection('Surface Features', renderTable(['Feature', 'Value'], featureRows)));
+            }
+        }
+
+        // IOCs
+        const iocs = h.iocs || {};
+        const iocBits = [];
+        if ((iocs.download_filenames || []).length > 0) {
+            const rows = iocs.download_filenames.map(name => [
+                `<span class="lb-tag medium">download=</span>`,
+                `<span class="lb-mono" style="word-break:break-all;font-size:11px;">${escapeHtml(name)}</span>`,
+            ]);
+            iocBits.push(renderTable(['Type', 'Value'], rows));
+        }
+        if ((iocs.data_file_attrs || []).length > 0) {
+            const rows = iocs.data_file_attrs.map(d => [
+                `<span class="lb-tag medium">data-file=</span>`,
+                `<span class="lb-mono" style="word-break:break-all;font-size:11px;">${escapeHtml(d)}</span>`,
+            ]);
+            iocBits.push(renderTable(['Type', 'Value (truncated)'], rows));
+        }
+        if (iocs.largest_base64_blob && iocs.largest_base64_blob.length > 0) {
+            const b = iocs.largest_base64_blob;
+            iocBits.push(`
+                <div class="lb-mono" style="font-size:11px;padding:4px 0;">
+                    <div><strong>Largest base64 blob:</strong> ${b.length} chars</div>
+                    <div style="margin-top:4px;color:var(--lb-text-dim);">First 120: <span style="color:var(--lb-text);word-break:break-all;">${escapeHtml(b.preview_first_120)}</span></div>
+                    ${b.preview_last_120 ? `<div style="margin-top:4px;color:var(--lb-text-dim);">Last 120: <span style="color:var(--lb-text);word-break:break-all;">${escapeHtml(b.preview_last_120)}</span></div>` : ''}
+                </div>
+            `);
+        }
+        if (iocBits.length > 0) {
+            parts.push(renderSection('IOCs', iocBits.join('')));
+        }
+
+        if (h.truncated) {
+            parts.push(`<div class="lb-muted" style="font-size:11px;margin-top:8px;">⚠ Scan was truncated -- file exceeds the 5 MiB cap.</div>`);
+        }
+
+        host.innerHTML = parts.join('');
     }
 
     function getRuntimeConfig(buildWith) {
